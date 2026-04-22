@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Base.Theme.TouchGrass">
+
+        <!-- Pantalla de inicio -->
+
+        <activity
+            android:name=".activities.OnboardingActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".activities.HomeActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Pantalla WebView Instagram -->
+        <activity
+            android:name=".activities.MainActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Settings -->
+        <activity
+            android:name=".activities.SettingsActivity"
+            android:exported="false"
+            android:label="Settings" />
+
+        <activity
+            android:name=".activities.LimitReachedActivity"
+            android:exported="false"
+            android:theme="@style/Base.Theme.TouchGrass" />
+
+        <activity
+            android:name=".activities.DmRedirectActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Translucent" />
+
+    </application>
+
+</manifest>
