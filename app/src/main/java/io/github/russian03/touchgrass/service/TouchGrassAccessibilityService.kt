@@ -30,10 +30,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private var lastActionAt = 0L
     private var lastDumpedIds: Set<String> = emptySet()
 
-    // Sesión de uso: el césped crece la primera vez que se bloquea algo en cada sesión.
-    private var lastEventAt = 0L
-    private var grassGrownThisSession = false
-
     override fun onServiceConnected() {
         super.onServiceConnected()
         engine = RuleEngine(ruleRepository.load())
@@ -42,7 +38,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         if (!::engine.isInitialized || event.packageName?.toString() !in engine.packages) return
-        trackSession()
         // Instagram emite decenas de eventos por segundo: se evalúa solo cuando la pantalla se calma.
         handler.removeCallbacks(evaluateRunnable)
         handler.postDelayed(evaluateRunnable, DEBOUNCE_MS)
@@ -54,16 +49,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         handler.removeCallbacks(evaluateRunnable)
         if (::overlay.isInitialized) overlay.hide()
         super.onDestroy()
-    }
-
-    /**
-     * Android no avisa de cuándo se cierra otra app. Si Instagram lleva [SESSION_GAP_MS]
-     * sin emitir eventos (cerrada o en segundo plano), lo tratamos como una sesión nueva.
-     */
-    private fun trackSession() {
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastEventAt > SESSION_GAP_MS) grassGrownThisSession = false
-        lastEventAt = now
     }
 
     private fun evaluateCurrentScreen() {
@@ -92,10 +77,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                         ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true ||
                         performGlobalAction(GLOBAL_ACTION_BACK)
             }
-        if (done) {
-            overlay.show(reason = rule.description, animateGrass = !grassGrownThisSession)
-            grassGrownThisSession = true
-        }
+        if (done) overlay.show(reason = rule.description)
         Log.i(TAG, "Regla '${rule.id}' aplicada (ok=$done)")
     }
 
@@ -112,6 +94,5 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val TAG = "TouchGrass"
         const val DEBOUNCE_MS = 150L
         const val ACTION_COOLDOWN_MS = 1_000L
-        const val SESSION_GAP_MS = 5 * 60 * 1_000L
     }
 }
