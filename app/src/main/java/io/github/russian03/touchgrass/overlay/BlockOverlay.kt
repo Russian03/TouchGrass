@@ -1,11 +1,13 @@
 package io.github.russian03.touchgrass.overlay
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Intent
 import android.graphics.PixelFormat
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import io.github.russian03.touchgrass.MainActivity
 
 /**
  * Pantalla completa dibujada por encima de Instagram. Usa una ventana de tipo
@@ -20,7 +22,7 @@ class BlockOverlay(private val service: AccessibilityService) {
 
     val isShowing: Boolean get() = view != null
 
-    fun show(reason: String, animateGrass: Boolean) {
+    fun show(reason: String) {
         if (isShowing) return
 
         val owner = OverlayLifecycleOwner().also { it.start() }
@@ -28,7 +30,7 @@ class BlockOverlay(private val service: AccessibilityService) {
             ComposeView(service).apply {
                 setViewTreeLifecycleOwner(owner)
                 setViewTreeSavedStateRegistryOwner(owner)
-                setContent { BlockScreen(reason, animateGrass, onDismiss = ::hide) }
+                setContent { BlockScreen(reason, onDismiss = ::hide, onOpenApp = ::openApp) }
             }
 
         val params =
@@ -44,6 +46,14 @@ class BlockOverlay(private val service: AccessibilityService) {
         windowManager.addView(composeView, params)
         view = composeView
         lifecycleOwner = owner
+    }
+
+    private fun openApp() {
+        service.startActivity(
+            Intent(service, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+        )
+        hide()
     }
 
     fun hide() {
