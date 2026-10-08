@@ -1,3 +1,4 @@
 <resources>
-    <style name="Theme.TouchGrass" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+    <!-- Tema de ventana mínimo; los colores reales los define Compose (ui/theme). -->
+    <style name="Theme.TouchGrass" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>
