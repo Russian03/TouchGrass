@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "packageName": "com.instagram.android",
+  "rules": [
+    {
+      "id": "reels_tab",
+      "description": "Pestaña de Reels",
+      "match": {
+        "allOf": [{ "viewId": "clips_tab", "selected": true }]
+      },
+      "action": { "type": "click", "target": "feed_tab" }
+    },
+    {
+      "id": "reels_viewer",
+      "description": "Visor de Reels (Explorar, feed, sugeridos)",
+      "match": {
+        "allOf": [{ "viewId": "clips_viewer_view_pager" }],
+        "noneOf": [{ "viewId": "sender_profile_pic" }]
+      },
+      "action": { "type": "back" }
+    }
+  ]
+}
