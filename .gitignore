@@ -1,18 +1,34 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Gradle / build
+.gradle/
+build/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Configuración local (ruta del SDK, claves)
 local.properties
-# Archivos de logs
-*.log
+*.env
+.env*
+
+# Firma de releases: NUNCA al repo
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# IDE
 .idea/
+*.iml
+.vscode/
+
+# SO
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs y salidas
+*.log
+*.apk
+*.aab
+*.hprof
