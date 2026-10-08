@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">TouchGrass</string>
+    <string name="app_name" translatable="false">TouchGrass</string>
+    <string name="home_tagline">Usa Instagram sin perderte en el scroll infinito.</string>
 </resources>
