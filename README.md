@@ -21,12 +21,14 @@ las publicaciones de tus amigos y las historias.
 
 ## Compilar
 
-Requisitos: Android Studio (última versión estable), JDK 17 o superior y Android SDK 36.
+Requisitos: JDK 17 o superior y Android SDK 37 (o Android Studio, que trae ambos).
+Versión mínima de Android: 8.0 (API 26).
 
 ```bash
 ./gradlew assembleDebug        # APK de debug
 ./gradlew testDebugUnitTest    # tests unitarios
-./gradlew lintDebug            # lint
+./gradlew lintDebug            # lint de Android
+./gradlew ktlintCheck          # estilo de código (ktlintFormat lo corrige)
 ```
 
 ## Flujo de trabajo
@@ -37,6 +39,8 @@ El plan de bloques está en [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Commits en formato [Conventional Commits](https://www.conventionalcommits.org/es/):
 `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`.
+
+Cada push y PR a `main` pasa por CI (GitHub Actions): ktlint, lint, tests y build.
 
 ## Documentación
 
