@@ -1,4 +1,15 @@
 <resources>
     <string name="app_name" translatable="false">TouchGrass</string>
     <string name="home_tagline">Usa Instagram sin perderte en el scroll infinito.</string>
+
+    <string name="accessibility_service_label">TouchGrass: bloqueo de Reels</string>
+    <string name="accessibility_service_description">TouchGrass usa este servicio para detectar cuándo abres Reels u otras zonas adictivas de Instagram y sacarte de ellas. Solo observa Instagram y solo lee los identificadores de los botones de la interfaz: nunca lee tus mensajes, publicaciones ni nombres, y nada sale de tu móvil.</string>
+    <string name="block_title">Aquí no hay Reels</string>
+    <string name="block_subtitle">Sal a tocar césped 🌱</string>
+    <string name="block_dismiss">Volver a Instagram</string>
+
+    <string name="home_service_on">Protección activa</string>
+    <string name="home_service_off">Protección desactivada</string>
+    <string name="home_service_enable">Activar en Accesibilidad</string>
+    <string name="home_service_settings">Ajustes de accesibilidad</string>
 </resources>
