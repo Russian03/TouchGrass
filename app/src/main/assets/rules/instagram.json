@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "packageName": "com.instagram.android",
   "rules": [
     {
@@ -18,6 +18,17 @@
         "noneOf": [{ "viewId": "sender_profile_pic" }]
       },
       "action": { "type": "back" }
+    },
+    {
+      "id": "explore_grid",
+      "description": "Cuadrícula de Explorar",
+      "match": {
+        "allOf": [
+          { "viewId": "search_tab", "selected": true },
+          { "viewId": "grid_card_layout_container" }
+        ]
+      },
+      "action": { "type": "cover", "target": "recycler_view", "below": "explore_action_bar" }
     }
   ]
 }

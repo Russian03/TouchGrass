@@ -33,4 +33,13 @@ sealed interface Action {
     @Serializable
     @SerialName("click")
     data class Click(val target: String) : Action
+
+    /**
+     * Tapar la vista [target] con un panel desenfocado y bloqueado, sin sacar al usuario
+     * de la pantalla. Si se indica [below], la tapa empieza bajo esa vista (p. ej. para
+     * dejar libre la barra de búsqueda).
+     */
+    @Serializable
+    @SerialName("cover")
+    data class Cover(val target: String, val below: String? = null) : Action
 }

@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.data.rules
 
 import com.google.common.truth.Truth.assertThat
+import io.github.russian03.touchgrass.core.rules.Action
 import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
@@ -58,8 +59,25 @@ class InstagramRulesTest {
     }
 
     @Test
-    fun `cuadrícula de Explorar permitida por ahora`() {
-        val s = screen(*tabs, "grid_card_layout_container", "action_bar_search_edit_text", selected = "search_tab")
+    fun `cuadrícula de Explorar tapada sin tapar la búsqueda`() {
+        val s =
+            screen(
+                *tabs,
+                "explore_action_bar",
+                "recycler_view",
+                "grid_card_layout_container",
+                selected = "search_tab",
+            )
+        val rule = engine.evaluate(s)
+        assertThat(rule?.id).isEqualTo("explore_grid")
+        assertThat(
+            rule?.action,
+        ).isEqualTo(Action.Cover(target = "recycler_view", below = "explore_action_bar"))
+    }
+
+    @Test
+    fun `resultados de búsqueda permitidos`() {
+        val s = screen(*tabs, "action_bar_search_edit_text", "row_search_user_container", selected = "search_tab")
         assertThat(engine.evaluate(s)).isNull()
     }
 
