@@ -23,9 +23,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Proceso propio: HyperOS/MIUI matan el proceso de la app al quitarla de recientes,
+             y el servicio debe sobrevivir aunque la interfaz esté cerrada. -->
         <service
             android:name=".service.TouchGrassAccessibilityService"
             android:exported="false"
+            android:process=":blocker"
             android:label="@string/accessibility_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
