@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Solo observa las apps listadas en packageNames. flagReportViewIds es necesario
-     para leer los identificadores de vista con los que trabajan las reglas.
-     canTakeScreenshot permite dibujar desenfocada la zona que se tapa (Android 11+). -->
+     para leer los identificadores de vista con los que trabajan las reglas. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewScrolled|typeViewClicked"
@@ -9,7 +8,6 @@
     android:accessibilityFlags="flagReportViewIds"
     android:canPerformGestures="false"
     android:canRetrieveWindowContent="true"
-    android:canTakeScreenshot="true"
     android:description="@string/accessibility_service_description"
     android:isAccessibilityTool="false"
     android:notificationTimeout="100"

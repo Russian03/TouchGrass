@@ -1,6 +1,16 @@
 {
-  "version": 3,
+  "version": 5,
   "packageName": "com.instagram.android",
+  "places": [
+    { "id": "chat", "match": { "allOf": [{ "viewId": "thread_fragment_container" }] } },
+    { "id": "profile", "match": { "allOf": [{ "viewId": "profile_viewpager" }] } },
+    {
+      "id": "explore",
+      "match": { "allOf": [{ "viewId": "search_tab", "selected": true }, { "viewId": "grid_card_layout_container" }] }
+    },
+    { "id": "feed", "match": { "allOf": [{ "viewId": "feed_tab", "selected": true }] } },
+    { "id": "inbox", "match": { "allOf": [{ "viewId": "direct_tab", "selected": true }] } }
+  ],
   "rules": [
     {
       "id": "reels_tab",
@@ -12,23 +22,17 @@
     },
     {
       "id": "reels_viewer",
-      "description": "Visor de Reels (Explorar, feed, sugeridos)",
+      "description": "Visor de Reels y posts (Explorar, sugeridos)",
       "match": {
-        "allOf": [{ "viewId": "clips_viewer_view_pager" }],
-        "noneOf": [{ "viewId": "sender_profile_pic" }]
+        "allOf": [{ "viewId": "clips_viewer_view_pager" }]
       },
-      "action": { "type": "back" }
-    },
-    {
-      "id": "explore_grid",
-      "description": "Cuadrícula de Explorar",
-      "match": {
-        "allOf": [
-          { "viewId": "search_tab", "selected": true },
-          { "viewId": "grid_card_layout_container" }
-        ]
-      },
-      "action": { "type": "cover", "target": "recycler_view", "below": "explore_action_bar" }
+      "action": { "type": "back" },
+      "pager": "clips_viewer_view_pager",
+      "allowFrom": [
+        { "place": "profile" },
+        { "place": "chat", "untilScroll": true },
+        { "place": "feed", "untilScroll": true }
+      ]
     }
   ]
 }

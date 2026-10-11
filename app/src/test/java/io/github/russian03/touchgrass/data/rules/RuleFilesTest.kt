@@ -17,6 +17,9 @@ class RuleFilesTest {
             val set = RuleRepository.parse(file.readText())
             assertThat(set.rules).isNotEmpty()
             assertThat(set.rules.map { it.id }).containsNoDuplicates()
+            assertThat(set.places.map { it.id }).containsNoDuplicates()
+            val placeIds = set.places.map { it.id }
+            set.rules.flatMap { it.allowFrom }.forEach { assertThat(placeIds).contains(it.place) }
         }
     }
 

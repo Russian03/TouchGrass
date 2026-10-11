@@ -4,15 +4,47 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import io.github.russian03.touchgrass.MainActivity
 
-/** Pantalla completa "Aquí no hay Reels" que se muestra tras sacar al usuario de una zona bloqueada. */
+/**
+ * Pantalla "No hay scroll" que aparece encima de una zona bloqueada, sin sacar al usuario
+ * de ella. Mientras se ve, la app de debajo no recibe toques ni suena. [onLeave] saca al
+ * usuario de la zona bloqueada cuando elige uno de los botones.
+ */
 class BlockOverlay(private val service: AccessibilityService) {
 
     private val window = OverlayWindow(service)
+    private val silencer = AudioSilencer(service)
 
     val isShowing: Boolean get() = window.isShowing
 
-    fun show(reason: String) {
-        window.show { BlockScreen(reason, onDismiss = ::hide, onOpenApp = ::openApp) }
+    fun show(onLeave: () -> Unit) {
+        if (window.isShowing) return
+        silencer.silence()
+        val blurred = window.blursBehind
+        window.show(blurInMs = FADE_IN_MS) {
+            BlockScreen(
+                blurredBehind = blurred,
+                fadeInMs = FADE_IN_MS,
+                onBack = {
+                    onLeave()
+                    hide()
+                },
+                onOpenApp = {
+                    onLeave()
+                    openApp()
+                },
+            )
+        }
+    }
+
+    fun hide() {
+        window.hide()
+        silencer.restore()
+    }
+
+    /** Quita la pantalla y devuelve el sonido al momento (p. ej. si el servicio se apaga). */
+    fun release() {
+        window.hide()
+        silencer.restoreNow()
     }
 
     private fun openApp() {
@@ -23,5 +55,7 @@ class BlockOverlay(private val service: AccessibilityService) {
         hide()
     }
 
-    fun hide() = window.hide()
+    private companion object {
+        const val FADE_IN_MS = 1_000L
+    }
 }

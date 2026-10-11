@@ -40,26 +40,26 @@ import kotlinx.coroutines.delay
 /**
  * Candado que aparece abierto y se cierra: el arco baja con un pequeño rebote y el
  * cuerpo "encaja" con un leve aplastamiento. Detrás, el mismo halo verde que respira
- * en la pantalla de bloqueo.
+ * en la pantalla de bloqueo. [delayMs] retrasa el cierre (p. ej. hasta que la pantalla se vea).
  */
 @Composable
-fun ClosingLock(modifier: Modifier = Modifier) {
+fun ClosingLock(modifier: Modifier = Modifier, delayMs: Long = 0) {
     val lift = remember { Animatable(1f) } // 1 = arco levantado (abierto), 0 = cerrado
     val squash = remember { Animatable(1f) }
     val keyhole = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        delay(350)
+        delay(delayMs + 350)
         lift.animateTo(0f, spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow))
     }
     LaunchedEffect(Unit) {
         // El "clic" coincide con el momento en que el arco toca el cuerpo.
-        delay(520)
+        delay(delayMs + 520)
         squash.animateTo(0.9f, tween(90))
         squash.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
     }
     LaunchedEffect(Unit) {
-        delay(620)
+        delay(delayMs + 620)
         keyhole.animateTo(1f, tween(300))
     }
 

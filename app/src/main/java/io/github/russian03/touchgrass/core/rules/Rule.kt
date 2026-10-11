@@ -5,10 +5,39 @@ import kotlinx.serialization.Serializable
 
 /** Conjunto de reglas para una app, cargado desde `assets/rules/<app>.json`. */
 @Serializable
-data class RuleSet(val version: Int, val packageName: String, val rules: List<Rule>)
+data class RuleSet(
+    val version: Int,
+    val packageName: String,
+    val rules: List<Rule>,
+    val places: List<Place> = emptyList(),
+)
 
+/**
+ * Pantalla de la app que sirve de punto de partida (p. ej. un perfil o un chat). TouchGrass
+ * recuerda el último lugar por el que ha pasado el usuario para saber de dónde viene cuando
+ * abre algo, ya que el visor de Reels es el mismo venga de donde venga.
+ */
 @Serializable
-data class Rule(val id: String, val description: String, val match: Match, val action: Action)
+data class Place(val id: String, val match: Match)
+
+/**
+ * Zona bloqueada. Si se cumple [match], se tapa la pantalla; [action] es lo que se hace
+ * cuando el usuario pulsa "Volver atrás". [allowFrom] la deja libre si el usuario llega
+ * desde ciertos lugares, y [pager] es la vista paginada en la que se cuenta el scroll.
+ */
+@Serializable
+data class Rule(
+    val id: String,
+    val description: String,
+    val match: Match,
+    val action: Action,
+    val allowFrom: List<Allowance> = emptyList(),
+    val pager: String? = null,
+)
+
+/** Permite la regla si se llega desde [place]; con [untilScroll], solo hasta pasar de página. */
+@Serializable
+data class Allowance(val place: String, val untilScroll: Boolean = false)
 
 /** La regla se cumple si se cumplen todas las condiciones de [allOf] y ninguna de [noneOf]. */
 @Serializable
@@ -33,13 +62,4 @@ sealed interface Action {
     @Serializable
     @SerialName("click")
     data class Click(val target: String) : Action
-
-    /**
-     * Tapar la vista [target] con un panel desenfocado y bloqueado, sin sacar al usuario
-     * de la pantalla. Si se indica [below], la tapa empieza bajo esa vista (p. ej. para
-     * dejar libre la barra de búsqueda).
-     */
-    @Serializable
-    @SerialName("cover")
-    data class Cover(val target: String, val below: String? = null) : Action
 }
