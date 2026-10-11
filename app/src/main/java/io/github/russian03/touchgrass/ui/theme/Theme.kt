@@ -1,44 +1,43 @@
 package io.github.russian03.touchgrass.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
 private val LightColors =
     lightColorScheme(
         primary = Grass,
-        primaryContainer = GrassContainer,
-        secondary = Sky,
+        onPrimary = Color.White,
+        primaryContainer = GrassLight,
+        onPrimaryContainer = GrassDeep,
+        background = Paper,
+        onBackground = Ink,
+        surface = Paper,
+        onSurface = Ink,
+        surfaceContainer = Color.White,
+        onSurfaceVariant = InkSoft,
+        outline = InkMuted,
     )
 
 private val DarkColors =
     darkColorScheme(
         primary = GrassLight,
-        primaryContainer = GrassContainerDark,
-        secondary = SkyLight,
+        onPrimary = GrassDeep,
+        primaryContainer = Grass,
+        onPrimaryContainer = GrassLight,
+        background = Night,
+        onBackground = NightInk,
+        surface = Night,
+        onSurface = NightInk,
+        surfaceContainer = NightSurface,
+        onSurfaceVariant = NightInkSoft,
+        outline = InkMuted,
     )
 
 @Composable
-fun TouchGrassTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
-    content: @Composable () -> Unit,
-) {
-    val colorScheme =
-        when {
-            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                val context = LocalContext.current
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            }
-            darkTheme -> DarkColors
-            else -> LightColors
-        }
-
-    MaterialTheme(colorScheme = colorScheme, content = content)
+fun TouchGrassTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, content = content)
 }
