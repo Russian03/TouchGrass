@@ -41,9 +41,15 @@ class BlockOverlay(private val service: AccessibilityService) {
         silencer.restore()
     }
 
+    /**
+     * Quita la pantalla pero mantiene el silencio: al apagar el móvil no debe tapar la pantalla
+     * de bloqueo, y al desbloquear el reel no debe sonar antes de que la pantalla vuelva.
+     */
+    fun hideKeepingSilence() = window.hide(animated = false)
+
     /** Quita la pantalla y devuelve el sonido al momento (p. ej. si el servicio se apaga). */
     fun release() {
-        window.hide()
+        window.hide(animated = false)
         silencer.restoreNow()
     }
 

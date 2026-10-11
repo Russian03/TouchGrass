@@ -3,6 +3,14 @@
 
     <!-- Sin permiso INTERNET a propósito: ningún dato sale del dispositivo. -->
 
+    <!-- Para saber cuál es el launcher y quitar la pantalla de bloqueo al salir a Inicio. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+    </queries>
+
     <application
         android:name=".TouchGrassApp"
         android:allowBackup="false"

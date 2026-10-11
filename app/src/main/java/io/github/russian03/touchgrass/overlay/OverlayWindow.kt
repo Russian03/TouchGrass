@@ -8,6 +8,7 @@ import android.view.Gravity
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
+import androidx.core.animation.doOnEnd
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 
@@ -23,6 +24,7 @@ internal class OverlayWindow(private val service: AccessibilityService) {
     private val windowManager = service.getSystemService(WindowManager::class.java)
     private var view: ComposeView? = null
     private var lifecycleOwner: OverlayLifecycleOwner? = null
+    private var params: WindowManager.LayoutParams? = null
     private var blurAnimator: ValueAnimator? = null
 
     val isShowing: Boolean get() = view != null
@@ -47,16 +49,56 @@ internal class OverlayWindow(private val service: AccessibilityService) {
         windowManager.addView(composeView, params)
         view = composeView
         lifecycleOwner = owner
+        this.params = params
         if (blursBehind) animateBlur(composeView, params, blurInMs)
     }
 
-    fun hide() {
+    /**
+     * Quita la ventana. Con [animated], se desvanece en [FADE_OUT_MS] y deja pasar los toques
+     * desde el primer momento, para no estorbar lo que el usuario abra después.
+     */
+    fun hide(animated: Boolean = true) {
+        val target = view ?: return
+        val targetParams = params
+        val owner = lifecycleOwner
         blurAnimator?.cancel()
         blurAnimator = null
-        view?.let(windowManager::removeView)
-        lifecycleOwner?.destroy()
         view = null
+        params = null
         lifecycleOwner = null
+
+        // Se retira siempre, aunque aún no esté colocada: si se acaba de añadir, isAttachedToWindow
+        // todavía es false y saltársela dejaría una ventana invisible tragándose los toques.
+        val remove: () -> Unit = {
+            try {
+                windowManager.removeViewImmediate(target)
+            } catch (_: IllegalArgumentException) {
+                // Ya no estaba en el WindowManager.
+            }
+            owner?.destroy()
+        }
+        if (!animated || targetParams == null || !target.isAttachedToWindow) {
+            remove()
+            return
+        }
+
+        targetParams.flags = targetParams.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        windowManager.updateViewLayout(target, targetParams)
+        val startBlur = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) targetParams.blurBehindRadius else 0
+        ValueAnimator.ofFloat(1f, 0f).apply {
+            duration = FADE_OUT_MS
+            addUpdateListener { animator ->
+                if (!target.isAttachedToWindow) return@addUpdateListener
+                val fraction = animator.animatedValue as Float
+                target.alpha = fraction
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && startBlur > 0) {
+                    targetParams.blurBehindRadius = (startBlur * fraction).toInt()
+                    windowManager.updateViewLayout(target, targetParams)
+                }
+            }
+            doOnEnd { remove() }
+            start()
+        }
     }
 
     private fun animateBlur(target: ComposeView, params: WindowManager.LayoutParams, durationMs: Long) {
@@ -91,5 +133,6 @@ internal class OverlayWindow(private val service: AccessibilityService) {
 
     private companion object {
         const val BLUR_RADIUS_DP = 30
+        const val FADE_OUT_MS = 150L
     }
 }

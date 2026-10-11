@@ -1,12 +1,19 @@
 package io.github.russian03.touchgrass.service
 
 import android.accessibilityservice.AccessibilityService
+import android.app.KeyguardManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.russian03.touchgrass.BuildConfig
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
@@ -26,10 +33,12 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private lateinit var engine: RuleEngine
     private lateinit var overlay: BlockOverlay
     private val session = ViewerSession()
+    private val keyguard by lazy { getSystemService(KeyguardManager::class.java) }
     private val handler = Handler(Looper.getMainLooper())
     private val evaluateRunnable = Runnable { evaluateCurrentScreen() }
 
     private var pendingSince: Long? = null
+    private var launcher: String? = null
     private var leftAt = Long.MIN_VALUE / 2
     private var lastDumpedIds: Set<String> = emptySet()
 
@@ -37,10 +46,39 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         engine = RuleEngine(ruleRepository.load())
         overlay = BlockOverlay(this)
+        launcher = defaultLauncher()
+        // Además de Instagram se escucha al launcher, solo para saber al momento que el usuario
+        // ha salido a Inicio o a Recientes: de su pantalla no se lee nada.
+        serviceInfo = serviceInfo.apply { packageNames = (engine.packages + listOfNotNull(launcher)).toTypedArray() }
+        ContextCompat.registerReceiver(
+            this,
+            screenReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_USER_PRESENT)
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
     }
+
+    /** Al apagar la pantalla se quita la de bloqueo (si no, taparía el bloqueo del móvil). */
+    private val screenReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                when (intent.action) {
+                    Intent.ACTION_SCREEN_OFF -> overlay.hideKeepingSilence()
+                    // Desbloqueado: si sigue el reel, la pantalla vuelve; si no, vuelve el sonido.
+                    Intent.ACTION_USER_PRESENT -> scheduleEvaluation(0)
+                }
+            }
+        }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val packageName = event.packageName?.toString()
+        if (packageName != null && packageName == launcher) {
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) onLeftApp()
+            return
+        }
         if (!::engine.isInitialized || packageName !in engine.packages) return
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED && trackPager(event, packageName!!)) {
             // El usuario acaba de pasar al siguiente reel: no se espera a que la pantalla se calme.
@@ -55,6 +93,29 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         scheduleEvaluation(DEBOUNCE_MS.coerceAtMost(MAX_WAIT_MS - waited).coerceAtLeast(0))
     }
 
+    /**
+     * El usuario ha salido a Inicio o a Recientes: la pantalla de bloqueo se quita al momento y,
+     * mientras dura la animación de salida (en la que Instagram aún parece estar delante), no
+     * vuelve a ponerse.
+     */
+    private fun onLeftApp() {
+        handler.removeCallbacks(evaluateRunnable)
+        pendingSince = null
+        leftAt = SystemClock.elapsedRealtime()
+        overlay.hide()
+        if (BuildConfig.DEBUG) Log.d(TAG, "Fuera de Instagram: pantalla quitada")
+    }
+
+    /** App de inicio del móvil (la que también muestra Recientes), o `null` si no se encuentra. */
+    private fun defaultLauncher(): String? = packageManager
+        .resolveActivity(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
+            PackageManager.MATCH_DEFAULT_ONLY,
+        )
+        ?.activityInfo
+        ?.packageName
+        ?.takeIf { it != "android" }
+
     private fun scheduleEvaluation(delayMs: Long) {
         handler.removeCallbacks(evaluateRunnable)
         handler.postDelayed(evaluateRunnable, delayMs)
@@ -64,7 +125,10 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         handler.removeCallbacks(evaluateRunnable)
-        if (::overlay.isInitialized) overlay.release()
+        if (::overlay.isInitialized) {
+            unregisterReceiver(screenReceiver)
+            overlay.release()
+        }
         super.onDestroy()
     }
 
@@ -82,6 +146,8 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     private fun evaluateCurrentScreen() {
         pendingSince = null
+        // Con el móvil bloqueado no se pone nada: taparía la pantalla de bloqueo.
+        if (keyguard.isKeyguardLocked) return
         // A veces la ventana activa no está disponible un instante: entonces no se cambia nada.
         val root = rootInActiveWindow ?: return
         if (root.packageName?.toString() !in engine.packages) {
@@ -141,6 +207,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val DEBOUNCE_MS = 150L
         const val MAX_WAIT_MS = 300L
         const val LEAVE_COOLDOWN_MS = 1_000L
-        const val OVERLAY_POLL_MS = 500L
+        const val OVERLAY_POLL_MS = 200L
     }
 }
