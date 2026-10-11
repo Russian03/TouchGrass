@@ -75,6 +75,15 @@ class InstagramRulesTest {
     }
 
     @Test
+    fun `reel guardado permitido hasta pasar al siguiente`() {
+        // Guardados se abre desde el propio perfil, pero no debe heredar su permiso.
+        val saved = screen("action_bar_button_back", "saved_tab_layout", "saved_view_pager", "recycler_view")
+        assertThat(engine.place(saved)).isEqualTo("saved")
+        assertThat(engine.evaluate(viewer, origin = "saved", scrolled = false)).isNull()
+        assertThat(engine.evaluate(viewer, origin = "saved", scrolled = true)?.id).isEqualTo("reels_viewer")
+    }
+
+    @Test
     fun `cuadrícula de Explorar libre`() {
         assertThat(engine.evaluate(explore, origin = "explore")).isNull()
     }
