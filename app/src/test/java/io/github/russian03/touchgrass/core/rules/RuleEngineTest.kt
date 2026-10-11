@@ -28,7 +28,24 @@ class RuleEngineTest {
             action = Action.Back,
         )
 
-    private val engine = RuleEngine(listOf(RuleSet(1, IG, listOf(reelsTab, viewerOutsideTabs))))
+    private val viewerFromPlaces =
+        Rule(
+            id = "pager_viewer",
+            description = "Visor paginado",
+            match = Match(allOf = listOf(Condition("pager"))),
+            action = Action.Back,
+            allowFrom = listOf(Allowance("profile"), Allowance("chat", untilScroll = true)),
+            pager = "pager",
+        )
+
+    private val places =
+        listOf(
+            Place("chat", Match(allOf = listOf(Condition("thread")))),
+            Place("profile", Match(allOf = listOf(Condition("profile_header")))),
+        )
+
+    private val engine =
+        RuleEngine(listOf(RuleSet(1, IG, listOf(reelsTab, viewerOutsideTabs, viewerFromPlaces), places)))
 
     private fun snapshot(vararg nodes: ViewNode, pkg: String = IG) = ScreenSnapshot(pkg, nodes.toList())
 
@@ -60,6 +77,34 @@ class RuleEngineTest {
     fun `otra app no se evalúa`() {
         val s = snapshot(ViewNode("clips_tab", selected = true), pkg = "com.example.other")
         assertThat(engine.evaluate(s)).isNull()
+    }
+
+    @Test
+    fun `se reconoce el primer lugar que se cumple`() {
+        assertThat(engine.place(snapshot(ViewNode("profile_header")))).isEqualTo("profile")
+        assertThat(engine.place(snapshot(ViewNode("thread"), ViewNode("profile_header")))).isEqualTo("chat")
+        assertThat(engine.place(snapshot(ViewNode("feed")))).isNull()
+    }
+
+    @Test
+    fun `una regla se permite si se llega desde un lugar permitido`() {
+        val s = snapshot(ViewNode("pager"))
+        assertThat(engine.evaluate(s, origin = "profile", scrolled = true)).isNull()
+        assertThat(engine.evaluate(s, origin = "explore")).isEqualTo(viewerFromPlaces)
+        assertThat(engine.evaluate(s, origin = null)).isEqualTo(viewerFromPlaces)
+    }
+
+    @Test
+    fun `untilScroll solo permite la regla hasta pasar de página`() {
+        val s = snapshot(ViewNode("pager"))
+        assertThat(engine.evaluate(s, origin = "chat", scrolled = false)).isNull()
+        assertThat(engine.evaluate(s, origin = "chat", scrolled = true)).isEqualTo(viewerFromPlaces)
+    }
+
+    @Test
+    fun `los pagers se buscan por app`() {
+        assertThat(engine.pagers(IG)).containsExactly("pager")
+        assertThat(engine.pagers("com.example.other")).isEmpty()
     }
 
     @Test

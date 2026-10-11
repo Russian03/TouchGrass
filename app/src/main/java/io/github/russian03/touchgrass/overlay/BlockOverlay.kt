@@ -2,50 +2,55 @@ package io.github.russian03.touchgrass.overlay
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
-import android.graphics.PixelFormat
-import android.view.WindowManager
-import androidx.compose.ui.platform.ComposeView
-import androidx.lifecycle.setViewTreeLifecycleOwner
-import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.github.russian03.touchgrass.MainActivity
 
 /**
- * Pantalla completa dibujada por encima de Instagram. Usa una ventana de tipo
- * TYPE_ACCESSIBILITY_OVERLAY, que solo puede crear un servicio de accesibilidad,
- * así que no requiere el permiso "mostrar sobre otras apps".
+ * Pantalla "No hay scroll" que aparece encima de una zona bloqueada, sin sacar al usuario
+ * de ella. Mientras se ve, la app de debajo no recibe toques ni suena. [onLeave] saca al
+ * usuario de la zona bloqueada cuando elige uno de los botones.
  */
 class BlockOverlay(private val service: AccessibilityService) {
 
-    private val windowManager = service.getSystemService(WindowManager::class.java)
-    private var view: ComposeView? = null
-    private var lifecycleOwner: OverlayLifecycleOwner? = null
+    private val window = OverlayWindow(service)
+    private val silencer = AudioSilencer(service)
 
-    val isShowing: Boolean get() = view != null
+    val isShowing: Boolean get() = window.isShowing
 
-    fun show(reason: String) {
-        if (isShowing) return
-
-        val owner = OverlayLifecycleOwner().also { it.start() }
-        val composeView =
-            ComposeView(service).apply {
-                setViewTreeLifecycleOwner(owner)
-                setViewTreeSavedStateRegistryOwner(owner)
-                setContent { BlockScreen(reason, onDismiss = ::hide, onOpenApp = ::openApp) }
-            }
-
-        val params =
-            WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT,
+    fun show(onLeave: () -> Unit) {
+        if (window.isShowing) return
+        silencer.silence()
+        val blurred = window.blursBehind
+        window.show(blurInMs = FADE_IN_MS) {
+            BlockScreen(
+                blurredBehind = blurred,
+                fadeInMs = FADE_IN_MS,
+                onBack = {
+                    onLeave()
+                    hide()
+                },
+                onOpenApp = {
+                    onLeave()
+                    openApp()
+                },
             )
+        }
+    }
 
-        windowManager.addView(composeView, params)
-        view = composeView
-        lifecycleOwner = owner
+    fun hide() {
+        window.hide()
+        silencer.restore()
+    }
+
+    /**
+     * Quita la pantalla pero mantiene el silencio: al apagar el móvil no debe tapar la pantalla
+     * de bloqueo, y al desbloquear el reel no debe sonar antes de que la pantalla vuelva.
+     */
+    fun hideKeepingSilence() = window.hide(animated = false)
+
+    /** Quita la pantalla y devuelve el sonido al momento (p. ej. si el servicio se apaga). */
+    fun release() {
+        window.hide(animated = false)
+        silencer.restoreNow()
     }
 
     private fun openApp() {
@@ -56,10 +61,7 @@ class BlockOverlay(private val service: AccessibilityService) {
         hide()
     }
 
-    fun hide() {
-        view?.let(windowManager::removeView)
-        lifecycleOwner?.destroy()
-        view = null
-        lifecycleOwner = null
+    private companion object {
+        const val FADE_IN_MS = 1_000L
     }
 }
