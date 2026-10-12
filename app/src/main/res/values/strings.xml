@@ -16,4 +16,9 @@
     <string name="home_service_off">Protección desactivada</string>
     <string name="home_service_enable">Activar en Accesibilidad</string>
     <string name="home_service_settings">Ajustes de accesibilidad</string>
+    <string name="home_service_stopped">Protección detenida</string>
+    <string name="home_service_stopped_detail">El sistema ha cerrado TouchGrass y los Reels ya no se bloquean. Desactívala y vuelve a activarla en Accesibilidad para recuperarla.</string>
+    <string name="home_service_restart">Reactivar en Accesibilidad</string>
+    <string name="home_xiaomi_tip">En Xiaomi, activa «Autoinicio» en los ajustes de la app: así el sistema vuelve a poner en marcha la protección si la cierra.</string>
+    <string name="home_xiaomi_tip_open">Abrir ajustes de la app</string>
 </resources>

@@ -1,6 +1,8 @@
 package io.github.russian03.touchgrass.ui.home
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -22,6 +24,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,25 +42,37 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.service.AccessibilityStatus
+import io.github.russian03.touchgrass.service.ProtectionState
 import io.github.russian03.touchgrass.ui.theme.GrassDeep
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    var serviceEnabled by remember { mutableStateOf(false) }
+    var state by remember { mutableStateOf(ProtectionState.Off) }
 
     // Se vuelve a comprobar cada vez que el usuario regresa de los ajustes del sistema.
     LifecycleResumeEffect(Unit) {
-        serviceEnabled = AccessibilityStatus.isServiceEnabled(context)
+        state = AccessibilityStatus.state(context)
         onPauseOrDispose { }
     }
 
     HomeContent(
-        serviceEnabled = serviceEnabled,
+        state = state,
+        // En Xiaomi/Redmi/POCO el sistema cierra apps en segundo plano con mucha facilidad.
+        showXiaomiTip = Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true),
         onOpenAccessibilitySettings = {
             context.startActivity(
                 Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        },
+        onOpenAppSettings = {
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", context.packageName, null),
+                )
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
         },
         modifier = modifier,
@@ -66,8 +81,10 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun HomeContent(
-    serviceEnabled: Boolean,
+    state: ProtectionState,
+    showXiaomiTip: Boolean,
     onOpenAccessibilitySettings: () -> Unit,
+    onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -98,10 +115,13 @@ private fun HomeContent(
                 modifier = Modifier.padding(top = 12.dp),
             )
             StatusCard(
-                serviceEnabled = serviceEnabled,
+                state = state,
                 onOpenAccessibilitySettings = onOpenAccessibilitySettings,
                 modifier = Modifier.padding(top = 40.dp),
             )
+            if (showXiaomiTip && state != ProtectionState.Off) {
+                XiaomiTip(onOpenAppSettings = onOpenAppSettings, modifier = Modifier.padding(top = 16.dp))
+            }
         }
     }
 }
@@ -135,11 +155,25 @@ private fun TopBar() {
 
 @Composable
 private fun StatusCard(
-    serviceEnabled: Boolean,
+    state: ProtectionState,
     onOpenAccessibilitySettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val accent = if (serviceEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val running = state == ProtectionState.Running
+    val accent = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val (title, detail, action) =
+        when (state) {
+            ProtectionState.Running ->
+                Triple(R.string.home_service_on, R.string.home_service_on_detail, R.string.home_service_settings)
+            ProtectionState.Stopped ->
+                Triple(
+                    R.string.home_service_stopped,
+                    R.string.home_service_stopped_detail,
+                    R.string.home_service_restart,
+                )
+            ProtectionState.Off ->
+                Triple(R.string.home_service_off, R.string.home_service_off_detail, R.string.home_service_enable)
+        }
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp),
@@ -150,28 +184,25 @@ private fun StatusCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(8.dp).background(accent, CircleShape))
                 Text(
-                    text = stringResource(if (serviceEnabled) R.string.home_service_on else R.string.home_service_off),
+                    text = stringResource(title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(start = 10.dp),
                 )
             }
             Text(
-                text =
-                stringResource(
-                    if (serviceEnabled) R.string.home_service_on_detail else R.string.home_service_off_detail,
-                ),
+                text = stringResource(detail),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp),
             )
-            if (serviceEnabled) {
+            if (running) {
                 OutlinedButton(
                     onClick = onOpenAccessibilitySettings,
                     shape = RoundedCornerShape(28.dp),
                     modifier = Modifier.padding(top = 16.dp),
                 ) {
-                    Text(stringResource(R.string.home_service_settings))
+                    Text(stringResource(action))
                 }
             } else {
                 Button(
@@ -179,9 +210,25 @@ private fun StatusCard(
                     shape = RoundedCornerShape(28.dp),
                     modifier = Modifier.padding(top = 16.dp),
                 ) {
-                    Text(stringResource(R.string.home_service_enable))
+                    Text(stringResource(action))
                 }
             }
+        }
+    }
+}
+
+/** Consejo para que HyperOS/MIUI no cierre la app. Solo abre la ficha de la app en Ajustes. */
+@Composable
+private fun XiaomiTip(onOpenAppSettings: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = stringResource(R.string.home_xiaomi_tip),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        TextButton(onClick = onOpenAppSettings) {
+            Text(stringResource(R.string.home_xiaomi_tip_open))
         }
     }
 }
@@ -189,11 +236,17 @@ private fun StatusCard(
 @Preview(showBackground = true)
 @Composable
 private fun HomeOffPreview() {
-    TouchGrassTheme { HomeContent(serviceEnabled = false, onOpenAccessibilitySettings = {}) }
+    TouchGrassTheme { HomeContent(ProtectionState.Off, showXiaomiTip = false, {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun HomeOnPreview() {
-    TouchGrassTheme { HomeContent(serviceEnabled = true, onOpenAccessibilitySettings = {}) }
+    TouchGrassTheme { HomeContent(ProtectionState.Running, showXiaomiTip = true, {}, {}) }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HomeStoppedPreview() {
+    TouchGrassTheme { HomeContent(ProtectionState.Stopped, showXiaomiTip = true, {}, {}) }
 }
