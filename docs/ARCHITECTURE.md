@@ -24,7 +24,7 @@ Hay un único módulo `app`, con paquete raíz `io.github.russian03.touchgrass`.
 
 | Paquete    | Responsabilidad                                                        | Depende de Android |
 |------------|------------------------------------------------------------------------|--------------------|
-| `core`     | Modelo de reglas, `RuleEngine`, cálculo de presupuesto diario          | No                 |
+| `core`     | Modelo de reglas, `RuleEngine`, saldo diario (`BudgetPolicy`)          | No                 |
 | `data`     | DataStore, carga de reglas desde `assets/rules/*.json`                 | Sí                 |
 | `service`  | `AccessibilityService`: traduce eventos a snapshots y ejecuta acciones | Sí                 |
 | `overlay`  | Overlay de bloqueo (`TYPE_ACCESSIBILITY_OVERLAY`)                      | Sí                 |
@@ -46,6 +46,34 @@ Cada regla indica:
 El build de debug incluye una pantalla que vuelca los viewIds visibles, para descubrir los
 nuevos cuando una actualización de Instagram rompa una regla.
 
+## Saldo diario y desbloqueos
+
+Cada mes el usuario tiene un **límite diario** de minutos que puede desbloquear. Las reglas están
+en `core/budget/BudgetPolicy` (Kotlin puro) y el estado se guarda con `data/budget/BudgetRepository`.
+
+- El día va de **8:00 a 8:00** (hora local). Cada día empieza con el límite completo y lo que no se
+  gasta se pierde.
+- Un desbloqueo se pide para una app y unos minutos, que se **restan enteros al pedirlo**. Dura
+  esos minutos de reloj, aunque se salga de la app. Solo puede haber uno a la vez.
+- **Bajar** el límite se aplica al momento. **Subirlo** queda pendiente hasta el día 1 del mes
+  siguiente.
+
+### Dos procesos
+
+El servicio de accesibilidad corre en el proceso `:blocker` y la interfaz en el principal. El
+estado se comparte con un **DataStore multiproceso** (`MultiProcessDataStoreFactory`, JSON en
+`filesDir/datastore/budget.json`). Los cambios hechos desde la app llegan al servicio al momento.
+
+### Antitrampas
+
+- La duración de un desbloqueo se mide con el reloj **monotónico** (`elapsedRealtime`), que no se
+  puede cambiar a mano. Tras un reinicio (lo indica `BOOT_COUNT`) se usa el reloj de pared, pero
+  nunca para alargar la sesión.
+- Todo lo que depende de la fecha (renovar el saldo, aplicar el límite del mes siguiente, pedir un
+  desbloqueo) exige **fecha, hora y zona horaria automáticas**. Sin ellas, el estado se congela.
+- Si algo falla, se bloquea. Un fichero corrupto o ilegible vuelve al estado por defecto, que no
+  tiene límite y no desbloquea nada.
+
 ## Privacidad y seguridad
 
 - No se pide permiso `INTERNET`.
@@ -54,8 +82,8 @@ nuevos cuando una actualización de Instagram rompa una regla.
   identificadores estructurales.
 - `allowBackup=false` y las reglas de extracción excluyen todos los datos.
 - En release: R8 con minify y shrinkResources. La keystore nunca entra al repo.
-- El tiempo de uso se mide con `SystemClock.elapsedRealtime()` y se detecta
-  `ACTION_TIME_CHANGED`, para que no se pueda hacer trampa cambiando la hora.
+- El tiempo de uso se mide con `SystemClock.elapsedRealtime()` y se exige la hora automática,
+  para que no se pueda hacer trampa cambiando la hora (ver *Antitrampas*).
 
 ## Limitaciones conocidas
 
