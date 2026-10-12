@@ -22,8 +22,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TouchGrass">
 
+        <!-- Fuera de Recientes: si no hay tarjeta que deslizar, HyperOS/MIUI no mata el
+             proceso del servicio al limpiar Recientes (y Android no lo volvería a arrancar). -->
         <activity
             android:name=".MainActivity"
+            android:excludeFromRecents="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
