@@ -8,8 +8,65 @@ servicio de accesibilidad que detecta las zonas adictivas (Reels, Explorar, scro
 y las bloquea o les pone un límite de tiempo diario. Así puedes seguir usando los mensajes,
 las publicaciones de tus amigos y las historias.
 
-> Estado: **en reescritura**. La versión antigua basada en WebView está archivada en el tag
-> [`legacy-v0`](../../tree/legacy-v0).
+> Estado: **en reescritura**. De momento bloquea los Reels de Instagram. La versión antigua
+> basada en WebView está archivada en el tag [`legacy-v0`](../../tree/legacy-v0).
+
+## Compatibilidad
+
+Funciona en **cualquier móvil Android 8.0 (API 26) o superior**, de cualquier marca.
+El bloqueo usa el servicio de accesibilidad estándar de Android y las reglas dependen de la
+app de Instagram, no del modelo de móvil.
+
+Algunas capas de fabricante cierran apps en segundo plano de forma agresiva y pueden
+detener la protección. La app lo detecta y lo avisa en la pantalla de inicio
+(*Protección detenida*). Más abajo se explica qué hacer en cada caso.
+
+## Instalación
+
+Todavía no hay versión publicada en ninguna tienda. Hay que compilar la APK
+(ver [Compilar](#compilar)) e instalarla en el móvil:
+
+1. **Instalar la APK**, de una de estas formas:
+   - Con el móvil conectado por USB y la depuración USB activada:
+     `./gradlew installDebug` (o `adb install app/build/outputs/apk/debug/app-debug.apk`).
+   - Copiando `app-debug.apk` al móvil y abriéndola. Android pedirá permitir la
+     instalación de apps de origen desconocido.
+2. **Permitir ajustes restringidos** (Android 13 o superior). Android bloquea la
+   accesibilidad a las apps instaladas fuera de una tienda. Ve a
+   *Ajustes → Aplicaciones → TouchGrass → ⋮ → Permitir ajustes restringidos*.
+   Si no aparece la opción, intenta activar primero el paso 3; al rechazarlo, la opción
+   se desbloquea.
+3. **Activar la protección.** Abre TouchGrass, pulsa *Activar en Accesibilidad* y activa
+   TouchGrass en la lista de servicios.
+4. Vuelve a la app: la tarjeta debe mostrar *Protección activada*.
+
+### Xiaomi, Redmi y POCO (HyperOS / MIUI)
+
+HyperOS y MIUI matan el proceso de la app con mucha facilidad, por ejemplo al limpiar
+Recientes, y Android no vuelve a arrancar el servicio por sí solo. Para evitarlo:
+
+- En *Ajustes → Aplicaciones → TouchGrass*:
+  - Activa **Autoinicio**.
+  - En **Ahorro de batería**, elige **Sin restricciones**.
+- La propia app muestra este consejo en Xiaomi, con un botón que abre esos ajustes.
+- TouchGrass no aparece en Recientes a propósito: así no se puede cerrar deslizando su
+  tarjeta.
+
+### Otros Android
+
+En Android puro (Pixel, Motorola, etc.) normalmente no hace falta nada más. En otras
+marcas con ahorro de batería agresivo (Samsung, Huawei, OnePlus, Oppo…) conviene
+quitar a TouchGrass de las optimizaciones de batería si la protección se detiene.
+Por ejemplo, en Samsung: *Ajustes → Batería → Límites de uso en segundo plano →
+Aplicaciones que nunca entran en suspensión*.
+
+Solo se ha probado en un Xiaomi con HyperOS. En otras marcas debería funcionar, pero
+no está verificado.
+
+### Si aparece «Protección detenida»
+
+El sistema ha cerrado el servicio aunque el ajuste siga activado. Pulsa
+*Reactivar en Accesibilidad*, **desactiva** TouchGrass y **vuelve a activarlo**.
 
 ## Principios
 
@@ -34,7 +91,8 @@ Versión mínima de Android: 8.0 (API 26).
 ## Flujo de trabajo
 
 Trabajamos por **bloques**. Cada bloque vive en una rama `bloque-N/<nombre>`, se revisa
-y se integra en `main` con `git merge --no-ff`. Cada integración lleva un tag de versión.
+en un Pull Request y se integra en `main` con *Squash and merge*. Cada integración lleva
+un tag de versión.
 El plan de bloques está en [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Commits en formato [Conventional Commits](https://www.conventionalcommits.org/es/):
