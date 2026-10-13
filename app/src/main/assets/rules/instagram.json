@@ -1,6 +1,8 @@
 {
   "version": 6,
   "packageName": "com.instagram.android",
+  "name": "Instagram",
+  "blocks": "Reels",
   "places": [
     { "id": "chat", "match": { "allOf": [{ "viewId": "thread_fragment_container" }] } },
     { "id": "saved", "match": { "allOf": [{ "viewId": "saved_view_pager" }] } },

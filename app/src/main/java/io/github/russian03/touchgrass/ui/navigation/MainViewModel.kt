@@ -18,6 +18,19 @@ class MainViewModel @Inject constructor(repository: BudgetRepository) : ViewMode
     private val _start = MutableStateFlow<Any?>(null)
     val start: StateFlow<Any?> = _start.asStateFlow()
 
+    private val _unlockRequest = MutableStateFlow<String?>(null)
+
+    /** App para la que se ha pedido tiempo desde la pantalla de bloqueo, aún sin atender. */
+    val unlockRequest: StateFlow<String?> = _unlockRequest.asStateFlow()
+
+    fun requestUnlock(packageName: String?) {
+        if (packageName != null) _unlockRequest.value = packageName
+    }
+
+    fun onUnlockRequestHandled() {
+        _unlockRequest.value = null
+    }
+
     init {
         viewModelScope.launch {
             _start.value = if (repository.state.first().onboardingDone) Home else Onboarding

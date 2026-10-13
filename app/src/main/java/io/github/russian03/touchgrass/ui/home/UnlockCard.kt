@@ -13,7 +13,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,32 +22,31 @@ import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.budget.UnlockSession
 import io.github.russian03.touchgrass.ui.common.Card
-import io.github.russian03.touchgrass.ui.common.MinutesPicker
 import io.github.russian03.touchgrass.ui.common.PrimaryButton
 import io.github.russian03.touchgrass.ui.common.countdown
 import io.github.russian03.touchgrass.ui.common.timeOf
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
-private val UNLOCK_PRESETS = listOf(5, 10, 15, 30, 60)
-
 /**
- * Pedir tiempo: con un desbloqueo en marcha muestra la cuenta atrás y deja terminarlo; si no,
- * deja elegir los minutos, nunca más de los que quedan hoy.
+ * Pedir tiempo: con un desbloqueo en marcha muestra la cuenta atrás de esa app ([appNames] da
+ * su nombre) y deja terminarlo; si no, lleva a la pantalla de pedir tiempo.
  */
 @Composable
 fun UnlockCard(
     budget: BudgetSummary,
     state: UnlockUiState,
-    onDraftChange: (Int) -> Unit,
-    onRequest: () -> Unit,
+    appNames: Map<String, String>,
+    onOpenUnlock: () -> Unit,
     onEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier) {
-        if (budget.unlock != null) {
-            ActiveUnlock(budget, busy = state.busy, onEnd = onEnd)
+        val unlock = budget.unlock
+        if (unlock != null) {
+            val appName = appNames[unlock.packageName] ?: unlock.packageName
+            ActiveUnlock(budget, appName, busy = state.busy, onEnd = onEnd)
         } else {
-            RequestUnlock(budget, state, onDraftChange, onRequest)
+            RequestUnlock(budget, onOpenUnlock)
         }
         state.error?.let {
             Text(
@@ -65,12 +63,7 @@ fun UnlockCard(
 }
 
 @Composable
-private fun RequestUnlock(
-    budget: BudgetSummary,
-    state: UnlockUiState,
-    onDraftChange: (Int) -> Unit,
-    onRequest: () -> Unit,
-) {
+private fun RequestUnlock(budget: BudgetSummary, onOpenUnlock: () -> Unit) {
     Text(
         text = stringResource(R.string.unlock_title),
         style = MaterialTheme.typography.titleMedium,
@@ -90,29 +83,18 @@ private fun RequestUnlock(
     )
     if (blocker != null) return
 
-    val minutes = state.shown(budget.remainingMinutes)
-    MinutesPicker(
-        minutes = minutes,
-        range = 1..budget.remainingMinutes,
-        presets = UNLOCK_PRESETS,
-        unit = stringResource(R.string.unlock_unit),
-        description = pluralStringResource(R.plurals.minutes, minutes, minutes),
-        onChange = onDraftChange,
-        modifier = Modifier.padding(top = 20.dp),
-    )
     PrimaryButton(
-        text = stringResource(R.string.unlock_request, minutes),
-        onClick = onRequest,
-        enabled = !state.busy,
+        text = stringResource(R.string.unlock_title),
+        onClick = onOpenUnlock,
         modifier = Modifier.padding(top = 20.dp),
     )
 }
 
 @Composable
-private fun ActiveUnlock(budget: BudgetSummary, busy: Boolean, onEnd: () -> Unit) {
+private fun ActiveUnlock(budget: BudgetSummary, appName: String, busy: Boolean, onEnd: () -> Unit) {
     var confirm by rememberSaveable { mutableStateOf(false) }
     Text(
-        text = stringResource(R.string.unlock_active_title),
+        text = stringResource(R.string.unlock_active_title, appName),
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Medium,
     )
@@ -168,7 +150,9 @@ private fun ActiveUnlock(budget: BudgetSummary, busy: Boolean, onEnd: () -> Unit
 @Preview(showBackground = true)
 @Composable
 private fun UnlockRequestPreview() {
-    TouchGrassTheme { UnlockCard(previewBudget(used = 17), UnlockUiState(), {}, {}, {}, Modifier.padding(16.dp)) }
+    TouchGrassTheme {
+        UnlockCard(previewBudget(used = 17), UnlockUiState(), emptyMap(), {}, {}, Modifier.padding(16.dp))
+    }
 }
 
 @Preview(showBackground = true)
@@ -180,5 +164,6 @@ private fun UnlockActivePreview() {
             unlockRemainingMs = 13 * 60_000L + 20_000,
             refundMinutes = 10,
         )
-    TouchGrassTheme { UnlockCard(budget, UnlockUiState(), {}, {}, {}, Modifier.padding(16.dp)) }
+    val names = mapOf("com.instagram.android" to "Instagram")
+    TouchGrassTheme { UnlockCard(budget, UnlockUiState(), names, {}, {}, Modifier.padding(16.dp)) }
 }

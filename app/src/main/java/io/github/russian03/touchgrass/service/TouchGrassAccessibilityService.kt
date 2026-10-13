@@ -194,7 +194,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         when {
             rule == null -> overlay.hide()
             !overlay.isShowing && SystemClock.elapsedRealtime() - leftAt >= LEAVE_COOLDOWN_MS -> {
-                overlay.show(onLeave = { leave(rule) })
+                overlay.show(snapshot.packageName, onLeave = { leave(rule) })
                 Log.i(TAG, "Regla '${rule.id}' aplicada (origen=${session.origin}, scroll=${session.scrolled})")
             }
         }

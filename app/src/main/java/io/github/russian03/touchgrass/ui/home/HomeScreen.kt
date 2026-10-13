@@ -36,20 +36,16 @@ import io.github.russian03.touchgrass.ui.common.rememberProtectionState
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 @Composable
-fun HomeScreen(onOpenSettings: () -> Unit, viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(onOpenSettings: () -> Unit, onOpenUnlock: () -> Unit, viewModel: HomeViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val budget by viewModel.budget.collectAsStateWithLifecycle()
     val unlock by viewModel.unlock.collectAsStateWithLifecycle()
+    val appNames by viewModel.appNames.collectAsStateWithLifecycle()
     HomeContent(
         protection = rememberProtectionState(),
         budget = budget,
         unlock = unlock,
-        unlockActions =
-        UnlockActions(
-            onDraftChange = viewModel::onUnlockDraftChange,
-            onRequest = viewModel::requestUnlock,
-            onEnd = viewModel::endUnlock,
-        ),
+        unlockActions = UnlockActions(appNames = appNames, onOpen = onOpenUnlock, onEnd = viewModel::endUnlock),
         showXiaomiTip = SystemSettings.isXiaomi,
         onOpenSettings = onOpenSettings,
         onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
@@ -58,7 +54,7 @@ fun HomeScreen(onOpenSettings: () -> Unit, viewModel: HomeViewModel = hiltViewMo
     )
 }
 
-private class UnlockActions(val onDraftChange: (Int) -> Unit, val onRequest: () -> Unit, val onEnd: () -> Unit)
+private class UnlockActions(val appNames: Map<String, String>, val onOpen: () -> Unit, val onEnd: () -> Unit)
 
 @Composable
 private fun HomeContent(
@@ -115,8 +111,8 @@ private fun HomeContent(
                 UnlockCard(
                     budget = budget,
                     state = unlock,
-                    onDraftChange = unlockActions.onDraftChange,
-                    onRequest = unlockActions.onRequest,
+                    appNames = unlockActions.appNames,
+                    onOpenUnlock = unlockActions.onOpen,
                     onEnd = unlockActions.onEnd,
                     modifier = Modifier.padding(top = 16.dp),
                 )
@@ -150,7 +146,7 @@ internal fun previewBudget(used: Int = 10, autoTime: Boolean = true) = BudgetSum
     refundMinutes = 0,
 )
 
-private val noActions = UnlockActions({}, {}, {})
+private val noActions = UnlockActions(emptyMap(), {}, {})
 
 @Preview(showBackground = true)
 @Composable
