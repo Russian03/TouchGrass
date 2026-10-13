@@ -100,7 +100,52 @@ Versión mínima de Android: 8.0 (API 26).
 ./gradlew testDebugUnitTest    # tests unitarios
 ./gradlew lintDebug            # lint de Android
 ./gradlew ktlintCheck          # estilo de código (ktlintFormat lo corrige)
+./gradlew assembleRelease      # APK de release (firmada si hay clave, ver abajo)
 ```
+
+## Publicar una versión
+
+Las APK de release van firmadas con una clave propia. Android solo deja actualizar la app
+si la versión nueva está firmada con **la misma clave**, así que si se pierde no se pueden
+publicar más actualizaciones. Guarda una copia de seguridad fuera del ordenador. La clave
+nunca entra al repo: `.gitignore` excluye `*.jks` y `keystore.properties`.
+
+**1. Crear la clave (una sola vez).** Pide dos contraseñas y unos datos que pueden ir en blanco:
+
+```bash
+mkdir -p ~/keys
+keytool -genkeypair -keystore ~/keys/touchgrass.jks -alias touchgrass \
+  -keyalg RSA -keysize 4096 -validity 10000 -storetype PKCS12
+```
+
+**2. Firmar en local.** Crea `keystore.properties` en la raíz del proyecto:
+
+```properties
+storeFile=/home/<usuario>/keys/touchgrass.jks
+storePassword=<contraseña>
+keyAlias=touchgrass
+keyPassword=<contraseña>
+```
+
+Con él, `./gradlew assembleRelease` deja la APK firmada en
+`app/build/outputs/apk/release/app-release.apk`. Sin él, la release sale sin firmar.
+
+**3. Release automática en GitHub.** En *Settings → Secrets and variables → Actions* del
+repo, crea estos secretos:
+
+| Secreto                         | Valor                                        |
+|---------------------------------|----------------------------------------------|
+| `TOUCHGRASS_KEYSTORE_BASE64`    | salida de `base64 -w0 ~/keys/touchgrass.jks` |
+| `TOUCHGRASS_KEYSTORE_PASSWORD`  | contraseña del keystore                      |
+| `TOUCHGRASS_KEY_ALIAS`          | `touchgrass`                                 |
+| `TOUCHGRASS_KEY_PASSWORD`       | contraseña de la clave                       |
+
+Al subir un tag (`git push origin v1.0.0`), la CI compila y firma la APK, comprueba la firma
+y crea una Release con `touchgrass-v1.0.0.apk` y su suma SHA-256.
+
+La APK de release (`io.github.russian03.touchgrass`) y la de debug (`.debug`) son apps
+distintas y pueden convivir en el mismo móvil, cada una con su propio servicio de
+accesibilidad.
 
 ## Flujo de trabajo
 

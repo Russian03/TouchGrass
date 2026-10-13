@@ -85,7 +85,16 @@ estado se comparte con un **DataStore multiproceso** (`MultiProcessDataStoreFact
 - Los snapshots descartan el texto del contenido (mensajes, captions) y solo guardan
   identificadores estructurales.
 - `allowBackup=false` y las reglas de extracción excluyen todos los datos.
-- En release: R8 con minify y shrinkResources. La keystore nunca entra al repo.
+- Además de las apps objetivo, el servicio escucha al launcher, pero solo para saber que el
+  usuario ha salido a Inicio o a Recientes. De su pantalla no se lee nada.
+- Solo se exporta `MainActivity`, porque la necesita el lanzador. El servicio exige
+  `BIND_ACCESSIBILITY_SERVICE`. Las librerías no añaden permisos, y el único receiver
+  exportado (`ProfileInstallReceiver` de AndroidX) exige `DUMP`, que solo tiene adb.
+- En release: R8 con minify y shrinkResources, y sin logs `v`, `d` ni `i`, para que logcat no
+  revele cuándo se usa Instagram.
+- La APK de release se firma con una clave propia. En local se lee de `keystore.properties` y
+  en CI de los secretos de GitHub. La keystore nunca entra al repo (ver README, *Publicar una
+  versión*).
 - El tiempo de uso se mide con `SystemClock.elapsedRealtime()` y se exige la hora automática,
   para que no se pueda hacer trampa cambiando la hora (ver *Antitrampas*).
 
