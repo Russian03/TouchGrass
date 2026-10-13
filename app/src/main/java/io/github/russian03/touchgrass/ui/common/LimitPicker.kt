@@ -31,37 +31,61 @@ import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 /** Límites que se pueden elegir desde la app. */
 val LIMIT_RANGE = 0..120
-private const val LIMIT_STEP = 5
+private const val STEP = 5
 private val LIMIT_PRESETS = listOf(15, 30, 45, 60, 90)
 
 /** Selector del límite diario: número grande con − y +, y atajos debajo. */
 @Composable
 fun LimitPicker(minutes: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val label = pluralStringResource(R.plurals.minutes_per_day, minutes, minutes)
+    MinutesPicker(
+        minutes = minutes,
+        range = LIMIT_RANGE,
+        presets = LIMIT_PRESETS,
+        unit = stringResource(R.string.limit_unit),
+        description = pluralStringResource(R.plurals.minutes_per_day, minutes, minutes),
+        onChange = onChange,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Número grande con − y +, y atajos debajo. − y + saltan al múltiplo de 5 anterior o siguiente
+ * (de 13 a 10 o a 15) sin salir de [range]; los atajos fuera de [range] no se pueden elegir.
+ */
+@Composable
+fun MinutesPicker(
+    minutes: Int,
+    range: IntRange,
+    presets: List<Int>,
+    unit: String,
+    description: String,
+    onChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StepButton(
                 symbol = "−",
                 description = stringResource(R.string.limit_less),
-                enabled = minutes > LIMIT_RANGE.first,
-                onClick = { onChange((minutes - LIMIT_STEP).coerceIn(LIMIT_RANGE)) },
+                enabled = minutes > range.first,
+                onClick = { onChange(((minutes - 1) / STEP * STEP).coerceIn(range)) },
             )
             Text(
                 text = minutes.toString(),
                 fontSize = 64.sp,
                 fontWeight = FontWeight.Light,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.width(140.dp).semantics { contentDescription = label },
+                modifier = Modifier.width(140.dp).semantics { contentDescription = description },
             )
             StepButton(
                 symbol = "+",
                 description = stringResource(R.string.limit_more),
-                enabled = minutes < LIMIT_RANGE.last,
-                onClick = { onChange((minutes + LIMIT_STEP).coerceIn(LIMIT_RANGE)) },
+                enabled = minutes < range.last,
+                onClick = { onChange(((minutes / STEP + 1) * STEP).coerceIn(range)) },
             )
         }
         Text(
-            text = stringResource(R.string.limit_unit),
+            text = unit,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -69,9 +93,10 @@ fun LimitPicker(minutes: Int, onChange: (Int) -> Unit, modifier: Modifier = Modi
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
         ) {
-            LIMIT_PRESETS.forEach { preset ->
+            presets.forEach { preset ->
                 FilterChip(
                     selected = preset == minutes,
+                    enabled = preset in range,
                     onClick = { onChange(preset) },
                     label = { Text(stringResource(R.string.minutes_short, preset)) },
                 )

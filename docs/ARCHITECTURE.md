@@ -55,6 +55,10 @@ en `core/budget/BudgetPolicy` (Kotlin puro) y el estado se guarda con `data/budg
   gasta se pierde.
 - Un desbloqueo se pide para una app y unos minutos, que se **restan enteros al pedirlo**. Dura
   esos minutos de reloj, aunque se salga de la app. Solo puede haber uno a la vez.
+- Un desbloqueo se puede **terminar antes de tiempo**. Se devuelve lo que le quedaba, redondeado
+  hacia abajo a múltiplos de 5 (13 → 10, 4 → 0), y solo el mismo día lógico en que se pidió.
+- Mientras dura, el servicio sigue la navegación pero no pone la pantalla de bloqueo, y deja
+  programada otra evaluación para el momento exacto en que caduca.
 - **Bajar** el límite se aplica al momento. **Subirlo** queda pendiente hasta el día 1 del mes
   siguiente.
 

@@ -23,6 +23,9 @@ enum class Denial {
     /** La app no es una de las que TouchGrass controla. */
     UnknownApp,
 
+    /** No hay ningún desbloqueo en marcha. */
+    NotUnlocked,
+
     /** Los primeros pasos ya se completaron: el límite solo se cambia desde Ajustes. */
     OnboardingDone,
 
@@ -50,6 +53,9 @@ object BudgetPolicy {
 
     val DAY_START: LocalTime = LocalTime.of(8, 0)
     const val MAX_LIMIT_MINUTES = 180
+
+    /** Al terminar antes de tiempo se devuelven los minutos que sobran en bloques de este tamaño. */
+    const val REFUND_STEP_MINUTES = 5
     private const val MS_PER_MINUTE = 60_000L
 
     /** Día lógico al que pertenece [now]: antes de las 8:00 aún cuenta como el día anterior. */
@@ -143,8 +149,34 @@ object BudgetPolicy {
                 startWallMs = now.wallMs,
                 startElapsedMs = now.elapsedMs,
                 bootCount = now.bootCount,
+                day = current.day,
             )
         return BudgetResult.Ok(current.copy(usedMinutes = current.usedMinutes + minutes, unlock = session))
+    }
+
+    /**
+     * Minutos que se devolverían si se terminara ahora el desbloqueo en marcha: lo que le queda,
+     * redondeado hacia abajo a múltiplos de [REFUND_STEP_MINUTES] (13 → 10, 4 → 0). Solo el mismo
+     * día lógico en que se cargaron y con hora automática; si no, se sumarían a un saldo nuevo.
+     */
+    fun refundMinutes(state: BudgetState, now: TimeSnapshot): Int {
+        if (!now.autoTime) return 0
+        val current = rollover(state, now)
+        val session = activeUnlock(current, now) ?: return 0
+        if (session.day == null || session.day != current.day) return 0
+        val step = REFUND_STEP_MINUTES * MS_PER_MINUTE
+        val refund = (unlockRemainingMs(session, now) / step).toInt() * REFUND_STEP_MINUTES
+        return refund.coerceAtMost(session.minutes)
+    }
+
+    /** Termina el desbloqueo en marcha y devuelve al saldo los minutos de [refundMinutes]. */
+    fun endUnlock(state: BudgetState, now: TimeSnapshot): BudgetResult {
+        val current = rollover(state, now)
+        if (activeUnlock(current, now) == null) return BudgetResult.Denied(Denial.NotUnlocked)
+        val refund = refundMinutes(current, now)
+        return BudgetResult.Ok(
+            current.copy(usedMinutes = (current.usedMinutes - refund).coerceAtLeast(0), unlock = null),
+        )
     }
 
     /** Primer límite, elegido en los primeros pasos. Después solo se cambia con [changeLimit]. */

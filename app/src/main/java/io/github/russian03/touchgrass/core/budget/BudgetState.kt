@@ -37,4 +37,6 @@ data class UnlockSession(
     val startWallMs: Long,
     val startElapsedMs: Long,
     val bootCount: Int,
+    /** Día lógico al que se cargaron los minutos; solo se devuelven minutos ese mismo día. */
+    val day: String? = null,
 )

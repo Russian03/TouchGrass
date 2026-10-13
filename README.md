@@ -45,6 +45,10 @@ Todavía no hay versión publicada en ninguna tienda. Hay que compilar la APK
 
 - **Inicio** muestra el saldo de hoy (minutos usados y los que quedan), cuándo se renueva
   (a las 8:00) y el estado de la protección.
+- **Pedir tiempo**, también en Inicio, desbloquea los Reels unos minutos (atajos de 5 a 60 o
+  − / +), nunca más de los que quedan hoy. Se restan al pedirlos y corren aunque salgas de
+  Instagram. Al acabar vuelve el bloqueo. Si terminas antes, se devuelve lo que sobra en
+  múltiplos de 5 minutos. Desde la pantalla de bloqueo, *Ir a TouchGrass* lleva aquí.
 - **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
   momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
 - Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa

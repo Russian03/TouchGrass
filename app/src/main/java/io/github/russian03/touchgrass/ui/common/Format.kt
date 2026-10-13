@@ -23,3 +23,16 @@ fun timeOf(epochMs: Long, zone: ZoneId = ZoneId.systemDefault()): String =
 /** Si [epochMs] cae mañana (p. ej. la renovación de las 8:00 vista antes de medianoche). */
 fun isTomorrow(epochMs: Long, zone: ZoneId = ZoneId.systemDefault()): Boolean =
     Instant.ofEpochMilli(epochMs).atZone(zone).toLocalDate() == LocalDate.now(zone).plusDays(1)
+
+/** Cuenta atrás: "12:05", o "1:02:05" a partir de una hora. Redondea hacia arriba los segundos. */
+fun countdown(ms: Long): String {
+    val total = (ms.coerceAtLeast(0) + 999) / 1_000
+    val hours = total / 3_600
+    val minutes = total % 3_600 / 60
+    val seconds = total % 60
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(Locale.ROOT, hours, minutes, seconds)
+    } else {
+        "%d:%02d".format(Locale.ROOT, minutes, seconds)
+    }
+}

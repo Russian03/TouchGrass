@@ -39,9 +39,17 @@ import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 fun HomeScreen(onOpenSettings: () -> Unit, viewModel: HomeViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val budget by viewModel.budget.collectAsStateWithLifecycle()
+    val unlock by viewModel.unlock.collectAsStateWithLifecycle()
     HomeContent(
         protection = rememberProtectionState(),
         budget = budget,
+        unlock = unlock,
+        unlockActions =
+        UnlockActions(
+            onDraftChange = viewModel::onUnlockDraftChange,
+            onRequest = viewModel::requestUnlock,
+            onEnd = viewModel::endUnlock,
+        ),
         showXiaomiTip = SystemSettings.isXiaomi,
         onOpenSettings = onOpenSettings,
         onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
@@ -50,10 +58,14 @@ fun HomeScreen(onOpenSettings: () -> Unit, viewModel: HomeViewModel = hiltViewMo
     )
 }
 
+private class UnlockActions(val onDraftChange: (Int) -> Unit, val onRequest: () -> Unit, val onEnd: () -> Unit)
+
 @Composable
 private fun HomeContent(
     protection: ProtectionState,
     budget: BudgetSummary?,
+    unlock: UnlockUiState,
+    unlockActions: UnlockActions,
     showXiaomiTip: Boolean,
     onOpenSettings: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
@@ -100,6 +112,14 @@ private fun HomeContent(
             )
             if (budget != null) {
                 TodayCard(budget = budget, modifier = Modifier.padding(top = 32.dp))
+                UnlockCard(
+                    budget = budget,
+                    state = unlock,
+                    onDraftChange = unlockActions.onDraftChange,
+                    onRequest = unlockActions.onRequest,
+                    onEnd = unlockActions.onEnd,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
                 if (!budget.autoTime) {
                     ManualTimeCard(onOpenDateSettings = onOpenDateSettings, modifier = Modifier.padding(top = 16.dp))
                 }
@@ -127,18 +147,33 @@ internal fun previewBudget(used: Int = 10, autoTime: Boolean = true) = BudgetSum
     onboardingDone = true,
     unlock = null,
     unlockRemainingMs = 0,
+    refundMinutes = 0,
 )
+
+private val noActions = UnlockActions({}, {}, {})
 
 @Preview(showBackground = true)
 @Composable
 private fun HomeOnPreview() {
-    TouchGrassTheme { HomeContent(ProtectionState.Running, previewBudget(), true, {}, {}, {}, {}) }
+    TouchGrassTheme {
+        HomeContent(ProtectionState.Running, previewBudget(), UnlockUiState(), noActions, true, {}, {}, {}, {})
+    }
 }
 
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HomeStoppedPreview() {
     TouchGrassTheme {
-        HomeContent(ProtectionState.Stopped, previewBudget(used = 30, autoTime = false), false, {}, {}, {}, {})
+        HomeContent(
+            ProtectionState.Stopped,
+            previewBudget(used = 30, autoTime = false),
+            UnlockUiState(),
+            noActions,
+            false,
+            {},
+            {},
+            {},
+            {},
+        )
     }
 }
