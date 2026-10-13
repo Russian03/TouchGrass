@@ -1,0 +1,258 @@
+package io.github.russian03.touchgrass.ui.settings
+
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.russian03.touchgrass.BuildConfig
+import io.github.russian03.touchgrass.R
+import io.github.russian03.touchgrass.core.budget.BudgetPolicy
+import io.github.russian03.touchgrass.core.budget.Denial
+import io.github.russian03.touchgrass.service.ProtectionState
+import io.github.russian03.touchgrass.ui.common.Card
+import io.github.russian03.touchgrass.ui.common.LimitPicker
+import io.github.russian03.touchgrass.ui.common.PrimaryButton
+import io.github.russian03.touchgrass.ui.common.ProtectionCard
+import io.github.russian03.touchgrass.ui.common.SystemSettings
+import io.github.russian03.touchgrass.ui.common.TopBar
+import io.github.russian03.touchgrass.ui.common.firstDayOf
+import io.github.russian03.touchgrass.ui.common.rememberProtectionState
+import io.github.russian03.touchgrass.ui.home.previewBudget
+import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
+import java.time.YearMonth
+
+@Composable
+fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    SettingsContent(
+        state = state,
+        protection = rememberProtectionState(),
+        onBack = onBack,
+        onDraftChange = viewModel::onDraftChange,
+        onSave = viewModel::save,
+        onCancelPending = viewModel::cancelPending,
+        onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
+    )
+}
+
+@Composable
+private fun SettingsContent(
+    state: SettingsUiState,
+    protection: ProtectionState,
+    onBack: () -> Unit,
+    onDraftChange: (Int) -> Unit,
+    onSave: () -> Unit,
+    onCancelPending: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
+) {
+    var confirmLower by remember { mutableStateOf(false) }
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = { TopBar(title = stringResource(R.string.settings_title), onBack = onBack) },
+    ) { innerPadding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+        ) {
+            Section(stringResource(R.string.settings_limit_section))
+            LimitCard(
+                state = state,
+                onDraftChange = onDraftChange,
+                onSave = { if (state.lowers) confirmLower = true else onSave() },
+                onCancelPending = onCancelPending,
+            )
+
+            Section(stringResource(R.string.settings_protection_section), Modifier.padding(top = 32.dp))
+            ProtectionCard(state = protection, onOpenAccessibilitySettings = onOpenAccessibilitySettings)
+
+            Section(stringResource(R.string.settings_privacy_section), Modifier.padding(top = 32.dp))
+            Card {
+                Text(
+                    text = stringResource(R.string.settings_privacy_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+            )
+        }
+    }
+
+    if (confirmLower) {
+        AlertDialog(
+            onDismissRequest = { confirmLower = false },
+            title = { Text(stringResource(R.string.settings_lower_title, state.shownLimit)) },
+            text = { Text(stringResource(R.string.settings_lower_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmLower = false
+                    onSave()
+                }) { Text(stringResource(R.string.settings_lower_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmLower = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun Section(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.padding(bottom = 12.dp).semantics { heading() },
+    )
+}
+
+@Composable
+private fun LimitCard(
+    state: SettingsUiState,
+    onDraftChange: (Int) -> Unit,
+    onSave: () -> Unit,
+    onCancelPending: () -> Unit,
+) {
+    val budget = state.budget ?: return
+    val nextMonth = firstDayOf(YearMonth.now().plusMonths(1))
+    Card {
+        Text(
+            text = stringResource(R.string.settings_limit_current, budget.limitMinutes),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        LimitPicker(
+            minutes = state.shownLimit,
+            onChange = onDraftChange,
+            modifier = Modifier.padding(top = 20.dp),
+        )
+        val hint =
+            when {
+                state.draft == null || state.draft == budget.limitMinutes -> stringResource(
+                    R.string.settings_limit_rule,
+                )
+                state.lowers -> stringResource(R.string.settings_limit_applies_now)
+                else -> stringResource(R.string.settings_limit_applies_from, nextMonth)
+            }
+        Text(
+            text = hint,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        )
+        state.result?.let { result ->
+            val colors = MaterialTheme.colorScheme
+            Text(
+                // Al programar un cambio, la fecha buena es la que ha guardado la política.
+                text = resultText(result, budget.pendingFrom?.let(::firstDayOf) ?: nextMonth),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (result is LimitChange.Failed) colors.error else colors.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            )
+        }
+        PrimaryButton(
+            text = stringResource(R.string.settings_limit_save),
+            onClick = onSave,
+            enabled = state.canSave,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+        val pending = budget.pendingLimitMinutes
+        val from = budget.pendingFrom
+        if (pending != null && from != null) {
+            Text(
+                text = stringResource(R.string.limit_pending, firstDayOf(from), pending),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 20.dp),
+            )
+            TextButton(onClick = onCancelPending, enabled = !state.saving) {
+                Text(stringResource(R.string.settings_limit_cancel_pending))
+            }
+        }
+    }
+}
+
+@Composable
+private fun resultText(result: LimitChange, nextMonth: String): String = when (result) {
+    LimitChange.Applied -> stringResource(R.string.settings_limit_applied)
+    LimitChange.Scheduled -> stringResource(R.string.settings_limit_scheduled, nextMonth)
+    LimitChange.Cancelled -> stringResource(R.string.settings_limit_cancelled)
+    is LimitChange.Failed ->
+        when (result.reason) {
+            Denial.ManualTime -> stringResource(R.string.settings_limit_manual_time)
+            else -> stringResource(R.string.error_saving)
+        }
+}
+
+@Preview(showSystemUi = true)
+@Composable
+private fun SettingsPreview() {
+    TouchGrassTheme {
+        SettingsContent(
+            state = SettingsUiState(budget = previewBudget(), draft = 45),
+            protection = ProtectionState.Running,
+            onBack = {},
+            onDraftChange = {},
+            onSave = {},
+            onCancelPending = {},
+            onOpenAccessibilitySettings = {},
+        )
+    }
+}
+
+@Preview(showSystemUi = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun SettingsPendingPreview() {
+    TouchGrassTheme {
+        SettingsContent(
+            state = SettingsUiState(
+                budget = previewBudget().copy(
+                    pendingLimitMinutes = BudgetPolicy.MAX_LIMIT_MINUTES / 2,
+                    pendingFrom = YearMonth.now().plusMonths(1),
+                ),
+            ),
+            protection = ProtectionState.Running,
+            onBack = {},
+            onDraftChange = {},
+            onSave = {},
+            onCancelPending = {},
+            onOpenAccessibilitySettings = {},
+        )
+    }
+}
