@@ -6,8 +6,9 @@ import io.github.russian03.touchgrass.MainActivity
 
 /**
  * Pantalla "No hay scroll" que aparece encima de una zona bloqueada, sin sacar al usuario
- * de ella. Mientras se ve, la app de debajo no recibe toques ni suena. [onLeave] saca al
- * usuario de la zona bloqueada cuando elige uno de los botones.
+ * de ella. Mientras se ve, la app de debajo no recibe toques ni suena. [show] recibe la app
+ * bloqueada (para pedir tiempo para ella) y `onLeave`, que saca al usuario de la zona
+ * bloqueada cuando elige uno de los botones.
  */
 class BlockOverlay(private val service: AccessibilityService) {
 
@@ -16,7 +17,7 @@ class BlockOverlay(private val service: AccessibilityService) {
 
     val isShowing: Boolean get() = window.isShowing
 
-    fun show(onLeave: () -> Unit) {
+    fun show(packageName: String, onLeave: () -> Unit) {
         if (window.isShowing) return
         silencer.silence()
         val blurred = window.blursBehind
@@ -30,7 +31,7 @@ class BlockOverlay(private val service: AccessibilityService) {
                 },
                 onOpenApp = {
                     onLeave()
-                    openApp()
+                    openApp(packageName)
                 },
             )
         }
@@ -53,9 +54,11 @@ class BlockOverlay(private val service: AccessibilityService) {
         silencer.restoreNow()
     }
 
-    private fun openApp() {
+    /** Abre TouchGrass en la pantalla de pedir tiempo para [packageName]. */
+    private fun openApp(packageName: String) {
         service.startActivity(
             Intent(service, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_UNLOCK_PACKAGE, packageName)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
         )
         hide()

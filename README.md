@@ -91,12 +91,14 @@ El sistema ha cerrado el servicio aunque el ajuste siga activado. Pulsa
 
 - **Inicio** muestra el saldo de hoy (minutos usados y los que quedan), cuándo se renueva
   (a las 8:00) y el estado de la protección.
-- **Pedir tiempo**, también en Inicio, desbloquea los Reels unos minutos (atajos de 5 a 60 o
-  − / +), nunca más de los que quedan hoy. Se restan al pedirlos y corren aunque salgas de
-  Instagram. Al acabar vuelve el bloqueo. Si terminas antes, se devuelve lo que sobra en
-  múltiplos de 5 minutos.
+- **Pedir tiempo**, en Inicio, abre una pantalla en la que eliges la app y después los minutos
+  (atajos de 5 a 60 o − / +), nunca más de los que quedan hoy. El saldo es el mismo para
+  todas las apps y solo hay un desbloqueo a la vez. Los minutos se restan al pedirlos y corren
+  aunque salgas de la app. Al acabar vuelve el bloqueo. Si terminas antes desde Inicio, se
+  devuelve lo que sobra en múltiplos de 5 minutos.
 - **Pantalla de bloqueo.** Primero aparece *Volver atrás*, que te saca del scroll. Un segundo
-  después, encima y más discreto, sale el enlace *Pedir tiempo de uso*, que lleva a Inicio.
+  después, encima y más discreto, sale el enlace *Pedir tiempo de uso*, que abre la pantalla de
+  pedir tiempo con esa app ya elegida.
 - **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
   momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
 - Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa

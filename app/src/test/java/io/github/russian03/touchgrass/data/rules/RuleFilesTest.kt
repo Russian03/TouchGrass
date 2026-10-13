@@ -16,6 +16,9 @@ class RuleFilesTest {
         files.forEach { file ->
             val set = RuleRepository.parse(file.readText())
             assertThat(set.rules).isNotEmpty()
+            // El nombre se muestra al pedir tiempo: no puede quedarse en el paquete.
+            assertThat(set.name).isNotEqualTo(set.packageName)
+            assertThat(set.blocks).isNotEmpty()
             assertThat(set.rules.map { it.id }).containsNoDuplicates()
             assertThat(set.places.map { it.id }).containsNoDuplicates()
             val placeIds = set.places.map { it.id }

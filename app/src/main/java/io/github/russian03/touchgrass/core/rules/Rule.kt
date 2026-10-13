@@ -10,6 +10,10 @@ data class RuleSet(
     val packageName: String,
     val rules: List<Rule>,
     val places: List<Place> = emptyList(),
+    /** Nombre de la app que se muestra al usuario (p. ej. "Instagram"). */
+    val name: String = packageName,
+    /** Lo que se bloquea, tal como se muestra al usuario (p. ej. "Reels"). */
+    val blocks: String = "",
 )
 
 /**

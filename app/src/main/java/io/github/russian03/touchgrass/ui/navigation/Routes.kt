@@ -10,3 +10,7 @@ data object Home
 
 @Serializable
 data object SettingsRoute
+
+/** Pedir tiempo; con [packageName] se entra directamente en los minutos de esa app. */
+@Serializable
+data class UnlockRoute(val packageName: String? = null)

@@ -7,9 +7,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 
+/** De dónde salen las reglas de cada app. */
+fun interface RuleSource {
+    fun load(): List<RuleSet>
+}
+
 @Singleton
-class RuleRepository @Inject constructor(@param:ApplicationContext private val context: Context) {
-    fun load(): List<RuleSet> = context.assets.list(RULES_DIR).orEmpty()
+class RuleRepository @Inject constructor(@param:ApplicationContext private val context: Context) : RuleSource {
+    override fun load(): List<RuleSet> = context.assets.list(RULES_DIR).orEmpty()
         .filter { it.endsWith(".json") }
         .map { file ->
             context.assets.open("$RULES_DIR/$file").bufferedReader().use { parse(it.readText()) }

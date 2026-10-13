@@ -53,7 +53,13 @@
 
     <!-- Pedir tiempo -->
     <string name="unlock_title">Pedir tiempo</string>
-    <string name="unlock_body">Desbloquea el scroll unos minutos. Se restan de tu saldo al pedirlos y corren aunque salgas de la app.</string>
+    <string name="unlock_body">Desbloquea el scroll de una app unos minutos. El saldo es el mismo para todas.</string>
+    <string name="unlock_choose_title">¿Qué quieres desbloquear?</string>
+    <string name="unlock_choose_body">El saldo de hoy es el mismo para todas las apps.</string>
+    <string name="unlock_app_body">Desbloquea %1$s unos minutos. Se restan de tu saldo al pedirlos y corren aunque salgas de la app.</string>
+    <string name="unlock_app_body_generic">Desbloquea el scroll unos minutos. Se restan de tu saldo al pedirlos y corren aunque salgas de la app.</string>
+    <string name="unlock_change_app">Cambiar de app</string>
+    <string name="unlock_already">Ya hay un desbloqueo en marcha. Termínalo en Inicio para pedir otro.</string>
     <string name="unlock_unit">minutos</string>
     <plurals name="minutes">
         <item quantity="one">%1$d minuto</item>
@@ -62,7 +68,7 @@
     <string name="unlock_request">Desbloquear %1$d min</string>
     <string name="unlock_none_left">Hoy ya no te quedan minutos. Se renuevan a las %1$s.</string>
     <string name="unlock_manual_time">Activa la hora automática para pedir tiempo.</string>
-    <string name="unlock_active_title">Scroll desbloqueado</string>
+    <string name="unlock_active_title">Scroll desbloqueado en %1$s</string>
     <string name="unlock_active_until">Hasta las %1$s</string>
     <string name="unlock_end">Terminar ya</string>
     <string name="unlock_end_title">¿Terminar ahora?</string>
