@@ -36,9 +36,19 @@ Todavía no hay versión publicada en ninguna tienda. Hay que compilar la APK
    *Ajustes → Aplicaciones → TouchGrass → ⋮ → Permitir ajustes restringidos*.
    Si no aparece la opción, intenta activar primero el paso 3; al rechazarlo, la opción
    se desbloquea.
-3. **Activar la protección.** Abre TouchGrass, pulsa *Activar en Accesibilidad* y activa
-   TouchGrass en la lista de servicios.
-4. Vuelve a la app: la tarjeta debe mostrar *Protección activada*.
+3. **Primeros pasos.** La primera vez que abres TouchGrass te explica cómo funciona, qué
+   lee el servicio de accesibilidad y te pide tu límite de minutos al día.
+4. **Activar la protección.** En el último paso, pulsa *Activar en Accesibilidad* y activa
+   TouchGrass en la lista de servicios. Vuelve a la app: debe mostrar *Protección activada*.
+
+## Uso
+
+- **Inicio** muestra el saldo de hoy (minutos usados y los que quedan), cuándo se renueva
+  (a las 8:00) y el estado de la protección.
+- **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
+  momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
+- Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa
+  para activar la hora automática.
 
 ### Xiaomi, Redmi y POCO (HyperOS / MIUI)
 
