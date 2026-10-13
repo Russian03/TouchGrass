@@ -1,22 +1,22 @@
 # TouchGrass 🌱
 
-Una app Android para usar Instagram sin caer en el *doomscrolling*.
-Más adelante también TikTok y YouTube.
+Una app Android para usar Instagram y TikTok sin caer en el *doomscrolling*.
+Más adelante también YouTube.
 
 TouchGrass **no sustituye** a la app oficial. Funciona *por encima* de ella mediante un
-servicio de accesibilidad que detecta cuándo entras en los Reels y pone una pantalla de
-bloqueo encima. Si quieres verlos, pides unos minutos de tu saldo diario. Así puedes seguir
+servicio de accesibilidad que detecta cuándo entras en el scroll (los Reels de Instagram,
+Para ti y Comunidad de TikTok) y pone una pantalla de bloqueo encima. Si quieres verlos, pides unos minutos de tu saldo diario. Así puedes seguir
 usando los mensajes, las publicaciones de tus amigos y las historias.
 
-> **[Descargar la última versión](../../releases/latest)**. De momento bloquea los Reels de
-> Instagram. La versión antigua, basada en WebView, está archivada en el tag
+> **[Descargar la última versión](../../releases/latest)**. Bloquea los Reels de Instagram
+> y las pestañas Para ti y Comunidad de TikTok. La versión antigua, basada en WebView, está archivada en el tag
 > [`legacy-v0`](../../tree/legacy-v0).
 
 ## Compatibilidad
 
 Funciona en **cualquier móvil Android 8.0 (API 26) o superior**, de cualquier marca.
-El bloqueo usa el servicio de accesibilidad estándar de Android y las reglas dependen de la
-app de Instagram, no del modelo de móvil.
+El bloqueo usa el servicio de accesibilidad estándar de Android y las reglas dependen de las
+apps de Instagram y TikTok, no del modelo de móvil.
 
 Algunas capas de fabricante cierran apps en segundo plano de forma agresiva y pueden
 detener la protección. La app lo detecta y lo avisa en la pantalla de inicio
@@ -99,6 +99,10 @@ El sistema ha cerrado el servicio aunque el ajuste siga activado. Pulsa
 - **Pantalla de bloqueo.** Primero aparece *Volver atrás*, que te saca del scroll. Un segundo
   después, encima y más discreto, sale el enlace *Pedir tiempo de uso*, que abre la pantalla de
   pedir tiempo con esa app ya elegida.
+- **Qué se bloquea:** en Instagram, los Reels: la pestaña y el visor, salvo el reel que abres
+  desde un perfil, un chat, Inicio o Guardados. En TikTok, las pestañas **Para ti** y
+  **Comunidad**; *Volver atrás* te lleva a Siguiendo. Siguiendo, Amigos, Buscar, los perfiles
+  y los chats quedan libres.
 - **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
   momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
 - Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa
@@ -126,7 +130,8 @@ las Releases de este repo.
 
 - **Privacidad total:** la app no pide permiso de Internet y ningún dato sale del móvil.
 - **Mínima intrusión:** el servicio solo observa las apps objetivo y solo lee los
-  identificadores de vista necesarios. Nunca lee el contenido de mensajes.
+  identificadores de vista necesarios y, en TikTok, el nombre de las pestañas de arriba
+  («Para ti», «Siguiendo»…). Nunca lee el contenido de mensajes.
 - **Difícil de saltar:** subir el límite se aplica al mes siguiente, los desbloqueos se miden
   con un reloj monotónico y, sin fecha y hora automáticas, el saldo no se renueva ni se
   desbloquea nada. Cambiar la hora del móvil no sirve.

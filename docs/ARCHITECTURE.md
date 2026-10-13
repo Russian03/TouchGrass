@@ -3,7 +3,7 @@
 ## Visión general
 
 ```
- Instagram (app oficial)
+ Instagram / TikTok (apps oficiales)
         │  eventos de accesibilidad (cambio de ventana, scroll, contenido)
         ▼
  TouchGrassAccessibilityService ──► ScreenSnapshot (solo viewIds + contentDescription)
@@ -35,13 +35,20 @@ sin emulador.
 
 ## Reglas de detección
 
-Instagram cambia sus identificadores internos con las actualizaciones, así que las reglas no
-están escritas en el código: van en ficheros JSON versionados (`assets/rules/instagram.json`).
-Cada regla indica:
+Las apps cambian sus identificadores internos con las actualizaciones, así que las reglas no
+están escritas en el código: van en ficheros JSON versionados, uno por app
+(`assets/rules/instagram.json`, `assets/rules/tiktok.json`). Cada regla indica:
 
-- la **app objetivo** (`com.instagram.android`),
+- la **app objetivo** (`com.instagram.android`, `com.zhiliaoapp.musically`),
 - un **matcher** (viewId, contentDescription o combinación),
 - una **acción** (`BLOCK`, `LIMIT`, `WARN`).
+
+En TikTok casi todos los identificadores están ofuscados (`oph`, `opi`…) y cambian con cada
+versión, y las pestañas de arriba comparten el de Android `android:id/text1`. Por eso una
+condición puede pedir también un **texto** (`"text": ["Para ti", "For You"]`), y la acción
+`click` puede elegir la vista por su texto. El snapshot solo guarda el texto de las vistas que
+nombra alguna regla, y solo si es uno de los que busca; cualquier otro texto se descarta.
+Los identificadores de Android (`android:id/…`) se guardan con su prefijo; los de la app, sin él.
 
 El build de debug incluye una pantalla que vuelca los viewIds visibles, para descubrir los
 nuevos cuando una actualización de Instagram rompa una regla.
@@ -86,7 +93,8 @@ estado se comparte con un **DataStore multiproceso** (`MultiProcessDataStoreFact
 - No se pide permiso `INTERNET`.
 - El servicio de accesibilidad se declara con `packageNames` restringido a las apps objetivo.
 - Los snapshots descartan el texto del contenido (mensajes, captions) y solo guardan
-  identificadores estructurales.
+  identificadores estructurales y, de las vistas que nombran las reglas, los textos que buscan
+  (las pestañas de TikTok).
 - `allowBackup=false` y las reglas de extracción excluyen todos los datos.
 - Además de las apps objetivo, el servicio escucha al launcher, pero solo para saber que el
   usuario ha salido a Inicio o a Recientes. De su pantalla no se lee nada.
@@ -94,7 +102,7 @@ estado se comparte con un **DataStore multiproceso** (`MultiProcessDataStoreFact
   `BIND_ACCESSIBILITY_SERVICE`. Las librerías no añaden permisos, y el único receiver
   exportado (`ProfileInstallReceiver` de AndroidX) exige `DUMP`, que solo tiene adb.
 - En release: R8 con minify y shrinkResources, y sin logs `v`, `d` ni `i`, para que logcat no
-  revele cuándo se usa Instagram.
+  revele cuándo se usan las apps bloqueadas.
 - La APK de release se firma con una clave propia. En local se lee de `keystore.properties` y
   en CI de los secretos de GitHub. La keystore nunca entra al repo (ver README, *Publicar una
   versión*).

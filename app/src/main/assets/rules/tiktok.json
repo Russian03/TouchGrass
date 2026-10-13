@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "packageName": "com.zhiliaoapp.musically",
+  "name": "TikTok",
+  "blocks": "Para ti y Comunidad",
+  "rules": [
+    {
+      "id": "for_you_tab",
+      "description": "Pestaña Para ti",
+      "match": {
+        "allOf": [{ "viewId": "android:id/text1", "selected": true, "text": ["Para ti", "For You"] }]
+      },
+      "action": { "type": "click", "target": "android:id/text1", "text": ["Siguiendo", "Following"] }
+    },
+    {
+      "id": "community_tab",
+      "description": "Pestaña Comunidad",
+      "match": {
+        "allOf": [{ "viewId": "android:id/text1", "selected": true, "text": ["Comunidad"] }]
+      },
+      "action": { "type": "click", "target": "android:id/text1", "text": ["Siguiendo", "Following"] }
+    }
+  ]
+}

@@ -15,6 +15,19 @@ class RuleEngine(ruleSets: List<RuleSet>) {
     /** Vistas paginadas en las que se cuenta el scroll, por app. */
     fun pagers(packageName: String): Set<String> = rulesByPackage[packageName].orEmpty().mapNotNull { it.pager }.toSet()
 
+    /**
+     * Textos que las reglas de cada vista buscan, por app. Son los únicos que se leen de la
+     * pantalla: el resto de textos no se guarda.
+     */
+    fun texts(packageName: String): Map<String, Set<String>> = (
+        rulesByPackage[packageName].orEmpty().map { it.match } +
+            placesByPackage[packageName].orEmpty().map { it.match }
+        )
+        .flatMap { it.allOf + it.noneOf }
+        .filter { it.text.isNotEmpty() }
+        .groupBy({ it.viewId }, { it.text })
+        .mapValues { (_, lists) -> lists.flatten().toSet() }
+
     /** Primer lugar que se reconoce en [snapshot], o `null` si no es ninguno. */
     fun place(snapshot: ScreenSnapshot): String? =
         placesByPackage[snapshot.packageName].orEmpty().firstOrNull { snapshot.satisfies(it.match) }?.id
@@ -32,5 +45,6 @@ class RuleEngine(ruleSets: List<RuleSet>) {
     private fun ScreenSnapshot.satisfies(match: Match): Boolean =
         match.allOf.all { satisfies(it) } && match.noneOf.none { satisfies(it) }
 
-    private fun ScreenSnapshot.satisfies(condition: Condition): Boolean = has(condition.viewId, condition.selected)
+    private fun ScreenSnapshot.satisfies(condition: Condition): Boolean =
+        has(condition.viewId, condition.selected, condition.text)
 }
