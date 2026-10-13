@@ -12,5 +12,10 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 5      | `bloque-5/arranque-primeros-pasos` | Pantalla de carga, primeros pasos con aviso destacado y límite, ajustes | v0.6.0 |
 | 6      | `bloque-6/desbloqueo-temporal`| Pedir tiempo (temporizador), desbloqueo en el servicio, caducidad         | v0.7.0 |
 | 7      | `bloque-7/endurecimiento`     | Revisión de seguridad, build release firmado, Release automática en CI    | v1.0.0 |
+| 8      | `bloque-8/textos-y-pantalla-bloqueo` | Textos genéricos («scroll»), enlace discreto para pedir tiempo     | —      |
+| 9      | `bloque-9/pedir-tiempo-por-app` | Pantalla para pedir tiempo: elegir app y minutos, saldo compartido      | —      |
+| 10     | `bloque-10/tiktok`            | Reglas para TikTok (Para ti y Comunidad)                                  | v1.1.0 |
+| —      | después                       | Estadísticas: motivo al pedir tiempo, resumen diario y mensual con aviso  | —      |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
-| —      | después                       | Reglas para TikTok y YouTube                                              | —      |
+| —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
+| —      | después                       | Reglas para YouTube                                                       | —      |

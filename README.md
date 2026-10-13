@@ -94,7 +94,9 @@ El sistema ha cerrado el servicio aunque el ajuste siga activado. Pulsa
 - **Pedir tiempo**, también en Inicio, desbloquea los Reels unos minutos (atajos de 5 a 60 o
   − / +), nunca más de los que quedan hoy. Se restan al pedirlos y corren aunque salgas de
   Instagram. Al acabar vuelve el bloqueo. Si terminas antes, se devuelve lo que sobra en
-  múltiplos de 5 minutos. Desde la pantalla de bloqueo, *Ir a TouchGrass* lleva aquí.
+  múltiplos de 5 minutos.
+- **Pantalla de bloqueo.** Primero aparece *Volver atrás*, que te saca del scroll. Un segundo
+  después, encima y más discreto, sale el enlace *Pedir tiempo de uso*, que lleva a Inicio.
 - **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
   momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
 - Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa

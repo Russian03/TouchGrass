@@ -11,6 +11,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,11 +55,17 @@ import kotlinx.coroutines.delay
 /**
  * Pantalla de bloqueo que aparece encima de un reel. Entra con un fundido de [fadeInMs]
  * mientras lo de detrás se desenfoca; desde el primer instante se traga los toques, así que
- * ya no se puede hacer scroll. El candado se cierra en su sitio y los botones salen después.
+ * ya no se puede hacer scroll. El candado se cierra en su sitio y después sale "Volver atrás";
+ * el enlace para pedir tiempo llega aún más tarde y discreto, para no invitar a usarlo.
  * Si el sistema no desenfoca lo de detrás ([blurredBehind] a false), el velo es casi opaco.
  */
-/** Pausa extra tras el fundido antes de mostrar los botones. */
+/** Pausa extra tras el fundido antes de mostrar "Volver atrás". */
 private const val BUTTONS_EXTRA_DELAY_MS = 1_000L
+
+/** Pausa extra tras "Volver atrás" antes de mostrar el enlace para pedir tiempo. */
+private const val LINK_EXTRA_DELAY_MS = 1_000L
+
+private const val BUTTONS_FADE_MS = 600
 
 @Composable
 fun BlockScreen(blurredBehind: Boolean, fadeInMs: Long, onBack: () -> Unit, onOpenApp: () -> Unit) {
@@ -64,10 +73,13 @@ fun BlockScreen(blurredBehind: Boolean, fadeInMs: Long, onBack: () -> Unit, onOp
     LaunchedEffect(Unit) { enter.animateTo(1f, tween(fadeInMs.toInt(), easing = FastOutSlowInEasing)) }
 
     // Los botones salen un rato después del fundido, para no volver por impulso.
-    val buttons = remember { Animatable(0f) }
+    val back = remember { Animatable(0f) }
+    val link = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         delay(fadeInMs + BUTTONS_EXTRA_DELAY_MS)
-        buttons.animateTo(1f, tween(600))
+        back.animateTo(1f, tween(BUTTONS_FADE_MS))
+        delay(LINK_EXTRA_DELAY_MS)
+        link.animateTo(1f, tween(BUTTONS_FADE_MS))
     }
 
     Box(
@@ -106,11 +118,22 @@ fun BlockScreen(blurredBehind: Boolean, fadeInMs: Long, onBack: () -> Unit, onOp
             // Ocupan su sitio desde el principio para que el candado no se mueva al aparecer.
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(bottom = 48.dp).graphicsLayer { alpha = buttons.value },
+                modifier = Modifier.padding(bottom = 48.dp),
             ) {
-                PillButton(stringResource(R.string.block_dismiss), "←", enabled = buttons.value == 1f, onBack)
-                Spacer(Modifier.height(12.dp))
-                PillButton(stringResource(R.string.block_open_app), "⌂", enabled = buttons.value == 1f, onOpenApp)
+                TextLink(
+                    text = stringResource(R.string.block_open_app),
+                    enabled = link.value == 1f,
+                    onClick = onOpenApp,
+                    modifier = Modifier.graphicsLayer { alpha = link.value },
+                )
+                Spacer(Modifier.height(16.dp))
+                PillButton(
+                    text = stringResource(R.string.block_dismiss),
+                    icon = "←",
+                    enabled = back.value == 1f,
+                    onClick = onBack,
+                    modifier = Modifier.graphicsLayer { alpha = back.value },
+                )
             }
         }
     }
@@ -153,13 +176,47 @@ private fun PulseDots() {
     }
 }
 
+/**
+ * Texto suelto, sin fondo ni forma, que se pulsa como un enlace: al apretarlo no sale ningún
+ * recuadro, solo se resalta el texto.
+ */
 @Composable
-private fun PillButton(text: String, icon: String, enabled: Boolean, onClick: () -> Unit) {
+private fun TextLink(text: String, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    Text(
+        text = text,
+        color = if (pressed) Grass else InkSoft,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Medium,
+        textDecoration = TextDecoration.Underline,
+        modifier =
+        modifier
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    )
+}
+
+@Composable
+private fun PillButton(
+    text: String,
+    icon: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Surface(
         onClick = onClick,
         enabled = enabled,
         color = Color.Black.copy(alpha = 0.06f),
         shape = RoundedCornerShape(32.dp),
+        modifier = modifier,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
