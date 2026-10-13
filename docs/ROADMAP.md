@@ -11,5 +11,6 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 4      | `bloque-4/presupuesto-datos`  | Saldo diario (8:00→8:00), límite mensual, DataStore multiproceso, tests   | v0.5.0 |
 | 5      | `bloque-5/arranque-primeros-pasos` | Pantalla de carga, primeros pasos con aviso destacado y límite, ajustes | v0.6.0 |
 | 6      | `bloque-6/desbloqueo-temporal`| Pedir tiempo (temporizador), desbloqueo en el servicio, caducidad         | v0.7.0 |
-| 7      | `bloque-7/endurecimiento`     | Revisión de seguridad, PIN opcional, build release firmado                | v1.0.0 |
+| 7      | `bloque-7/endurecimiento`     | Revisión de seguridad, build release firmado, Release automática en CI    | v1.0.0 |
+| —      | después                       | PIN opcional para pedir tiempo                                            | —      |
 | —      | después                       | Reglas para TikTok y YouTube                                              | —      |
