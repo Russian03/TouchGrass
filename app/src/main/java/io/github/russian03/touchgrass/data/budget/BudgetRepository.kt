@@ -62,6 +62,9 @@ class BudgetRepository internal constructor(private val store: DataStore<BudgetS
     suspend fun requestUnlock(packageName: String, minutes: Int, allowedPackages: Set<String>): Denial? =
         apply { state, now -> BudgetPolicy.requestUnlock(state, packageName, minutes, allowedPackages, now) }
 
+    /** Termina el desbloqueo en marcha y devuelve los minutos que sobran (ver [BudgetPolicy.refundMinutes]). */
+    suspend fun endUnlock(): Denial? = apply(BudgetPolicy::endUnlock)
+
     suspend fun setInitialLimit(minutes: Int): Denial? =
         apply { state, now -> BudgetPolicy.setInitialLimit(state, minutes, now) }
 

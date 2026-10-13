@@ -16,19 +16,27 @@ import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.russian03.touchgrass.BuildConfig
+import io.github.russian03.touchgrass.core.budget.BudgetPolicy
+import io.github.russian03.touchgrass.core.budget.BudgetState
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
+import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleRepository
 import io.github.russian03.touchgrass.overlay.BlockOverlay
 import javax.inject.Inject
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class TouchGrassAccessibilityService : AccessibilityService() {
 
     @Inject lateinit var ruleRepository: RuleRepository
+
+    @Inject lateinit var budget: BudgetRepository
 
     private lateinit var engine: RuleEngine
     private lateinit var overlay: BlockOverlay
@@ -36,6 +44,13 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private val keyguard by lazy { getSystemService(KeyguardManager::class.java) }
     private val handler = Handler(Looper.getMainLooper())
     private val evaluateRunnable = Runnable { evaluateCurrentScreen() }
+
+    // Al caducar un desbloqueo se vuelve a mirar la pantalla aunque Instagram no mande eventos.
+    private val expiryRunnable = Runnable { scheduleEvaluation(0) }
+    private val scope = MainScope()
+
+    /** Último saldo leído; mientras no se ha leído, no hay nada desbloqueado. */
+    private var budgetState: BudgetState? = null
 
     private var pendingSince: Long? = null
     private var launcher: String? = null
@@ -59,6 +74,13 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             },
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
+        // Los desbloqueos se piden desde la app, en otro proceso: llegan por el DataStore.
+        scope.launch {
+            budget.state.collect {
+                budgetState = it
+                scheduleEvaluation(0)
+            }
+        }
     }
 
     /** Al apagar la pantalla se quita la de bloqueo (si no, taparía el bloqueo del móvil). */
@@ -124,7 +146,9 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
+        scope.cancel()
         handler.removeCallbacks(evaluateRunnable)
+        handler.removeCallbacks(expiryRunnable)
         if (::overlay.isInitialized) {
             unregisterReceiver(screenReceiver)
             overlay.release()
@@ -163,7 +187,10 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             session.onViewerShown(SystemClock.elapsedRealtime())
         }
 
-        val rule = engine.evaluate(snapshot, session.origin, session.scrolled)
+        // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
+        val rule =
+            engine.evaluate(snapshot, session.origin, session.scrolled)
+                ?.takeUnless { unlocked(snapshot.packageName) }
         when {
             rule == null -> overlay.hide()
             !overlay.isShowing && SystemClock.elapsedRealtime() - leftAt >= LEAVE_COOLDOWN_MS -> {
@@ -175,6 +202,19 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         // Mientras se ve la pantalla se sigue mirando la de debajo: así se quita al salir de
         // Instagram o al hacer atrás, aunque el sistema no nos avise con ningún evento.
         if (overlay.isShowing) handler.postDelayed(evaluateRunnable, OVERLAY_POLL_MS)
+    }
+
+    /**
+     * Si [packageName] tiene un desbloqueo en marcha. Si lo tiene, deja programada otra
+     * evaluación para el momento en que caduca.
+     */
+    private fun unlocked(packageName: String): Boolean {
+        val state = budgetState ?: return false
+        val now = budget.now()
+        val unlock = BudgetPolicy.activeUnlock(state, now)?.takeIf { it.packageName == packageName } ?: return false
+        handler.removeCallbacks(expiryRunnable)
+        handler.postDelayed(expiryRunnable, BudgetPolicy.unlockRemainingMs(unlock, now) + EXPIRY_MARGIN_MS)
+        return true
     }
 
     /** Saca al usuario de la zona bloqueada cuando lo pide desde la pantalla de bloqueo. */
@@ -208,5 +248,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val MAX_WAIT_MS = 300L
         const val LEAVE_COOLDOWN_MS = 1_000L
         const val OVERLAY_POLL_MS = 200L
+        const val EXPIRY_MARGIN_MS = 100L
     }
 }

@@ -63,6 +63,18 @@ class BudgetRepositoryTest {
     }
 
     @Test
+    fun `terminar un desbloqueo devuelve los minutos`() = runTest {
+        val repo = repository()
+        repo.setInitialLimit(30)
+        repo.requestUnlock(instagram, 20, setOf(instagram))
+        assertThat(repo.endUnlock()).isNull()
+        val state = repo.state.first()
+        assertThat(state.unlock).isNull()
+        assertThat(state.usedMinutes).isEqualTo(0)
+        assertThat(repo.endUnlock()).isEqualTo(Denial.NotUnlocked)
+    }
+
+    @Test
     fun `una petición denegada no cambia nada`() = runTest {
         val repo = repository()
         repo.setInitialLimit(30)
@@ -88,7 +100,7 @@ class BudgetRepositoryTest {
             pendingFrom = "2026-11",
             day = "2026-10-13",
             usedMinutes = 20,
-            unlock = UnlockSession(instagram, 20, 1L, 2L, 3),
+            unlock = UnlockSession(instagram, 20, 1L, 2L, 3, "2026-10-13"),
             onboardingDone = true,
         )
         val bytes = ByteArrayOutputStream().also { BudgetSerializer.writeTo(state, it) }.toByteArray()

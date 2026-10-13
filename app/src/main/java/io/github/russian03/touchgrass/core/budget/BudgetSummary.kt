@@ -17,6 +17,8 @@ data class BudgetSummary(
     /** Desbloqueo en marcha, o `null`. */
     val unlock: UnlockSession?,
     val unlockRemainingMs: Long,
+    /** Minutos que se devolverían si se terminara ya el desbloqueo. */
+    val refundMinutes: Int,
 ) {
     companion object {
         fun of(state: BudgetState, now: TimeSnapshot): BudgetSummary {
@@ -33,6 +35,7 @@ data class BudgetSummary(
                 onboardingDone = current.onboardingDone,
                 unlock = unlock,
                 unlockRemainingMs = unlock?.let { BudgetPolicy.unlockRemainingMs(it, now) } ?: 0,
+                refundMinutes = BudgetPolicy.refundMinutes(current, now),
             )
         }
     }

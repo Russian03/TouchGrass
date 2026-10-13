@@ -256,4 +256,66 @@ class BudgetPolicyTest {
         assertThat(BudgetPolicy.requestUnlock(limit30, instagram, 0, allowed, now).denial())
             .isEqualTo(Denial.InvalidMinutes)
     }
+
+    // Terminar antes de tiempo
+
+    private fun unlocked20() = BudgetPolicy.requestUnlock(limit30, instagram, 20, allowed, at("2026-10-13T10:00")).ok()
+
+    @Test
+    fun `se devuelve lo que queda redondeado hacia abajo a múltiplos de 5`() {
+        val state = unlocked20()
+        // Quedan 13 minutos: se devuelven 10.
+        val now = at("2026-10-13T10:07", elapsedMin = 1_007)
+        assertThat(BudgetPolicy.refundMinutes(state, now)).isEqualTo(10)
+        val ended = BudgetPolicy.endUnlock(state, now).ok()
+        assertThat(ended.unlock).isNull()
+        assertThat(ended.usedMinutes).isEqualTo(10)
+        assertThat(BudgetPolicy.isUnlocked(ended, instagram, now)).isFalse()
+    }
+
+    @Test
+    fun `con menos de 5 minutos no se devuelve nada`() {
+        val state = unlocked20()
+        val now = at("2026-10-13T10:16", elapsedMin = 1_016)
+        assertThat(BudgetPolicy.refundMinutes(state, now)).isEqualTo(0)
+        assertThat(BudgetPolicy.endUnlock(state, now).ok().usedMinutes).isEqualTo(20)
+    }
+
+    @Test
+    fun `terminar nada más pedir devuelve todo`() {
+        val now = at("2026-10-13T10:00")
+        val ended = BudgetPolicy.endUnlock(unlocked20(), now).ok()
+        assertThat(ended.usedMinutes).isEqualTo(0)
+        assertThat(BudgetPolicy.remainingMinutes(ended, now)).isEqualTo(30)
+    }
+
+    @Test
+    fun `tras las 8 no se devuelve nada al saldo nuevo`() {
+        val state = BudgetPolicy.requestUnlock(limit30, instagram, 20, allowed, at("2026-10-14T07:55")).ok()
+        val now = at("2026-10-14T08:00", elapsedMin = 1_005)
+        assertThat(BudgetPolicy.refundMinutes(state, now)).isEqualTo(0)
+        val ended = BudgetPolicy.endUnlock(state, now).ok()
+        assertThat(BudgetPolicy.remainingMinutes(ended, now)).isEqualTo(30)
+    }
+
+    @Test
+    fun `sin hora automática se puede terminar pero no se devuelve nada`() {
+        val now = at("2026-10-13T10:00", autoTime = false)
+        val ended = BudgetPolicy.endUnlock(unlocked20(), now).ok()
+        assertThat(ended.unlock).isNull()
+        assertThat(ended.usedMinutes).isEqualTo(20)
+    }
+
+    @Test
+    fun `sin desbloqueo en marcha no hay nada que terminar`() {
+        val now = at("2026-10-13T10:30", elapsedMin = 1_030)
+        assertThat(BudgetPolicy.endUnlock(unlocked20(), now).denial()).isEqualTo(Denial.NotUnlocked)
+        assertThat(BudgetPolicy.endUnlock(limit30, now).denial()).isEqualTo(Denial.NotUnlocked)
+    }
+
+    @Test
+    fun `una sesión guardada sin día no devuelve minutos`() {
+        val session = unlocked20().let { it.copy(unlock = it.unlock!!.copy(day = null)) }
+        assertThat(BudgetPolicy.refundMinutes(session, at("2026-10-13T10:00"))).isEqualTo(0)
+    }
 }
