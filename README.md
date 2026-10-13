@@ -4,12 +4,13 @@ Una app Android para usar Instagram sin caer en el *doomscrolling*.
 Más adelante también TikTok y YouTube.
 
 TouchGrass **no sustituye** a la app oficial. Funciona *por encima* de ella mediante un
-servicio de accesibilidad que detecta las zonas adictivas (Reels, Explorar, scroll infinito)
-y las bloquea o les pone un límite de tiempo diario. Así puedes seguir usando los mensajes,
-las publicaciones de tus amigos y las historias.
+servicio de accesibilidad que detecta cuándo entras en los Reels y pone una pantalla de
+bloqueo encima. Si quieres verlos, pides unos minutos de tu saldo diario. Así puedes seguir
+usando los mensajes, las publicaciones de tus amigos y las historias.
 
-> Estado: **en reescritura**. De momento bloquea los Reels de Instagram. La versión antigua
-> basada en WebView está archivada en el tag [`legacy-v0`](../../tree/legacy-v0).
+> **[Descargar la última versión](../../releases/latest)**. De momento bloquea los Reels de
+> Instagram. La versión antigua, basada en WebView, está archivada en el tag
+> [`legacy-v0`](../../tree/legacy-v0).
 
 ## Compatibilidad
 
@@ -23,36 +24,22 @@ detener la protección. La app lo detecta y lo avisa en la pantalla de inicio
 
 ## Instalación
 
-Todavía no hay versión publicada en ninguna tienda. Hay que compilar la APK
-(ver [Compilar](#compilar)) e instalarla en el móvil:
+TouchGrass no está en ninguna tienda: se instala desde las
+[Releases de GitHub](../../releases/latest).
 
-1. **Instalar la APK**, de una de estas formas:
-   - Con el móvil conectado por USB y la depuración USB activada:
-     `./gradlew installDebug` (o `adb install app/build/outputs/apk/debug/app-debug.apk`).
-   - Copiando `app-debug.apk` al móvil y abriéndola. Android pedirá permitir la
-     instalación de apps de origen desconocido.
+1. **Descargar la APK.** Desde el móvil, abre la [última Release](../../releases/latest) y
+   descarga `touchgrass-vX.Y.Z.apk` (en *Assets*). Ábrela desde Descargas y pulsa
+   *Instalar*. Android pedirá permitir la instalación de apps de origen desconocido para el
+   navegador o la app de archivos.
 2. **Permitir ajustes restringidos** (Android 13 o superior). Android bloquea la
    accesibilidad a las apps instaladas fuera de una tienda. Ve a
    *Ajustes → Aplicaciones → TouchGrass → ⋮ → Permitir ajustes restringidos*.
-   Si no aparece la opción, intenta activar primero el paso 3; al rechazarlo, la opción
-   se desbloquea.
+   Si no aparece la opción, intenta activar primero la protección (paso 4); al rechazarlo,
+   la opción se desbloquea.
 3. **Primeros pasos.** La primera vez que abres TouchGrass te explica cómo funciona, qué
    lee el servicio de accesibilidad y te pide tu límite de minutos al día.
 4. **Activar la protección.** En el último paso, pulsa *Activar en Accesibilidad* y activa
    TouchGrass en la lista de servicios. Vuelve a la app: debe mostrar *Protección activada*.
-
-## Uso
-
-- **Inicio** muestra el saldo de hoy (minutos usados y los que quedan), cuándo se renueva
-  (a las 8:00) y el estado de la protección.
-- **Pedir tiempo**, también en Inicio, desbloquea los Reels unos minutos (atajos de 5 a 60 o
-  − / +), nunca más de los que quedan hoy. Se restan al pedirlos y corren aunque salgas de
-  Instagram. Al acabar vuelve el bloqueo. Si terminas antes, se devuelve lo que sobra en
-  múltiplos de 5 minutos. Desde la pantalla de bloqueo, *Ir a TouchGrass* lleva aquí.
-- **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
-  momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
-- Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa
-  para activar la hora automática.
 
 ### Xiaomi, Redmi y POCO (HyperOS / MIUI)
 
@@ -77,26 +64,79 @@ Aplicaciones que nunca entran en suspensión*.
 Solo se ha probado en un Xiaomi con HyperOS. En otras marcas debería funcionar, pero
 no está verificado.
 
+### Comprobar la descarga (opcional)
+
+Cada Release incluye `touchgrass-vX.Y.Z.apk.sha256`. En un ordenador, con los dos ficheros
+en la misma carpeta:
+
+```bash
+sha256sum -c touchgrass-vX.Y.Z.apk.sha256    # debe decir OK
+```
+
+Todas las versiones van firmadas con la misma clave. La huella SHA-256 del certificado es:
+
+```
+4d9cde9b128b248b103de0124f4ba33e56604af95620c538ef45f0e8af8df652
+```
+
+Se puede comprobar con `apksigner verify --print-certs touchgrass-vX.Y.Z.apk` (viene con el
+Android SDK).
+
 ### Si aparece «Protección detenida»
 
 El sistema ha cerrado el servicio aunque el ajuste siga activado. Pulsa
 *Reactivar en Accesibilidad*, **desactiva** TouchGrass y **vuelve a activarlo**.
+
+## Uso
+
+- **Inicio** muestra el saldo de hoy (minutos usados y los que quedan), cuándo se renueva
+  (a las 8:00) y el estado de la protección.
+- **Pedir tiempo**, también en Inicio, desbloquea los Reels unos minutos (atajos de 5 a 60 o
+  − / +), nunca más de los que quedan hoy. Se restan al pedirlos y corren aunque salgas de
+  Instagram. Al acabar vuelve el bloqueo. Si terminas antes, se devuelve lo que sobra en
+  múltiplos de 5 minutos. Desde la pantalla de bloqueo, *Ir a TouchGrass* lleva aquí.
+- **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
+  momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
+- Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa
+  para activar la hora automática.
+
+## Actualizaciones
+
+TouchGrass **no se actualiza sola**. No tiene permiso de Internet, a propósito, así que no
+puede comprobar si hay versiones nuevas.
+
+- **Para actualizar:** descarga la APK de la nueva Release e instálala encima de la que
+  tienes, sin desinstalar nada. Como todas las versiones van firmadas con la misma clave,
+  Android la acepta como actualización y conservas el límite y el saldo.
+- **Para enterarte de las versiones nuevas**, cualquiera de estas dos:
+  - En GitHub, en este repo: *Watch → Custom → Releases*. Te llega un aviso (y un correo)
+    con cada versión.
+  - Con [Obtainium](https://github.com/ImranR98/Obtainium), una app libre para Android:
+    añade la URL de este repo y te avisa, o actualiza, cuando sale una Release nueva.
+
+Si Android dice que la app no se ha instalado o que hay un conflicto con un paquete
+existente, la APK no está firmada con la misma clave. No la instales y descárgala solo de
+las Releases de este repo.
 
 ## Principios
 
 - **Privacidad total:** la app no pide permiso de Internet y ningún dato sale del móvil.
 - **Mínima intrusión:** el servicio solo observa las apps objetivo y solo lee los
   identificadores de vista necesarios. Nunca lee el contenido de mensajes.
-- **Difícil de saltar:** los cambios para relajar los límites se aplican al día siguiente
-  y el tiempo se mide con un reloj monotónico, así que cambiar la hora del móvil no sirve.
+- **Difícil de saltar:** subir el límite se aplica al mes siguiente, los desbloqueos se miden
+  con un reloj monotónico y, sin fecha y hora automáticas, el saldo no se renueva ni se
+  desbloquea nada. Cambiar la hora del móvil no sirve.
 
 ## Compilar
+
+Para desarrollar o para instalar desde el código en lugar de las Releases.
 
 Requisitos: JDK 17 o superior y Android SDK 37 (o Android Studio, que trae ambos).
 Versión mínima de Android: 8.0 (API 26).
 
 ```bash
 ./gradlew assembleDebug        # APK de debug
+./gradlew installDebug         # la instala en el móvil conectado por adb
 ./gradlew testDebugUnitTest    # tests unitarios
 ./gradlew lintDebug            # lint de Android
 ./gradlew ktlintCheck          # estilo de código (ktlintFormat lo corrige)
