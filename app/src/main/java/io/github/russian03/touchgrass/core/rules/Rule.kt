@@ -51,9 +51,13 @@ data class Match(val allOf: List<Condition>, val noneOf: List<Condition> = empty
     }
 }
 
-/** Existe una vista visible con [viewId] y, si se indica, con ese estado de selección. */
+/**
+ * Existe una vista visible con [viewId] y, si se indica, con ese estado de selección y uno
+ * de los textos de [text]. El texto sirve para vistas que comparten identificador, como las
+ * pestañas de TikTok («Para ti», «Siguiendo»…).
+ */
 @Serializable
-data class Condition(val viewId: String, val selected: Boolean? = null)
+data class Condition(val viewId: String, val selected: Boolean? = null, val text: List<String> = emptyList())
 
 @Serializable
 sealed interface Action {
@@ -62,8 +66,11 @@ sealed interface Action {
     @SerialName("back")
     data object Back : Action
 
-    /** Pulsar la vista [target] (p. ej. la pestaña de Inicio). Si no existe, se hace "atrás". */
+    /**
+     * Pulsar la vista [target] (p. ej. la pestaña de Inicio) o, si se indica [text], la que
+     * tenga uno de esos textos. Si no existe, se hace "atrás".
+     */
     @Serializable
     @SerialName("click")
-    data class Click(val target: String) : Action
+    data class Click(val target: String, val text: List<String> = emptyList()) : Action
 }

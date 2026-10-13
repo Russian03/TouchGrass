@@ -32,4 +32,11 @@ class RuleFilesTest {
         assertThat(set.packageName).isEqualTo("com.instagram.android")
         assertThat(set.rules.map { it.id }).containsAtLeast("reels_tab", "reels_viewer")
     }
+
+    @Test
+    fun `tiktok bloquea Para ti y Comunidad`() {
+        val set = RuleRepository.parse(File(rulesDir, "tiktok.json").readText())
+        assertThat(set.packageName).isEqualTo("com.zhiliaoapp.musically")
+        assertThat(set.rules.map { it.id }).containsAtLeast("for_you_tab", "community_tab")
+    }
 }

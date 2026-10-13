@@ -9,7 +9,8 @@ internal object SnapshotBuilder {
     /** Tope de nodos recorridos por evento, para no penalizar la batería en pantallas enormes. */
     private const val MAX_NODES = 2_000
 
-    fun build(root: AccessibilityNodeInfo): ScreenSnapshot {
+    /** [texts]: por identificador, los textos que interesan; cualquier otro texto se ignora. */
+    fun build(root: AccessibilityNodeInfo, texts: Map<String, Set<String>> = emptyMap()): ScreenSnapshot {
         val packageName = root.packageName?.toString().orEmpty()
         val idPrefix = "$packageName:id/"
         val nodes = mutableListOf<ViewNode>()
@@ -22,8 +23,11 @@ internal object SnapshotBuilder {
             if (!node.isVisibleToUser) continue
 
             node.viewIdResourceName
-                ?.takeIf { it.startsWith(idPrefix) }
-                ?.let { nodes += ViewNode(viewId = it.removePrefix(idPrefix), selected = node.isSelected) }
+                ?.let { localViewId(it, idPrefix) }
+                ?.let { id ->
+                    val text = texts[id]?.let { wanted -> node.text?.toString()?.takeIf { it in wanted } }
+                    nodes += ViewNode(viewId = id, selected = node.isSelected, text = text)
+                }
 
             for (i in 0 until node.childCount) {
                 node.getChild(i)?.let(stack::add)
@@ -31,4 +35,20 @@ internal object SnapshotBuilder {
         }
         return ScreenSnapshot(packageName, nodes)
     }
+
+    /**
+     * Los identificadores de la app se guardan sin prefijo (`clips_tab`); los del propio Android,
+     * que algunas apps usan (las pestañas de TikTok son `android:id/text1`), con él. El resto se ignora.
+     */
+    private fun localViewId(resourceName: String, idPrefix: String): String? = when {
+        resourceName.startsWith(idPrefix) -> resourceName.removePrefix(idPrefix)
+        resourceName.startsWith(ANDROID_ID_PREFIX) -> resourceName
+        else -> null
+    }
+
+    /** Nombre completo de [viewId] tal como lo usa Android, para buscar la vista en pantalla. */
+    fun resourceName(packageName: String, viewId: String): String =
+        if (viewId.startsWith(ANDROID_ID_PREFIX)) viewId else "$packageName:id/$viewId"
+
+    private const val ANDROID_ID_PREFIX = "android:id/"
 }

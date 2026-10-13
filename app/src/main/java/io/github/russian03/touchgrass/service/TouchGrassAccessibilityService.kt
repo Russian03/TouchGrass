@@ -125,7 +125,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         pendingSince = null
         leftAt = SystemClock.elapsedRealtime()
         overlay.hide()
-        if (BuildConfig.DEBUG) Log.d(TAG, "Fuera de Instagram: pantalla quitada")
+        if (BuildConfig.DEBUG) Log.d(TAG, "Fuera de la app: pantalla quitada")
     }
 
     /** App de inicio del móvil (la que también muestra Recientes), o `null` si no se encuentra. */
@@ -180,7 +180,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             return
         }
 
-        val snapshot = SnapshotBuilder.build(root)
+        val snapshot = SnapshotBuilder.build(root, engine.texts(root.packageName.toString()))
         if (BuildConfig.DEBUG) dump(snapshot)
         engine.place(snapshot)?.let(session::onPlace)
         if (engine.pagers(snapshot.packageName).any { snapshot.has(it) }) {
@@ -225,13 +225,20 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             when (val action = rule.action) {
                 Action.Back -> performGlobalAction(GLOBAL_ACTION_BACK)
                 is Action.Click ->
-                    root?.findAccessibilityNodeInfosByViewId("${root.packageName}:id/${action.target}")
-                        ?.firstOrNull()
+                    root?.findAccessibilityNodeInfosByViewId(
+                        SnapshotBuilder.resourceName("${root.packageName}", action.target),
+                    )
+                        ?.firstOrNull { action.text.isEmpty() || it.text?.toString() in action.text }
+                        ?.clickableSelfOrParent()
                         ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true ||
                         performGlobalAction(GLOBAL_ACTION_BACK)
             }
         Log.i(TAG, "Salida de '${rule.id}' (ok=$done)")
     }
+
+    /** La propia vista o el primer padre que se puede pulsar (en TikTok el texto de la pestaña no lo es). */
+    private fun AccessibilityNodeInfo.clickableSelfOrParent(): AccessibilityNodeInfo? =
+        generateSequence(this) { it.parent }.take(MAX_CLICK_ANCESTORS).firstOrNull { it.isClickable }
 
     /** Solo en debug: vuelca los identificadores visibles para descubrir y mantener reglas. */
     private fun dump(snapshot: ScreenSnapshot) {
@@ -249,5 +256,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val LEAVE_COOLDOWN_MS = 1_000L
         const val OVERLAY_POLL_MS = 200L
         const val EXPIRY_MARGIN_MS = 100L
+        const val MAX_CLICK_ANCESTORS = 4
     }
 }

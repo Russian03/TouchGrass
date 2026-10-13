@@ -108,11 +108,42 @@ class RuleEngineTest {
     }
 
     @Test
+    fun `una condición con texto solo se cumple con uno de esos textos`() {
+        val tab = Condition("android:id/text1", selected = true, text = listOf("Para ti", "For You"))
+        val rule = Rule("for_you", "Para ti", Match(allOf = listOf(tab)), Action.Back)
+        val tiktok = RuleEngine(listOf(RuleSet(1, TT, listOf(rule))))
+        fun tabs(selected: String) = ScreenSnapshot(
+            TT,
+            listOf("Siguiendo", "Para ti").map { ViewNode("android:id/text1", it == selected, text = it) },
+        )
+
+        assertThat(tiktok.evaluate(tabs("Para ti"))).isEqualTo(rule)
+        assertThat(tiktok.evaluate(tabs("Siguiendo"))).isNull()
+        // Si el texto no se ha leído (no es uno de los buscados), no se cumple.
+        assertThat(tiktok.evaluate(ScreenSnapshot(TT, listOf(ViewNode("android:id/text1", selected = true))))).isNull()
+    }
+
+    @Test
+    fun `los textos que se leen son solo los que buscan las reglas y lugares`() {
+        val rules =
+            listOf(
+                Rule("a", "A", Match(allOf = listOf(Condition("tab", text = listOf("Para ti")))), Action.Back),
+                Rule("b", "B", Match(allOf = listOf(Condition("tab", text = listOf("Comunidad")))), Action.Back),
+            )
+        val places = listOf(Place("p", Match(allOf = listOf(Condition("title", text = listOf("Mensajes"))))))
+        val tiktok = RuleEngine(listOf(RuleSet(1, TT, rules, places)))
+        assertThat(tiktok.texts(TT))
+            .containsExactly("tab", setOf("Para ti", "Comunidad"), "title", setOf("Mensajes"))
+        assertThat(engine.texts(IG)).isEmpty()
+    }
+
+    @Test
     fun `una regla sin condiciones no se puede crear`() {
         assertThrows(IllegalArgumentException::class.java) { Match(allOf = emptyList()) }
     }
 
     private companion object {
         const val IG = "com.instagram.android"
+        const val TT = "com.zhiliaoapp.musically"
     }
 }
