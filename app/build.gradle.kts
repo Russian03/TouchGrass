@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -7,6 +9,21 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+/**
+ * Firma de release. En local se lee de `keystore.properties` (fuera del repo); en CI, de variables
+ * de entorno que vienen de los secretos de GitHub. Sin ninguna de las dos, la release se compila
+ * sin firmar.
+ */
+val keystoreProperties =
+    rootProject.file("keystore.properties").takeIf { it.exists() }?.let { file ->
+        Properties().apply { file.inputStream().use(::load) }
+    }
+
+fun signingValue(property: String, env: String): String? =
+    keystoreProperties?.getProperty(property) ?: System.getenv(env)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = signingValue("storeFile", "TOUCHGRASS_KEYSTORE_FILE")
+
 android {
     namespace = "io.github.russian03.touchgrass"
     compileSdk = 37
@@ -15,8 +32,20 @@ android {
         applicationId = "io.github.russian03.touchgrass"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.2.0"
+        // versionCode = mayor * 10000 + menor * 100 + parche.
+        versionCode = 10000
+        versionName = "1.0.0"
+    }
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = signingValue("storePassword", "TOUCHGRASS_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "TOUCHGRASS_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "TOUCHGRASS_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -26,6 +55,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
