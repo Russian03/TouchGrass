@@ -13,6 +13,23 @@ private val SPANISH: Locale = Locale.forLanguageTag("es-ES")
 private val DAY_MONTH = DateTimeFormatter.ofPattern("d 'de' MMMM", SPANISH)
 private val TIME = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(SPANISH)
 
+private val MONTH = DateTimeFormatter.ofPattern("LLLL", SPANISH)
+private val MONTH_YEAR = DateTimeFormatter.ofPattern("LLLL 'de' yyyy", SPANISH)
+private val MONTH_SHORT = DateTimeFormatter.ofPattern("LLL", SPANISH)
+private val WEEKDAY_DAY = DateTimeFormatter.ofPattern("EEEE d", SPANISH)
+
+/** "septiembre". */
+fun monthName(month: YearMonth): String = month.format(MONTH)
+
+/** "Octubre de 2026". */
+fun monthTitle(month: YearMonth): String = month.format(MONTH_YEAR).replaceFirstChar { it.titlecase(SPANISH) }
+
+/** "sep". */
+fun monthShort(month: YearMonth): String = month.format(MONTH_SHORT).removeSuffix(".")
+
+/** "Lunes 12". */
+fun weekdayDay(day: LocalDate): String = day.format(WEEKDAY_DAY).replaceFirstChar { it.titlecase(SPANISH) }
+
 /** "1 de noviembre". */
 fun firstDayOf(month: YearMonth): String = month.atDay(1).format(DAY_MONTH)
 

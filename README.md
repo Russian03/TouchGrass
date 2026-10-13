@@ -101,8 +101,16 @@ El sistema ha cerrado el servicio aunque el ajuste siga activado. Pulsa
   pedir tiempo con esa app ya elegida.
 - **Qué se bloquea:** en Instagram, los Reels: la pestaña y el visor, salvo el reel que abres
   desde un perfil, un chat, Inicio o Guardados. En TikTok, las pestañas **Para ti** y
-  **Comunidad**; *Volver atrás* te lleva a Siguiendo. Siguiendo, Amigos, Buscar, los perfiles
+  **Comunidad**; *Volver atrás* te lleva a Mensajes. Siguiendo, Amigos, Buscar, los perfiles
   y los chats quedan libres.
+- **Motivo.** Antes de pedir tiempo eliges para qué: Baño, Comer, Bus, Pasatiempo, Dormir u
+  Otro (con un texto corto).
+- **Estadísticas** (icono de las barras, junto a Ajustes): por mes, los minutos desbloqueados y
+  la media al día, cuántas veces pediste tiempo, cuántas saltó el bloqueo y cuántas volviste
+  atrás, los días sin pedir tiempo y sin agotar el saldo, el reparto por app y por motivo, la
+  comparación con los meses anteriores y el detalle de cada día.
+- **Resumen del mes.** El día 1 a las 8:00 llega un aviso (si permites las notificaciones) y en
+  Inicio sale una tarjeta con el resumen del mes anterior hasta que lo abres.
 - **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
   momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
 - Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa
@@ -128,7 +136,8 @@ las Releases de este repo.
 
 ## Principios
 
-- **Privacidad total:** la app no pide permiso de Internet y ningún dato sale del móvil.
+- **Privacidad total:** la app no pide permiso de Internet y ningún dato sale del móvil,
+  tampoco las estadísticas ni los motivos.
 - **Mínima intrusión:** el servicio solo observa las apps objetivo y solo lee los
   identificadores de vista necesarios y, en TikTok, el nombre de las pestañas de arriba
   («Para ti», «Siguiendo»…). Nunca lee el contenido de mensajes.

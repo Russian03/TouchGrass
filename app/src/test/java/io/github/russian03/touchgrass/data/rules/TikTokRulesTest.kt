@@ -50,11 +50,14 @@ class TikTokRulesTest {
     }
 
     @Test
-    fun `Volver atrás lleva a Siguiendo`() {
-        val action = engine.evaluate(home("Para ti", "viewpager"))?.action
-        assertThat(action).isInstanceOf(Action.Click::class.java)
-        assertThat((action as Action.Click).target).isEqualTo(TAB)
-        assertThat(action.text).contains("Siguiendo")
+    fun `Volver atrás lleva a Mensajes`() {
+        listOf("Para ti", "Comunidad").forEach { tab ->
+            val action = engine.evaluate(home(tab, "viewpager"))?.action
+            assertThat(action).isInstanceOf(Action.Click::class.java)
+            // La pestaña Mensajes no tiene un identificador estable: se busca por su nombre.
+            assertThat((action as Action.Click).target).isNull()
+            assertThat(action.text).contains("Mensajes")
+        }
     }
 
     @Test

@@ -77,6 +77,16 @@
     <string name="unlock_end_confirm">Terminar</string>
     <string name="unlock_error">No se ha podido desbloquear. Inténtalo otra vez.</string>
     <string name="unlock_error_not_enough">No te quedan tantos minutos hoy.</string>
+    <string name="unlock_reason_title">¿Para qué?</string>
+    <string name="unlock_reason_missing">Elige para qué lo pides.</string>
+    <string name="unlock_reason_note_missing">Escribe para qué lo pides.</string>
+    <string name="unlock_reason_note_hint">Para…</string>
+    <string name="reason_bath">Baño</string>
+    <string name="reason_eat">Comer</string>
+    <string name="reason_bus">Bus</string>
+    <string name="reason_hobby">Pasatiempo</string>
+    <string name="reason_sleep">Dormir</string>
+    <string name="reason_other">Otro</string>
 
     <!-- Primeros pasos -->
     <string name="onboarding_step">Paso %1$d de %2$d</string>
@@ -128,6 +138,59 @@
     <string name="settings_lower_confirm">Bajar límite</string>
     <string name="settings_protection_section">Protección</string>
     <string name="settings_privacy_section">Privacidad</string>
-    <string name="settings_privacy_body">TouchGrass no tiene permiso de Internet y no envía nada fuera del móvil. Solo mira los identificadores de los botones de las apps que bloquea (ahora, Instagram y TikTok) y el nombre de algunas pestañas, nunca tus mensajes ni publicaciones. Tu límite y tu uso se guardan en este dispositivo y no se copian a la nube.</string>
+    <string name="settings_privacy_body">TouchGrass no tiene permiso de Internet y no envía nada fuera del móvil. Solo mira los identificadores de los botones de las apps que bloquea (ahora, Instagram y TikTok) y el nombre de algunas pestañas, nunca tus mensajes ni publicaciones. Tu límite, tu uso y tus estadísticas (incluidos los motivos) se guardan en este dispositivo y no se copian a la nube.</string>
     <string name="settings_version">Versión %1$s</string>
+
+    <!-- Estadísticas -->
+    <string name="stats_title">Estadísticas</string>
+    <string name="stats_previous_month">Mes anterior</string>
+    <string name="stats_next_month">Mes siguiente</string>
+    <string name="stats_empty">Aún no hay datos de este mes.</string>
+    <string name="stats_unlocked_minutes">min desbloqueados</string>
+    <string name="stats_average">%1$s min al día de media</string>
+    <string name="stats_unlock_count">Veces que pediste tiempo</string>
+    <string name="stats_block_count">Veces que saltó el bloqueo</string>
+    <string name="stats_leave_count">Veces que volviste atrás</string>
+    <string name="stats_days_without_unlock">Días sin pedir tiempo</string>
+    <string name="stats_days_within_limit">Días sin agotar el saldo</string>
+    <string name="stats_days_of">%1$d de %2$d</string>
+    <string name="stats_apps_title">Por app</string>
+    <string name="stats_app_line">%1$s · %2$s · %3$s</string>
+    <plurals name="stats_times">
+        <item quantity="one">%d vez</item>
+        <item quantity="other">%d veces</item>
+    </plurals>
+    <plurals name="stats_blocks">
+        <item quantity="one">%d bloqueo</item>
+        <item quantity="other">%d bloqueos</item>
+    </plurals>
+    <string name="stats_reasons_title">Motivos</string>
+    <string name="stats_comparison_title">Comparado con otros meses</string>
+    <string name="stats_comparison_body">Minutos desbloqueados al día, de media.</string>
+    <string name="stats_comparison_bar">%1$s: %2$s min al día</string>
+    <string name="stats_comparison_less">%1$s min al día menos que en %2$s (−%3$d %%)</string>
+    <string name="stats_comparison_less_plain">%1$s min al día menos que en %2$s</string>
+    <string name="stats_comparison_more">%1$s min al día más que en %2$s (+%3$d %%)</string>
+    <string name="stats_comparison_more_plain">%1$s min al día más que en %2$s</string>
+    <string name="stats_comparison_same">Igual que en %1$s</string>
+    <string name="stats_days_title">Días</string>
+    <string name="stats_today">Hoy</string>
+    <string name="stats_yesterday">Ayer</string>
+    <string name="stats_day_no_unlock">Sin pedir tiempo</string>
+    <string name="stats_unlock_line">%1$s · %2$s · %3$s · %4$s</string>
+    <string name="stats_unlock_refunded">%1$d min (%2$s)</string>
+    <plurals name="stats_refunded">
+        <item quantity="one">%d devuelto</item>
+        <item quantity="other">%d devueltos</item>
+    </plurals>
+    <string name="stats_notifications_title">Aviso del resumen del mes</string>
+    <string name="stats_notifications_body">El día 1 te avisamos de que ya tienes las estadísticas del mes anterior.</string>
+    <string name="stats_notifications_off">Los avisos de TouchGrass están desactivados. Actívalos en los ajustes del móvil para saber cuándo está el resumen del mes.</string>
+    <string name="stats_notifications_enable">Activar el aviso</string>
+    <string name="home_summary_title">Ya tienes tu resumen de %1$s</string>
+    <string name="home_summary_body">Mira cuánto tiempo pediste y compáralo con otros meses.</string>
+    <string name="home_summary_open">Ver el resumen</string>
+    <string name="notification_channel_monthly">Resumen del mes</string>
+    <string name="notification_monthly_title">Ya tienes tus estadísticas de %1$s</string>
+    <string name="notification_monthly_body">Mira cuánto tiempo pediste y compáralo con otros meses.</string>
 </resources>

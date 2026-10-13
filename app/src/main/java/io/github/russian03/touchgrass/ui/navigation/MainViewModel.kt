@@ -31,6 +31,19 @@ class MainViewModel @Inject constructor(repository: BudgetRepository) : ViewMode
         _unlockRequest.value = null
     }
 
+    private val _statsRequest = MutableStateFlow<String?>(null)
+
+    /** Mes cuyas estadísticas se han pedido desde la notificación del resumen, aún sin atender. */
+    val statsRequest: StateFlow<String?> = _statsRequest.asStateFlow()
+
+    fun openStats(month: String?) {
+        if (month != null) _statsRequest.value = month
+    }
+
+    fun onStatsRequestHandled() {
+        _statsRequest.value = null
+    }
+
     init {
         viewModelScope.launch {
             _start.value = if (repository.state.first().onboardingDone) Home else Onboarding

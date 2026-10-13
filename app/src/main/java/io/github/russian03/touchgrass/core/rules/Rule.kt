@@ -67,10 +67,16 @@ sealed interface Action {
     data object Back : Action
 
     /**
-     * Pulsar la vista [target] (p. ej. la pestaña de Inicio) o, si se indica [text], la que
-     * tenga uno de esos textos. Si no existe, se hace "atrás".
+     * Pulsar la vista [target] (p. ej. la pestaña de Inicio). Con [text], la que tenga uno de
+     * esos textos; sin [target], cualquier vista cuyo texto o descripción sea uno de [text]
+     * (p. ej. la pestaña «Mensajes» de TikTok, que no tiene un identificador estable). Si no
+     * existe, se hace "atrás".
      */
     @Serializable
     @SerialName("click")
-    data class Click(val target: String, val text: List<String> = emptyList()) : Action
+    data class Click(val target: String? = null, val text: List<String> = emptyList()) : Action {
+        init {
+            require(target != null || text.isNotEmpty()) { "Un click necesita target o text" }
+        }
+    }
 }
