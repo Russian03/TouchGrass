@@ -12,6 +12,7 @@ import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.budget.TimeSnapshot
 import io.github.russian03.touchgrass.core.budget.TimeSource
+import io.github.russian03.touchgrass.core.budget.UnlockSession
 import java.io.File
 import java.io.IOException
 import javax.inject.Inject
@@ -22,6 +23,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
+
+/** Al terminar un desbloqueo: [denial] si no se ha podido, o cuál era y cuántos minutos se han devuelto. */
+data class EndUnlockResult(val denial: Denial?, val session: UnlockSession? = null, val refundMinutes: Int = 0)
 
 /**
  * Saldo diario guardado en el dispositivo. La interfaz y el servicio de accesibilidad viven en
@@ -62,8 +66,21 @@ class BudgetRepository internal constructor(private val store: DataStore<BudgetS
     suspend fun requestUnlock(packageName: String, minutes: Int, allowedPackages: Set<String>): Denial? =
         apply { state, now -> BudgetPolicy.requestUnlock(state, packageName, minutes, allowedPackages, now) }
 
-    /** Termina el desbloqueo en marcha y devuelve los minutos que sobran (ver [BudgetPolicy.refundMinutes]). */
-    suspend fun endUnlock(): Denial? = apply(BudgetPolicy::endUnlock)
+    /**
+     * Termina el desbloqueo en marcha y devuelve los minutos que sobran (ver [BudgetPolicy.refundMinutes]).
+     * El resultado dice qué desbloqueo se ha terminado y cuántos minutos se han devuelto.
+     */
+    suspend fun endUnlock(): EndUnlockResult {
+        var ended: UnlockSession? = null
+        var refund = 0
+        val denial =
+            apply { state, now ->
+                ended = BudgetPolicy.activeUnlock(state, now)
+                refund = BudgetPolicy.refundMinutes(state, now)
+                BudgetPolicy.endUnlock(state, now)
+            }
+        return if (denial == null) EndUnlockResult(null, ended, refund) else EndUnlockResult(denial)
+    }
 
     suspend fun setInitialLimit(minutes: Int): Denial? =
         apply { state, now -> BudgetPolicy.setInitialLimit(state, minutes, now) }

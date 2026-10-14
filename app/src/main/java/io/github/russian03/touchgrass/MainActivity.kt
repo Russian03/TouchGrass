@@ -25,12 +25,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // Solo la primera vez: al girar la pantalla no se vuelve a abrir.
-        if (savedInstanceState == null) viewModel.requestUnlock(intent.getStringExtra(EXTRA_UNLOCK_PACKAGE))
+        if (savedInstanceState == null) handle(intent)
         setContent {
             TouchGrassTheme {
                 val start by viewModel.start.collectAsStateWithLifecycle()
                 val unlockRequest by viewModel.unlockRequest.collectAsStateWithLifecycle()
-                start?.let { AppNavHost(it, unlockRequest, viewModel::onUnlockRequestHandled) }
+                val statsRequest by viewModel.statsRequest.collectAsStateWithLifecycle()
+                start?.let {
+                    AppNavHost(
+                        start = it,
+                        unlockRequest = unlockRequest,
+                        onUnlockRequestHandled = viewModel::onUnlockRequestHandled,
+                        statsRequest = statsRequest,
+                        onStatsRequestHandled = viewModel::onStatsRequestHandled,
+                    )
+                }
             }
         }
     }
@@ -38,7 +47,12 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handle(intent)
+    }
+
+    private fun handle(intent: Intent) {
         viewModel.requestUnlock(intent.getStringExtra(EXTRA_UNLOCK_PACKAGE))
+        viewModel.openStats(intent.getStringExtra(EXTRA_OPEN_STATS))
     }
 
     companion object {
@@ -47,5 +61,8 @@ class MainActivity : ComponentActivity() {
          * marcada: la pantalla de pedir tiempo ignora un paquete que no tenga reglas.
          */
         const val EXTRA_UNLOCK_PACKAGE = "io.github.russian03.touchgrass.extra.UNLOCK_PACKAGE"
+
+        /** Mes (`2026-09`) cuyas estadísticas se abren, desde la notificación del resumen. */
+        const val EXTRA_OPEN_STATS = "io.github.russian03.touchgrass.extra.OPEN_STATS"
     }
 }

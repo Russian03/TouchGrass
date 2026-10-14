@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
+import io.github.russian03.touchgrass.core.stats.StatsPolicy
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleSource
+import io.github.russian03.touchgrass.data.stats.StatsRepository
+import java.time.YearMonth
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,8 +31,11 @@ data class UnlockUiState(
 )
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(private val repository: BudgetRepository, private val rules: RuleSource) :
-    ViewModel() {
+class HomeViewModel @Inject constructor(
+    private val repository: BudgetRepository,
+    private val stats: StatsRepository,
+    private val rules: RuleSource,
+) : ViewModel() {
 
     /** Saldo de hoy, o `null` mientras se carga. */
     val budget: StateFlow<BudgetSummary?> =
@@ -39,6 +46,12 @@ class HomeViewModel @Inject constructor(private val repository: BudgetRepository
         flow { emit(withContext(Dispatchers.IO) { rules.load() }.associate { it.packageName to it.name }) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
+    /** Mes cuyo resumen está listo y aún no se ha abierto, o `null`. */
+    val pendingSummary: StateFlow<YearMonth?> =
+        stats.state
+            .map { StatsPolicy.pendingSummary(it, stats.today()) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
     private val _unlock = MutableStateFlow(UnlockUiState())
     val unlock: StateFlow<UnlockUiState> = _unlock.asStateFlow()
 
@@ -47,8 +60,9 @@ class HomeViewModel @Inject constructor(private val repository: BudgetRepository
         if (_unlock.value.busy) return
         _unlock.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            val denial = repository.endUnlock()
-            _unlock.update { it.copy(busy = false, error = denial) }
+            val result = repository.endUnlock()
+            result.session?.let { stats.recordRefund(it, result.refundMinutes) }
+            _unlock.update { it.copy(busy = false, error = result.denial) }
         }
     }
 

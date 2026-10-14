@@ -25,6 +25,8 @@ import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleRepository
+import io.github.russian03.touchgrass.data.stats.StatsRepository
+import io.github.russian03.touchgrass.notification.MonthlyReport
 import io.github.russian03.touchgrass.overlay.BlockOverlay
 import javax.inject.Inject
 import kotlinx.coroutines.MainScope
@@ -37,6 +39,8 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     @Inject lateinit var ruleRepository: RuleRepository
 
     @Inject lateinit var budget: BudgetRepository
+
+    @Inject lateinit var stats: StatsRepository
 
     private lateinit var engine: RuleEngine
     private lateinit var overlay: BlockOverlay
@@ -74,6 +78,10 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             },
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
+        // El servicio está siempre en marcha (también tras reiniciar): desde aquí empiezan las
+        // estadísticas y se programa el aviso del resumen mensual.
+        scope.launch { stats.start() }
+        MonthlyReport.schedule(this)
         // Los desbloqueos se piden desde la app, en otro proceso: llegan por el DataStore.
         scope.launch {
             budget.state.collect {
@@ -194,8 +202,9 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         when {
             rule == null -> overlay.hide()
             !overlay.isShowing && SystemClock.elapsedRealtime() - leftAt >= LEAVE_COOLDOWN_MS -> {
-                overlay.show(snapshot.packageName, onLeave = { leave(rule) })
+                overlay.show(snapshot.packageName, onLeave = { leave(rule, snapshot.packageName) })
                 Log.i(TAG, "Regla '${rule.id}' aplicada (origen=${session.origin}, scroll=${session.scrolled})")
+                scope.launch { stats.recordBlock(snapshot.packageName) }
             }
         }
 
@@ -218,22 +227,36 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     }
 
     /** Saca al usuario de la zona bloqueada cuando lo pide desde la pantalla de bloqueo. */
-    private fun leave(rule: Rule) {
+    private fun leave(rule: Rule, packageName: String) {
         leftAt = SystemClock.elapsedRealtime()
         val root = rootInActiveWindow
         val done =
             when (val action = rule.action) {
                 Action.Back -> performGlobalAction(GLOBAL_ACTION_BACK)
                 is Action.Click ->
-                    root?.findAccessibilityNodeInfosByViewId(
-                        SnapshotBuilder.resourceName("${root.packageName}", action.target),
-                    )
-                        ?.firstOrNull { action.text.isEmpty() || it.text?.toString() in action.text }
+                    root?.let { clickTarget(it, action) }
                         ?.clickableSelfOrParent()
                         ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true ||
                         performGlobalAction(GLOBAL_ACTION_BACK)
             }
         Log.i(TAG, "Salida de '${rule.id}' (ok=$done)")
+        scope.launch { stats.recordLeave(packageName) }
+    }
+
+    /** Vista que pulsar para [action]: por identificador o, sin él, por texto o descripción exactos. */
+    private fun clickTarget(root: AccessibilityNodeInfo, action: Action.Click): AccessibilityNodeInfo? {
+        val target = action.target
+        if (target != null) {
+            return root.findAccessibilityNodeInfosByViewId(SnapshotBuilder.resourceName("${root.packageName}", target))
+                .firstOrNull { action.text.isEmpty() || it.text?.toString() in action.text }
+        }
+        // La búsqueda por texto también encuentra vistas que solo lo contienen: se exige que sea igual.
+        return action.text.asSequence()
+            .flatMap { text -> root.findAccessibilityNodeInfosByText(text).asSequence().map { text to it } }
+            .firstOrNull { (text, node) ->
+                node.text?.toString() == text || node.contentDescription?.toString() == text
+            }
+            ?.second
     }
 
     /** La propia vista o el primer padre que se puede pulsar (en TikTok el texto de la pestaña no lo es). */

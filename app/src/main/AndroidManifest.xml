@@ -3,6 +3,9 @@
 
     <!-- Sin permiso INTERNET a propósito: ningún dato sale del dispositivo. -->
 
+    <!-- Solo para avisar de que está el resumen del mes. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Para saber cuál es el launcher y quitar la pantalla de bloqueo al salir a Inicio. -->
     <queries>
         <intent>
@@ -50,6 +53,11 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
+        <!-- Alarma del día 1 para avisar del resumen del mes. -->
+        <receiver
+            android:name=".notification.MonthlyReportReceiver"
+            android:exported="false" />
 
     </application>
 

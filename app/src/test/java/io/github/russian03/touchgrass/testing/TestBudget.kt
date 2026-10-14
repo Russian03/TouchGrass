@@ -5,6 +5,8 @@ import io.github.russian03.touchgrass.core.budget.TimeSnapshot
 import io.github.russian03.touchgrass.core.budget.TimeSource
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.budget.BudgetSerializer
+import io.github.russian03.touchgrass.data.stats.StatsRepository
+import io.github.russian03.touchgrass.data.stats.StatsSerializer
 import java.io.File
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -22,6 +24,11 @@ class FakeTime(var dateTime: String = "2026-10-13T10:00", var autoTime: Boolean 
         autoTime = autoTime,
     )
 }
+
+fun testStats(file: File, scope: CoroutineScope, time: TimeSource = FakeTime()) = StatsRepository(
+    DataStoreFactory.create(serializer = StatsSerializer, scope = scope, produceFile = { file }),
+    time,
+)
 
 fun testRepository(file: File, scope: CoroutineScope, time: TimeSource = FakeTime()) = BudgetRepository(
     DataStoreFactory.create(serializer = BudgetSerializer, scope = scope, produceFile = { file }),

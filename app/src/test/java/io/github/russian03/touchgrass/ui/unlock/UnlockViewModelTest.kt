@@ -7,9 +7,12 @@ import io.github.russian03.touchgrass.core.rules.Condition
 import io.github.russian03.touchgrass.core.rules.Match
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleSet
+import io.github.russian03.touchgrass.core.stats.UnlockReason
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
+import io.github.russian03.touchgrass.data.stats.StatsRepository
 import io.github.russian03.touchgrass.testing.FakeTime
 import io.github.russian03.touchgrass.testing.testRepository
+import io.github.russian03.touchgrass.testing.testStats
 import io.github.russian03.touchgrass.ui.onboarding.OnboardingViewModel
 import java.io.File
 import java.util.concurrent.Executors
@@ -48,6 +51,8 @@ class UnlockViewModelTest {
         main.close()
     }
 
+    private lateinit var stats: StatsRepository
+
     private fun ruleSet(packageName: String, name: String) = RuleSet(
         version = 1,
         packageName = packageName,
@@ -64,13 +69,14 @@ class UnlockViewModelTest {
         test: suspend (UnlockViewModel, BudgetRepository) -> Unit,
     ) = runBlocking {
         val repo = testRepository(File(folder.root, "budget.json"), io, FakeTime())
+        stats = testStats(File(folder.root, "stats.json"), io, FakeTime())
         // Primeros pasos con 30 min al día.
         val onboarding = OnboardingViewModel(repo)
         onboarding.onLimitChange(30)
         onboarding.saveLimit { onboarding.finish {} }
         withTimeout(5_000) { repo.state.first { it.onboardingDone } }
 
-        val vm = UnlockViewModel(repo) { apps.toList() }
+        val vm = UnlockViewModel(repo, stats) { apps.toList() }
         before(vm)
         io.launch { vm.budget.collect {} }
         withTimeout(5_000) { vm.budget.first { it != null } }
@@ -84,6 +90,7 @@ class UnlockViewModelTest {
         vm.choose(TT)
         assertThat(vm.form.value.selected?.name).isEqualTo("TikTok")
         vm.onDraftChange(15)
+        vm.onReasonChange(UnlockReason.Bus)
         vm.request()
         assertThat(withTimeout(5_000) { vm.form.first { it.granted } }.error).isNull()
         val state = repo.state.first()
@@ -116,6 +123,7 @@ class UnlockViewModelTest {
     fun `no se pide más de lo que queda`() = runUnlock(instagram, tiktok) { vm, repo ->
         vm.choose(IG)
         vm.onDraftChange(60)
+        vm.onReasonChange(UnlockReason.Eat)
         vm.request()
         assertThat(withTimeout(5_000) { vm.form.first { it.granted } }.granted).isTrue()
         // Se muestra como mucho lo que queda hoy: 30.
@@ -127,10 +135,57 @@ class UnlockViewModelTest {
         assertThat(repo.requestUnlock(IG, 5, setOf(IG, TT))).isNull()
         vm.choose(TT)
         vm.onDraftChange(5)
+        vm.onReasonChange(UnlockReason.Sleep)
         vm.request()
         val form = withTimeout(5_000) { vm.form.first { it.error != null } }
         assertThat(form.error).isEqualTo(Denial.AlreadyUnlocked)
         assertThat(form.granted).isFalse()
+    }
+
+    @Test
+    fun `sin motivo no se pide`() = runUnlock(instagram) { vm, repo ->
+        vm.onDraftChange(10)
+        vm.request()
+        assertThat(vm.form.value.busy).isFalse()
+        assertThat(repo.state.first().unlock).isNull()
+        // «Otro» necesita texto.
+        vm.onReasonChange(UnlockReason.Other)
+        assertThat(vm.form.value.reasonReady).isFalse()
+        vm.request()
+        assertThat(repo.state.first().unlock).isNull()
+        vm.onNoteChange("  ")
+        assertThat(vm.form.value.reasonReady).isFalse()
+    }
+
+    @Test
+    fun `el desbloqueo se apunta en las estadísticas con su motivo`() = runUnlock(instagram, tiktok) { vm, _ ->
+        vm.choose(TT)
+        vm.onDraftChange(15)
+        vm.onReasonChange(UnlockReason.Other)
+        vm.onNoteChange("Ver una receta")
+        vm.request()
+        withTimeout(5_000) { vm.form.first { it.granted } }
+        val day = withTimeout(5_000) { stats.state.first { it.days.isNotEmpty() } }.days.getValue("2026-10-13")
+        val record = day.unlocks.single()
+        assertThat(record.packageName).isEqualTo(TT)
+        assertThat(record.minutes).isEqualTo(15)
+        assertThat(record.reason).isEqualTo(UnlockReason.Other)
+        assertThat(record.note).isEqualTo("Ver una receta")
+        assertThat(day.limitMinutes).isEqualTo(30)
+    }
+
+    @Test
+    fun `la nota se guarda solo con Otro`() = runUnlock(instagram) { vm, _ ->
+        vm.onReasonChange(UnlockReason.Other)
+        vm.onNoteChange("algo")
+        vm.onReasonChange(UnlockReason.Bath)
+        vm.request()
+        withTimeout(5_000) { vm.form.first { it.granted } }
+        val record = withTimeout(5_000) {
+            stats.state.first { it.days.isNotEmpty() }
+        }.days.values.single().unlocks.single()
+        assertThat(record.reason).isEqualTo(UnlockReason.Bath)
+        assertThat(record.note).isNull()
     }
 
     private companion object {

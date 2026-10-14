@@ -2,6 +2,7 @@ package io.github.russian03.touchgrass.ui.home
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -27,32 +28,46 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.service.ProtectionState
+import io.github.russian03.touchgrass.ui.common.Card
 import io.github.russian03.touchgrass.ui.common.ManualTimeCard
+import io.github.russian03.touchgrass.ui.common.PrimaryButton
 import io.github.russian03.touchgrass.ui.common.ProtectionCard
 import io.github.russian03.touchgrass.ui.common.SystemSettings
 import io.github.russian03.touchgrass.ui.common.TopBar
 import io.github.russian03.touchgrass.ui.common.XiaomiTip
+import io.github.russian03.touchgrass.ui.common.monthName
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
+import java.time.YearMonth
 
 @Composable
-fun HomeScreen(onOpenSettings: () -> Unit, onOpenUnlock: () -> Unit, viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onOpenSettings: () -> Unit,
+    onOpenStats: (YearMonth?) -> Unit,
+    onOpenUnlock: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val budget by viewModel.budget.collectAsStateWithLifecycle()
     val unlock by viewModel.unlock.collectAsStateWithLifecycle()
     val appNames by viewModel.appNames.collectAsStateWithLifecycle()
+    val pendingSummary by viewModel.pendingSummary.collectAsStateWithLifecycle()
     HomeContent(
         protection = rememberProtectionState(),
         budget = budget,
         unlock = unlock,
         unlockActions = UnlockActions(appNames = appNames, onOpen = onOpenUnlock, onEnd = viewModel::endUnlock),
         showXiaomiTip = SystemSettings.isXiaomi,
+        summary = SummaryActions(pendingSummary, onOpenStats),
         onOpenSettings = onOpenSettings,
         onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
         onOpenAppSettings = { SystemSettings.openAppDetails(context) },
         onOpenDateSettings = { SystemSettings.openDateTime(context) },
     )
 }
+
+/** Resumen del mes listo para ver ([month]) y cómo abrir las estadísticas. */
+private class SummaryActions(val month: YearMonth?, val onOpen: (YearMonth?) -> Unit)
 
 private class UnlockActions(val appNames: Map<String, String>, val onOpen: () -> Unit, val onEnd: () -> Unit)
 
@@ -63,6 +78,7 @@ private fun HomeContent(
     unlock: UnlockUiState,
     unlockActions: UnlockActions,
     showXiaomiTip: Boolean,
+    summary: SummaryActions,
     onOpenSettings: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     onOpenAppSettings: () -> Unit,
@@ -73,11 +89,19 @@ private fun HomeContent(
         topBar = {
             TopBar(
                 action = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            painterResource(R.drawable.ic_settings),
-                            contentDescription = stringResource(R.string.settings_title),
-                        )
+                    Row {
+                        IconButton(onClick = { summary.onOpen(null) }) {
+                            Icon(
+                                painterResource(R.drawable.ic_stats),
+                                contentDescription = stringResource(R.string.stats_title),
+                            )
+                        }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(
+                                painterResource(R.drawable.ic_settings),
+                                contentDescription = stringResource(R.string.settings_title),
+                            )
+                        }
                     }
                 },
             )
@@ -106,8 +130,22 @@ private fun HomeContent(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 12.dp),
             )
+            summary.month?.let { month ->
+                SummaryReadyCard(month, onOpen = { summary.onOpen(month) }, modifier = Modifier.padding(top = 32.dp))
+            }
             if (budget != null) {
-                TodayCard(budget = budget, modifier = Modifier.padding(top = 32.dp))
+                TodayCard(
+                    budget = budget,
+                    modifier = Modifier.padding(
+                        top = if (summary.month !=
+                            null
+                        ) {
+                            16.dp
+                        } else {
+                            32.dp
+                        },
+                    ),
+                )
                 UnlockCard(
                     budget = budget,
                     state = unlock,
@@ -132,6 +170,29 @@ private fun HomeContent(
     }
 }
 
+/** El resumen del mes anterior está listo: se queda en Inicio hasta que se abre. */
+@Composable
+private fun SummaryReadyCard(month: YearMonth, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier) {
+        Text(
+            text = stringResource(R.string.home_summary_title, monthName(month)),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+        )
+        Text(
+            text = stringResource(R.string.home_summary_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        PrimaryButton(
+            text = stringResource(R.string.home_summary_open),
+            onClick = onOpen,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+    }
+}
+
 internal fun previewBudget(used: Int = 10, autoTime: Boolean = true) = BudgetSummary(
     limitMinutes = 30,
     usedMinutes = used,
@@ -148,11 +209,14 @@ internal fun previewBudget(used: Int = 10, autoTime: Boolean = true) = BudgetSum
 
 private val noActions = UnlockActions(emptyMap(), {}, {})
 
+private val noSummary = SummaryActions(null) {}
+
 @Preview(showBackground = true)
 @Composable
 private fun HomeOnPreview() {
     TouchGrassTheme {
-        HomeContent(ProtectionState.Running, previewBudget(), UnlockUiState(), noActions, true, {}, {}, {}, {})
+        HomeContent(ProtectionState.Running, previewBudget(), UnlockUiState(), noActions, true, noSummary, {
+        }, {}, {}, {})
     }
 }
 
@@ -166,6 +230,7 @@ private fun HomeStoppedPreview() {
             UnlockUiState(),
             noActions,
             false,
+            SummaryActions(YearMonth.of(2026, 9)) {},
             {},
             {},
             {},

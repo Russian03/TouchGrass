@@ -1,14 +1,20 @@
 package io.github.russian03.touchgrass.ui.unlock
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -27,10 +34,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
+import io.github.russian03.touchgrass.core.stats.StatsPolicy
+import io.github.russian03.touchgrass.core.stats.UnlockReason
 import io.github.russian03.touchgrass.ui.common.Card
 import io.github.russian03.touchgrass.ui.common.MinutesPicker
 import io.github.russian03.touchgrass.ui.common.PrimaryButton
 import io.github.russian03.touchgrass.ui.common.TopBar
+import io.github.russian03.touchgrass.ui.common.reasonLabel
 import io.github.russian03.touchgrass.ui.common.timeOf
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
@@ -61,6 +71,8 @@ fun UnlockScreen(
         onChoose = viewModel::choose,
         onChangeApp = { viewModel.backToApps() },
         onDraftChange = viewModel::onDraftChange,
+        onReasonChange = viewModel::onReasonChange,
+        onNoteChange = viewModel::onNoteChange,
         onRequest = viewModel::request,
     )
 }
@@ -73,6 +85,8 @@ private fun UnlockContent(
     onChoose: (String) -> Unit,
     onChangeApp: () -> Unit,
     onDraftChange: (Int) -> Unit,
+    onReasonChange: (UnlockReason) -> Unit,
+    onNoteChange: (String) -> Unit,
     onRequest: () -> Unit,
 ) {
     Scaffold(
@@ -101,7 +115,14 @@ private fun UnlockContent(
             when {
                 blocker != null -> Card { Body(blocker) }
                 form.selected == null -> ChooseApp(budget, form.apps, onChoose)
-                else -> ChooseMinutes(budget, form, onChangeApp, onDraftChange, onRequest)
+                else -> ChooseMinutes(
+                    budget,
+                    form,
+                    onChangeApp,
+                    onDraftChange,
+                    ReasonActions(onReasonChange, onNoteChange),
+                    onRequest,
+                )
             }
         }
     }
@@ -142,6 +163,7 @@ private fun ChooseMinutes(
     form: UnlockFormState,
     onChangeApp: () -> Unit,
     onDraftChange: (Int) -> Unit,
+    reasonActions: ReasonActions,
     onRequest: () -> Unit,
 ) {
     val app = form.selected ?: return
@@ -166,12 +188,30 @@ private fun ChooseMinutes(
             onChange = onDraftChange,
             modifier = Modifier.padding(top = 20.dp),
         )
+        ReasonPicker(form, reasonActions, Modifier.padding(top = 24.dp))
         PrimaryButton(
             text = stringResource(R.string.unlock_request, minutes),
             onClick = onRequest,
-            enabled = !form.busy,
+            enabled = !form.busy && form.reasonReady,
             modifier = Modifier.padding(top = 20.dp),
         )
+        if (!form.reasonReady) {
+            Text(
+                text =
+                stringResource(
+                    if (form.reason ==
+                        UnlockReason.Other
+                    ) {
+                        R.string.unlock_reason_note_missing
+                    } else {
+                        R.string.unlock_reason_missing
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
         form.error?.let {
             Text(
                 text =
@@ -191,6 +231,46 @@ private fun ChooseMinutes(
     if (form.canChooseApp) {
         TextButton(onClick = onChangeApp, enabled = !form.busy, modifier = Modifier.padding(top = 8.dp)) {
             Text(stringResource(R.string.unlock_change_app))
+        }
+    }
+}
+
+private class ReasonActions(val onReason: (UnlockReason) -> Unit, val onNote: (String) -> Unit)
+
+/** «¿Para qué?»: un motivo obligatorio y, con «Otro», un texto corto. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReasonPicker(form: UnlockFormState, actions: ReasonActions, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(
+            text = stringResource(R.string.unlock_reason_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Medium,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 8.dp),
+        ) {
+            UnlockReason.entries.forEach { reason ->
+                FilterChip(
+                    selected = form.reason == reason,
+                    onClick = { actions.onReason(reason) },
+                    enabled = !form.busy,
+                    label = { Text(stringResource(reasonLabel(reason))) },
+                )
+            }
+        }
+        if (form.reason == UnlockReason.Other) {
+            OutlinedTextField(
+                value = form.note,
+                onValueChange = actions.onNote,
+                enabled = !form.busy,
+                singleLine = true,
+                placeholder = { Text(stringResource(R.string.unlock_reason_note_hint)) },
+                supportingText = { Text("${form.note.length}/${StatsPolicy.NOTE_MAX_LENGTH}") },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            )
         }
     }
 }
@@ -228,12 +308,12 @@ private fun previewBudget() = BudgetSummary(
 @Preview(showBackground = true)
 @Composable
 private fun ChooseAppPreview() {
-    TouchGrassTheme { UnlockContent(previewBudget(), UnlockFormState(apps = previewApps), {}, {}, {}, {}, {}) }
+    TouchGrassTheme { UnlockContent(previewBudget(), UnlockFormState(apps = previewApps), {}, {}, {}, {}, {}, {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun ChooseMinutesPreview() {
-    val form = UnlockFormState(apps = previewApps, selected = previewApps.first())
-    TouchGrassTheme { UnlockContent(previewBudget(), form, {}, {}, {}, {}, {}) }
+    val form = UnlockFormState(apps = previewApps, selected = previewApps.first(), reason = UnlockReason.Other)
+    TouchGrassTheme { UnlockContent(previewBudget(), form, {}, {}, {}, {}, {}, {}, {}) }
 }

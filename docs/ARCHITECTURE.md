@@ -53,6 +53,25 @@ Los identificadores de Android (`android:id/…`) se guardan con su prefijo; los
 El build de debug incluye una pantalla que vuelca los viewIds visibles, para descubrir los
 nuevos cuando una actualización de Instagram rompa una regla.
 
+## Estadísticas
+
+`core/stats/StatsPolicy` (Kotlin puro) apunta y resume; `data/stats/StatsRepository` las guarda en
+otro DataStore multiproceso (`stats.json`), separado del saldo para que un fallo al guardarlas no
+afecte nunca al bloqueo.
+
+- Por **día lógico** (de 8:00 a 8:00, como el saldo): cada desbloqueo con su hora, app, minutos,
+  minutos devueltos, motivo y nota; y, por app, cuántas veces saltó el bloqueo y cuántas se volvió
+  atrás. Los desbloqueos los apunta la app; los bloqueos y las salidas, el servicio.
+- Los días cuentan desde `since`, el primer día con estadísticas (lo fija el servicio al
+  arrancar). Un día sin datos es un día sin pedir tiempo. Se guardan 24 meses.
+- El resumen del mes y la comparación con los meses anteriores (media diaria, porque el primer
+  mes y el actual están a medias) se calculan al vuelo.
+- **Aviso del resumen** (`notification/MonthlyReport`): una alarma no exacta el día 1 a las 8:00
+  (`setAndAllowWhileIdle`, sin permisos especiales) lanza `MonthlyReportReceiver`, que notifica si
+  hay datos del mes anterior y aún no se ha avisado. Las alarmas se pierden al reiniciar, así que
+  el servicio, que vuelve a arrancar con el móvil, la reprograma y comprueba si hay un aviso
+  pendiente. En Inicio sale una tarjeta hasta que se abre ese resumen.
+
 ## Saldo diario y desbloqueos
 
 Cada mes el usuario tiene un **límite diario** de minutos que puede desbloquear. Las reglas están
@@ -90,7 +109,8 @@ estado se comparte con un **DataStore multiproceso** (`MultiProcessDataStoreFact
 
 ## Privacidad y seguridad
 
-- No se pide permiso `INTERNET`.
+- No se pide permiso `INTERNET`. El único permiso que se pide en tiempo de ejecución es
+  `POST_NOTIFICATIONS`, opcional, para el aviso del resumen mensual.
 - El servicio de accesibilidad se declara con `packageNames` restringido a las apps objetivo.
 - Los snapshots descartan el texto del contenido (mensajes, captions) y solo guardan
   identificadores estructurales y, de las vistas que nombran las reglas, los textos que buscan

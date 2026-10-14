@@ -67,11 +67,15 @@ class BudgetRepositoryTest {
         val repo = repository()
         repo.setInitialLimit(30)
         repo.requestUnlock(instagram, 20, setOf(instagram))
-        assertThat(repo.endUnlock()).isNull()
+        val ended = repo.endUnlock()
+        assertThat(ended.denial).isNull()
+        // Dice qué desbloqueo se ha terminado y cuánto se ha devuelto, para las estadísticas.
+        assertThat(ended.session?.packageName).isEqualTo(instagram)
+        assertThat(ended.refundMinutes).isEqualTo(20)
         val state = repo.state.first()
         assertThat(state.unlock).isNull()
         assertThat(state.usedMinutes).isEqualTo(0)
-        assertThat(repo.endUnlock()).isEqualTo(Denial.NotUnlocked)
+        assertThat(repo.endUnlock().denial).isEqualTo(Denial.NotUnlocked)
     }
 
     @Test
