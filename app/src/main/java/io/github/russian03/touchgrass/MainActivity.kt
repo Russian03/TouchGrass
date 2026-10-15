@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         /** Lo que dura un ciclo de la animación de la pantalla de carga (`splash_logo_animated`). */
-        private const val SPLASH_CYCLE_MS = 3_600L
+        private const val SPLASH_CYCLE_MS = 3_000L
 
         /** Desde la pantalla de bloqueo: abre Inicio, sea cual sea la pantalla en la que se quedó la app. */
         const val EXTRA_OPEN_HOME = "io.github.russian03.touchgrass.extra.OPEN_HOME"
