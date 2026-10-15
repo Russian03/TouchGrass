@@ -1,79 +1,272 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Pantalla de carga: la forma del logo hace de máscara invisible y, detrás, siete círculos llegan
-    a la vez desde fuera y crecen hasta llenarla. Solo se ve lo que cae dentro del logo.
+    Pantalla de carga, un ciclo de 2,4 s: la forma del logo hace de máscara invisible; tras un momento
+    vacío, siete círculos llegan a la vez desde fuera y la llenan, el logo late dos veces y los
+    círculos se vuelven a dispersar. Si la app tarda, el ciclo se repite (MainActivity espera a que acabe).
 -->
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:drawable="@drawable/splash_logo">
     <target android:name="c0">
         <aapt:attr name="android:animation">
-            <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="49.1" android:valueTo="0" android:duration="620" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="194.2" android:valueTo="0" android:duration="620" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="700" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="700" android:interpolator="@android:interpolator/overshoot" />
-            </set>
+            <objectAnimator android:duration="2400" android:repeatCount="infinite">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="49.080" />
+                    <keyframe android:fraction="0.1667" android:value="49.080" />
+                    <keyframe android:fraction="0.4333" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="49.080" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="194.172" />
+                    <keyframe android:fraction="0.1667" android:value="194.172" />
+                    <keyframe android:fraction="0.4333" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="194.172" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4583" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4583" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+            </objectAnimator>
         </aapt:attr>
     </target>
     <target android:name="c1">
         <aapt:attr name="android:animation">
-            <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="133.8" android:valueTo="0" android:duration="657" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="149.0" android:valueTo="0" android:duration="657" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="737" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="737" android:interpolator="@android:interpolator/overshoot" />
-            </set>
+            <objectAnimator android:duration="2400" android:repeatCount="infinite">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="133.840" />
+                    <keyframe android:fraction="0.1667" android:value="133.840" />
+                    <keyframe android:fraction="0.4487" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="133.840" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="148.991" />
+                    <keyframe android:fraction="0.1667" android:value="148.991" />
+                    <keyframe android:fraction="0.4487" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="148.991" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4738" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4738" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+            </objectAnimator>
         </aapt:attr>
     </target>
     <target android:name="c2">
         <aapt:attr name="android:animation">
-            <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="200.2" android:valueTo="0" android:duration="694" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="-5.3" android:valueTo="0" android:duration="694" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="774" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="774" android:interpolator="@android:interpolator/overshoot" />
-            </set>
+            <objectAnimator android:duration="2400" android:repeatCount="infinite">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="200.209" />
+                    <keyframe android:fraction="0.1667" android:value="200.209" />
+                    <keyframe android:fraction="0.4642" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="200.209" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="-5.255" />
+                    <keyframe android:fraction="0.1667" android:value="-5.255" />
+                    <keyframe android:fraction="0.4642" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="-5.255" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4892" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4892" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+            </objectAnimator>
         </aapt:attr>
     </target>
     <target android:name="c3">
         <aapt:attr name="android:animation">
-            <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="-190.8" android:valueTo="0" android:duration="731" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="-60.9" android:valueTo="0" android:duration="731" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="811" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="811" android:interpolator="@android:interpolator/overshoot" />
-            </set>
+            <objectAnimator android:duration="2400" android:repeatCount="infinite">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="-190.786" />
+                    <keyframe android:fraction="0.1667" android:value="-190.786" />
+                    <keyframe android:fraction="0.4796" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="-190.786" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="-60.927" />
+                    <keyframe android:fraction="0.1667" android:value="-60.927" />
+                    <keyframe android:fraction="0.4796" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="-60.927" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.5046" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.5046" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+            </objectAnimator>
         </aapt:attr>
     </target>
     <target android:name="c4">
         <aapt:attr name="android:animation">
-            <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="28.0" android:valueTo="0" android:duration="648" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="-198.3" android:valueTo="0" android:duration="648" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="728" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="728" android:interpolator="@android:interpolator/overshoot" />
-            </set>
+            <objectAnimator android:duration="2400" android:repeatCount="infinite">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="27.951" />
+                    <keyframe android:fraction="0.1667" android:value="27.951" />
+                    <keyframe android:fraction="0.4450" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="27.951" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="-198.318" />
+                    <keyframe android:fraction="0.1667" android:value="-198.318" />
+                    <keyframe android:fraction="0.4450" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="-198.318" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4700" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4700" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+            </objectAnimator>
         </aapt:attr>
     </target>
     <target android:name="c5">
         <aapt:attr name="android:animation">
-            <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="-162.5" android:valueTo="0" android:duration="685" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="117.0" android:valueTo="0" android:duration="685" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="765" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="765" android:interpolator="@android:interpolator/overshoot" />
-            </set>
+            <objectAnimator android:duration="2400" android:repeatCount="infinite">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="-162.539" />
+                    <keyframe android:fraction="0.1667" android:value="-162.539" />
+                    <keyframe android:fraction="0.4604" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="-162.539" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="117.016" />
+                    <keyframe android:fraction="0.1667" android:value="117.016" />
+                    <keyframe android:fraction="0.4604" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="117.016" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4854" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.4854" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+            </objectAnimator>
         </aapt:attr>
     </target>
     <target android:name="c6">
         <aapt:attr name="android:animation">
-            <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="-24.3" android:valueTo="0" android:duration="722" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="198.8" android:valueTo="0" android:duration="722" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="802" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="802" android:interpolator="@android:interpolator/overshoot" />
-            </set>
+            <objectAnimator android:duration="2400" android:repeatCount="infinite">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="-24.296" />
+                    <keyframe android:fraction="0.1667" android:value="-24.296" />
+                    <keyframe android:fraction="0.4758" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="-24.296" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="198.799" />
+                    <keyframe android:fraction="0.1667" android:value="198.799" />
+                    <keyframe android:fraction="0.4758" android:value="0.000" android:interpolator="@android:interpolator/decelerate_cubic" />
+                    <keyframe android:fraction="0.7083" android:value="0.000" />
+                    <keyframe android:fraction="1.0000" android:value="198.799" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.5008" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="0.300" />
+                    <keyframe android:fraction="0.1667" android:value="0.300" />
+                    <keyframe android:fraction="0.5008" android:value="1.000" android:interpolator="@android:interpolator/overshoot" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" />
+                    <keyframe android:fraction="1.0000" android:value="0.300" android:interpolator="@android:interpolator/accelerate_cubic" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="logo">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="2400" android:repeatCount="infinite">
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="1.000" />
+                    <keyframe android:fraction="0.4583" android:value="1.000" />
+                    <keyframe android:fraction="0.5208" android:value="1.080" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                    <keyframe android:fraction="0.5833" android:value="1.000" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                    <keyframe android:fraction="0.6458" android:value="1.080" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                    <keyframe android:fraction="1.0000" android:value="1.000" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0000" android:value="1.000" />
+                    <keyframe android:fraction="0.4583" android:value="1.000" />
+                    <keyframe android:fraction="0.5208" android:value="1.080" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                    <keyframe android:fraction="0.5833" android:value="1.000" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                    <keyframe android:fraction="0.6458" android:value="1.080" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                    <keyframe android:fraction="0.7083" android:value="1.000" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                    <keyframe android:fraction="1.0000" android:value="1.000" />
+                </propertyValuesHolder>
+            </objectAnimator>
         </aapt:attr>
     </target>
 </animated-vector>
