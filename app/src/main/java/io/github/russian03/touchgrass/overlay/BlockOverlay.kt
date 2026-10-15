@@ -31,7 +31,7 @@ class BlockOverlay(private val service: AccessibilityService) {
                 },
                 onOpenApp = {
                     onLeave()
-                    openApp(packageName)
+                    openApp()
                 },
             )
         }
@@ -54,11 +54,14 @@ class BlockOverlay(private val service: AccessibilityService) {
         silencer.restoreNow()
     }
 
-    /** Abre TouchGrass en la pantalla de pedir tiempo para [packageName]. */
-    private fun openApp(packageName: String) {
+    /**
+     * Abre TouchGrass en Inicio: desde ahí se pide tiempo y, la primera vez del día, se ve la
+     * celebración del día anterior.
+     */
+    private fun openApp() {
         service.startActivity(
             Intent(service, MainActivity::class.java)
-                .putExtra(MainActivity.EXTRA_UNLOCK_PACKAGE, packageName)
+                .putExtra(MainActivity.EXTRA_OPEN_HOME, true)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
         )
         hide()

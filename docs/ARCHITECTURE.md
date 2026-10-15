@@ -107,6 +107,12 @@ estado se comparte con un **DataStore multiproceso** (`MultiProcessDataStoreFact
 - Si algo falla, se bloquea. Un fichero corrupto o ilegible vuelve al estado por defecto, que no
   tiene límite y no desbloquea nada.
 
+## Perfil
+
+`data/profile/ProfileRepository` guarda en `profile.json` (DataStore normal, solo lo usa la app)
+el nombre opcional con el que Inicio saluda. Se pide en los primeros pasos y se cambia en Ajustes;
+se limpia antes de guardarlo (sin asteriscos, máximo 20 caracteres) y no influye en el bloqueo.
+
 ## Privacidad y seguridad
 
 - No se pide permiso `INTERNET`. El único permiso que se pide en tiempo de ejecución es
@@ -118,7 +124,8 @@ estado se comparte con un **DataStore multiproceso** (`MultiProcessDataStoreFact
 - `allowBackup=false` y las reglas de extracción excluyen todos los datos.
 - Además de las apps objetivo, el servicio escucha al launcher, pero solo para saber que el
   usuario ha salido a Inicio o a Recientes. De su pantalla no se lee nada.
-- Solo se exporta `MainActivity`, porque la necesita el lanzador. El servicio exige
+- Solo se exporta `MainActivity`, porque la necesita el lanzador. Sus extras solo abren Inicio
+  (desde la pantalla de bloqueo) o las estadísticas de un mes (desde el aviso): no cambian nada. El servicio exige
   `BIND_ACCESSIBILITY_SERVICE`. Las librerías no añaden permisos, y el único receiver
   exportado (`ProfileInstallReceiver` de AndroidX) exige `DUMP`, que solo tiene adb.
 - En release: R8 con minify y shrinkResources, y sin logs `v`, `d` ni `i`, para que logcat no

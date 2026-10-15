@@ -19,8 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,7 +47,10 @@ import io.github.russian03.touchgrass.ui.design.OutlinePillButton
 import io.github.russian03.touchgrass.ui.design.PulsingDot
 import io.github.russian03.touchgrass.ui.design.SectionTitle
 import io.github.russian03.touchgrass.ui.design.StatusRow
+import io.github.russian03.touchgrass.ui.design.mixedWeights
 import io.github.russian03.touchgrass.ui.design.staggerIn
+import io.github.russian03.touchgrass.ui.theme.Cream
+import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.InkSoft
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.LocalDate
@@ -64,10 +69,14 @@ fun HomeScreen(
     val appNames by viewModel.appNames.collectAsStateWithLifecycle()
     val pendingSummary by viewModel.pendingSummary.collectAsStateWithLifecycle()
     val week by viewModel.week.collectAsStateWithLifecycle()
+    val name by viewModel.name.collectAsStateWithLifecycle()
     HomeContent(
         protection = rememberProtectionState(),
         budget = budget,
+        name = name,
+        quoteSeed = viewModel.quoteSeed,
         week = week,
+        today = viewModel.today(),
         unlock = unlock,
         unlockActions = UnlockActions(appNames = appNames, onOpen = onOpenUnlock, onEnd = viewModel::endUnlock),
         showXiaomiTip = SystemSettings.isXiaomi,
@@ -92,7 +101,10 @@ private class UnlockActions(val appNames: Map<String, String>, val onOpen: () ->
 private fun HomeContent(
     protection: ProtectionState,
     budget: BudgetSummary?,
+    name: String?,
+    quoteSeed: Int,
     week: List<WeekDay>,
+    today: LocalDate,
     unlock: UnlockUiState,
     unlockActions: UnlockActions,
     showXiaomiTip: Boolean,
@@ -109,17 +121,33 @@ private fun HomeContent(
             LimeHeader(Modifier.staggerIn(index = 0, offsetY = (-24).dp, fromScale = 1f)) {
                 HeaderTop(onOpenStats = openStats, onOpenSettings = onOpenSettings)
                 MixedTitle(
-                    text = stringResource(R.string.home_title),
-                    style = MaterialTheme.typography.headlineLarge,
+                    text =
+                    if (name != null) {
+                        stringResource(R.string.home_greeting, name)
+                    } else {
+                        stringResource(R.string.home_greeting_anonymous)
+                    },
+                    style = MaterialTheme.typography.displaySmall.copy(fontSize = 40.sp, lineHeight = 46.sp),
                     modifier = Modifier.padding(top = 8.dp, end = 12.dp),
                 )
-                Quote(stringResource(R.string.home_tagline), Modifier.padding(top = 12.dp, end = 12.dp))
+                // Las comillas y «Pedir tiempo» van a la misma altura; debajo, la frase del día.
+                QuoteRow(
+                    budget = budget,
+                    onOpenUnlock = unlockActions.onOpen,
+                    modifier = Modifier.padding(top = 12.dp, end = 12.dp),
+                )
+                val quotes = stringArrayResource(R.array.home_quotes)
+                Text(
+                    text = mixedWeights(quotes[Math.floorMod(quoteSeed, quotes.size)]),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = InkSoft,
+                    modifier = Modifier.padding(top = 4.dp, end = 12.dp),
+                )
                 if (budget != null) {
                     UnlockSection(
                         budget = budget,
                         state = unlock,
                         appNames = unlockActions.appNames,
-                        onOpenUnlock = unlockActions.onOpen,
                         onEnd = unlockActions.onEnd,
                     )
                 }
@@ -135,15 +163,19 @@ private fun HomeContent(
                     )
                 }
                 if (budget != null) {
-                    SectionTitle(stringResource(R.string.home_my_day), Modifier.staggerIn(order++))
+                    // Justo bajo el banner, el título empieza donde acaba su curva de la izquierda.
+                    SectionTitle(
+                        stringResource(R.string.home_my_day),
+                        Modifier.staggerIn(order++),
+                        top = if (summary.month == null) 4.dp else 32.dp,
+                    )
                     TodayCard(budget = budget, modifier = Modifier.staggerIn(order++))
                 }
                 if (week.isNotEmpty()) {
                     SectionTitle(stringResource(R.string.home_my_week), Modifier.staggerIn(order++))
                     WeekStrip(
                         week = week,
-                        today = week.last().day,
-                        onOpenStats = openStats,
+                        today = today,
                         modifier = Modifier.staggerIn(order++),
                     )
                 }
@@ -200,12 +232,32 @@ private fun HeaderTop(onOpenStats: () -> Unit, onOpenSettings: () -> Unit) {
     }
 }
 
-/** El lema como una cita: comillas grandes y texto suave, como la frase del diseño. */
+/**
+ * Comillas grandes a la izquierda, como la cita del diseño, y la píldora «Pedir tiempo» a la
+ * derecha, a la misma altura. Con un desbloqueo en marcha la píldora no sale (la cabecera muestra
+ * la cuenta atrás) y, si no se puede pedir tiempo, sale apagada.
+ */
 @Composable
-private fun Quote(text: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text("“", fontSize = 40.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold)
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = InkSoft)
+private fun QuoteRow(budget: BudgetSummary?, onOpenUnlock: () -> Unit, modifier: Modifier = Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "“",
+            fontSize = 52.sp,
+            lineHeight = 52.sp,
+            fontWeight = FontWeight.Bold,
+            // El trazo de las comillas está en la parte alta de la línea: se baja un poco más que el centro.
+            modifier = Modifier.weight(1f).graphicsLayer { translationY = 20.dp.toPx() },
+        )
+        if (budget != null && budget.unlock == null) {
+            InkPillButton(
+                text = stringResource(R.string.unlock_title),
+                onClick = onOpenUnlock,
+                enabled = unlockBlocker(budget) == null,
+                containerColor = Ink,
+                contentColor = Cream,
+                compact = true,
+            )
+        }
     }
 }
 
@@ -262,7 +314,10 @@ private fun HomeOnPreview() {
         HomeContent(
             ProtectionState.Running,
             previewBudget(),
+            "Jan",
+            0,
             previewWeek(),
+            LocalDate.of(2026, 10, 14),
             UnlockUiState(),
             noActions,
             true,
@@ -282,7 +337,10 @@ private fun HomeStoppedPreview() {
         HomeContent(
             ProtectionState.Stopped,
             previewBudget(used = 30, autoTime = false),
+            null,
+            1,
             previewWeek(),
+            LocalDate.of(2026, 10, 14),
             UnlockUiState(),
             noActions,
             false,

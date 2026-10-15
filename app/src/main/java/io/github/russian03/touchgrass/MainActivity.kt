@@ -2,6 +2,7 @@ package io.github.russian03.touchgrass
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,8 +21,12 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // La pantalla de carga se queda hasta saber si toca primeros pasos o Inicio.
-        installSplashScreen().setKeepOnScreenCondition { viewModel.start.value == null }
+        // La pantalla de carga se queda hasta saber si toca primeros pasos o Inicio, y al menos lo
+        // que dura la animación del logo, para que no se corte.
+        val shownAt = SystemClock.uptimeMillis()
+        installSplashScreen().setKeepOnScreenCondition {
+            viewModel.start.value == null || SystemClock.uptimeMillis() - shownAt < SPLASH_MIN_MS
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // Solo la primera vez: al girar la pantalla no se vuelve a abrir.
@@ -29,13 +34,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             TouchGrassTheme {
                 val start by viewModel.start.collectAsStateWithLifecycle()
-                val unlockRequest by viewModel.unlockRequest.collectAsStateWithLifecycle()
+                val homeRequest by viewModel.homeRequest.collectAsStateWithLifecycle()
                 val statsRequest by viewModel.statsRequest.collectAsStateWithLifecycle()
                 start?.let {
                     AppNavHost(
                         start = it,
-                        unlockRequest = unlockRequest,
-                        onUnlockRequestHandled = viewModel::onUnlockRequestHandled,
+                        homeRequest = homeRequest,
+                        onHomeRequestHandled = viewModel::onHomeRequestHandled,
                         statsRequest = statsRequest,
                         onStatsRequestHandled = viewModel::onStatsRequestHandled,
                     )
@@ -51,16 +56,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handle(intent: Intent) {
-        viewModel.requestUnlock(intent.getStringExtra(EXTRA_UNLOCK_PACKAGE))
+        if (intent.getBooleanExtra(EXTRA_OPEN_HOME, false)) viewModel.requestHome()
         viewModel.openStats(intent.getStringExtra(EXTRA_OPEN_STATS))
     }
 
     companion object {
-        /**
-         * App para la que se pide tiempo desde la pantalla de bloqueo. Solo elige qué app sale
-         * marcada: la pantalla de pedir tiempo ignora un paquete que no tenga reglas.
-         */
-        const val EXTRA_UNLOCK_PACKAGE = "io.github.russian03.touchgrass.extra.UNLOCK_PACKAGE"
+        /** Lo que dura la animación del logo en la pantalla de carga (`splash_logo_animated`). */
+        private const val SPLASH_MIN_MS = 1_000L
+
+        /** Desde la pantalla de bloqueo: abre Inicio, sea cual sea la pantalla en la que se quedó la app. */
+        const val EXTRA_OPEN_HOME = "io.github.russian03.touchgrass.extra.OPEN_HOME"
 
         /** Mes (`2026-09`) cuyas estadísticas se abren, desde la notificación del resumen. */
         const val EXTRA_OPEN_STATS = "io.github.russian03.touchgrass.extra.OPEN_STATS"

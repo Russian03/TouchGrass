@@ -1,7 +1,5 @@
 <resources>
     <string name="app_name" translatable="false">TouchGrass</string>
-    <string name="home_title">Céntrate en el *mundo* que te rodea.</string>
-    <string name="home_tagline">Usa tus apps sin perderte en el scroll infinito. Cada visita, una decisión consciente.</string>
 
     <string name="accessibility_service_label">TouchGrass: bloqueo del scroll</string>
     <string name="accessibility_service_description">TouchGrass usa este servicio para detectar cuándo entras en el scroll de una app (ahora, los Reels de Instagram y Para ti y Comunidad de TikTok) y taparlo con una pantalla de pausa, que también silencia el sonido. Solo observa las apps que bloquea (ahora, Instagram y TikTok) y solo lee los identificadores de los botones de la interfaz y el nombre de algunas pestañas (como «Para ti»): nunca lee tus mensajes, publicaciones ni nombres. De la pantalla de inicio solo detecta que has vuelto a ella, para quitar la pausa enseguida. Nada sale de tu móvil.</string>
@@ -52,7 +50,6 @@
 
     <!-- Pedir tiempo -->
     <string name="unlock_title">Pedir tiempo</string>
-    <string name="unlock_body">Desbloquea el scroll de una app unos minutos. El saldo es el mismo para todas.</string>
     <string name="unlock_choose_title">¿Qué quieres desbloquear?</string>
     <string name="unlock_choose_body">El saldo de hoy es el mismo para todas las apps.</string>
     <string name="unlock_app_body">Desbloquea %1$s unos minutos. Se restan de tu saldo al pedirlos y corren aunque salgas de la app.</string>
@@ -88,6 +85,16 @@
     <string name="reason_other">Otro</string>
 
     <!-- Inicio (diseño nuevo) -->
+    <string name="home_greeting">Hola, *%1$s*</string>
+    <string name="home_greeting_anonymous">*¡Hola!*</string>
+    <!-- Frase de la cabecera: sale una al azar cada vez que se abre Inicio. Lo que va entre asteriscos, en negrita. -->
+    <string-array name="home_quotes">
+        <item>Céntrate en el *mundo* que te rodea.</item>
+        <item>Usa tus apps sin perderte en el *scroll* infinito. Cada visita, una decisión consciente.</item>
+        <item>Lo mejor de hoy no está en la *pantalla*.</item>
+        <item>Menos scroll, más *vida* real.</item>
+        <item>Sal a tocar *hierba*: el feed puede esperar.</item>
+    </string-array>
     <string name="home_my_day">Mi *día*</string>
     <string name="home_my_week">Mi *semana*</string>
     <string name="home_my_protection">Mi *protección*</string>
@@ -108,6 +115,10 @@
     <string name="onboarding_next">Siguiente</string>
     <string name="onboarding_welcome_title">Bienvenido a *TouchGrass*</string>
     <string name="onboarding_welcome_body">Sigue usando tus apps para lo que importa: mensajes, amigos e historias. Sin perderte en el scroll.</string>
+    <string name="onboarding_name_title">¿Cómo te *llamas*?</string>
+    <string name="onboarding_name_body">Así te saludaremos cada día al abrir TouchGrass.</string>
+    <string name="onboarding_name_hint">Tu nombre</string>
+    <string name="onboarding_name_note">Es opcional y solo se guarda en este móvil.</string>
     <string name="onboarding_how_title">Cómo *funciona*</string>
     <string name="onboarding_how_block_title">El scroll, bloqueado</string>
     <string name="onboarding_how_block_body">Cuando entras en el scroll (por ejemplo, los Reels) aparece una pausa encima. El resto de la app funciona igual.</string>
@@ -122,7 +133,7 @@
     <string name="onboarding_disclosure_never_title">Qué nunca lee</string>
     <string name="onboarding_disclosure_never_body">Tus mensajes, publicaciones, nombres, contraseñas ni nada de otras apps.</string>
     <string name="onboarding_disclosure_local_title">Nada sale del móvil</string>
-    <string name="onboarding_disclosure_local_body">La app no tiene permiso de Internet. Tu límite y tu uso se guardan solo en este dispositivo, sin copias en la nube.</string>
+    <string name="onboarding_disclosure_local_body">La app no tiene permiso de Internet. Tu nombre, tu límite y tu uso se guardan solo en este dispositivo, sin copias en la nube.</string>
     <string name="onboarding_disclosure_accept">Entendido</string>
     <string name="onboarding_limit_title">¿Cuántos *minutos* al día?</string>
     <string name="onboarding_limit_body">Es tu límite para este mes: los minutos que podrás desbloquear cada día.</string>
@@ -136,6 +147,10 @@
 
     <!-- Ajustes -->
     <string name="settings_title">Ajustes</string>
+    <string name="settings_name_section">Tu nombre</string>
+    <string name="settings_name_note">Con él te saludamos en Inicio. Déjalo vacío para no usar ninguno.</string>
+    <string name="settings_name_save">Guardar nombre</string>
+    <string name="settings_name_saved">Nombre guardado.</string>
     <string name="settings_limit_section">Límite diario</string>
     <string name="settings_limit_current">Ahora: %1$d min al día</string>
     <string name="settings_limit_rule">Bajarlo se aplica al momento. Subirlo, a partir del mes siguiente.</string>
@@ -152,7 +167,7 @@
     <string name="settings_lower_confirm">Bajar límite</string>
     <string name="settings_protection_section">Protección</string>
     <string name="settings_privacy_section">Privacidad</string>
-    <string name="settings_privacy_body">TouchGrass no tiene permiso de Internet y no envía nada fuera del móvil. Solo mira los identificadores de los botones de las apps que bloquea (ahora, Instagram y TikTok) y el nombre de algunas pestañas, nunca tus mensajes ni publicaciones. Tu límite, tu uso y tus estadísticas (incluidos los motivos) se guardan en este dispositivo y no se copian a la nube.</string>
+    <string name="settings_privacy_body">TouchGrass no tiene permiso de Internet y no envía nada fuera del móvil. Solo mira los identificadores de los botones de las apps que bloquea (ahora, Instagram y TikTok) y el nombre de algunas pestañas, nunca tus mensajes ni publicaciones. Tu nombre, tu límite, tu uso y tus estadísticas (incluidos los motivos) se guardan en este dispositivo y no se copian a la nube.</string>
     <string name="settings_version">Versión %1$s</string>
 
     <!-- Estadísticas -->
