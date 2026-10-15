@@ -18,17 +18,17 @@ class MainViewModel @Inject constructor(repository: BudgetRepository) : ViewMode
     private val _start = MutableStateFlow<Any?>(null)
     val start: StateFlow<Any?> = _start.asStateFlow()
 
-    private val _unlockRequest = MutableStateFlow<String?>(null)
+    private val _homeRequest = MutableStateFlow(false)
 
-    /** App para la que se ha pedido tiempo desde la pantalla de bloqueo, aún sin atender. */
-    val unlockRequest: StateFlow<String?> = _unlockRequest.asStateFlow()
+    /** Se ha pedido abrir Inicio desde la pantalla de bloqueo y aún no se ha atendido. */
+    val homeRequest: StateFlow<Boolean> = _homeRequest.asStateFlow()
 
-    fun requestUnlock(packageName: String?) {
-        if (packageName != null) _unlockRequest.value = packageName
+    fun requestHome() {
+        _homeRequest.value = true
     }
 
-    fun onUnlockRequestHandled() {
-        _unlockRequest.value = null
+    fun onHomeRequestHandled() {
+        _homeRequest.value = false
     }
 
     private val _statsRequest = MutableStateFlow<String?>(null)

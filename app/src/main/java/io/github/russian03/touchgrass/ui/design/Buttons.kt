@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
@@ -30,7 +31,7 @@ import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 private const val PRESSED_SCALE = 0.96f
 private val PressedShape = RoundedCornerShape(16.dp)
 
-/** Botón principal: píldora negra (lima en modo noche) con texto crema, como «Continue». */
+/** Botón principal: píldora negra (lima en modo noche) con texto crema, como «Continue». [compact], más pequeña. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun InkPillButton(
@@ -41,6 +42,7 @@ fun InkPillButton(
     fillWidth: Boolean = false,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    compact: Boolean = false,
 ) {
     val interaction = remember { MutableInteractionSource() }
     Button(
@@ -54,11 +56,19 @@ fun InkPillButton(
             disabledContainerColor = containerColor.copy(alpha = 0.25f),
             disabledContentColor = contentColor.copy(alpha = 0.7f),
         ),
-        contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp),
+        contentPadding =
+        if (compact) {
+            PaddingValues(
+                horizontal = 22.dp,
+                vertical = 10.dp,
+            )
+        } else {
+            PaddingValues(horizontal = 32.dp, vertical = 16.dp)
+        },
         interactionSource = interaction,
-        modifier = modifier.pressScale(interaction).pillWidth(fillWidth),
+        modifier = modifier.pressScale(interaction).pillWidth(fillWidth, minHeight = if (compact) 44.dp else 56.dp),
     ) {
-        Text(text, style = MaterialTheme.typography.labelLarge)
+        Text(text, style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -102,7 +112,8 @@ fun Modifier.pressScale(interaction: MutableInteractionSource, pressedScale: Flo
     }
 }
 
-private fun Modifier.pillWidth(fill: Boolean) = (if (fill) fillMaxWidth() else this).heightIn(min = 56.dp)
+private fun Modifier.pillWidth(fill: Boolean, minHeight: Dp = 56.dp) =
+    (if (fill) fillMaxWidth() else this).heightIn(min = minHeight)
 
 @Preview(showBackground = true, backgroundColor = 0xFFFBF8EF)
 @Composable

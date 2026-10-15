@@ -8,10 +8,13 @@ import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.stats.StatsPolicy
 import io.github.russian03.touchgrass.core.stats.WeekDay
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
+import io.github.russian03.touchgrass.data.profile.ProfileRepository
 import io.github.russian03.touchgrass.data.rules.RuleSource
 import io.github.russian03.touchgrass.data.stats.StatsRepository
+import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
+import kotlin.random.Random
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,7 +39,15 @@ class HomeViewModel @Inject constructor(
     private val repository: BudgetRepository,
     private val stats: StatsRepository,
     private val rules: RuleSource,
+    profile: ProfileRepository,
 ) : ViewModel() {
+
+    /** Nombre para el saludo de la cabecera, o `null` si no se ha dicho. */
+    val name: StateFlow<String?> =
+        profile.profile.map { it.name }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** Semilla de la frase de la cabecera: cambia cada vez que se abre Inicio, para darle vida. */
+    val quoteSeed: Int = Random.nextInt(Int.MAX_VALUE)
 
     /** Saldo de hoy, o `null` mientras se carga. */
     val budget: StateFlow<BudgetSummary?> =
@@ -53,10 +64,13 @@ class HomeViewModel @Inject constructor(
             .map { StatsPolicy.pendingSummary(it, stats.today()) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
-    /** Los últimos siete días, para «Mi semana». */
+    /** Día lógico de hoy (de 8:00 a 8:00), para saber qué días de la semana ya han pasado. */
+    fun today(): LocalDate = stats.today()
+
+    /** La semana anterior y la actual, de lunes a domingo, para «Mi semana». */
     val week: StateFlow<List<WeekDay>> =
         stats.state
-            .map { StatsPolicy.week(it, stats.today()) }
+            .map { StatsPolicy.weeks(it, stats.today()) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
     private val _unlock = MutableStateFlow(UnlockUiState())

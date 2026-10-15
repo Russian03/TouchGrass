@@ -153,34 +153,66 @@ class StatsPolicyTest {
     }
 
     @Test
-    fun `la semana son los últimos siete días con lo que pasó en cada uno`() {
-        var state = StatsPolicy.start(StatsState(), day("2026-10-08"))
-        state = StatsPolicy.recordUnlock(state, day("2026-10-09"), unlock(minutes = 10), 30)
-        state = StatsPolicy.recordUnlock(state, day("2026-10-10"), unlock(minutes = 30), 30)
-        state = StatsPolicy.recordBlock(state, day("2026-10-11"), IG)
+    fun `se ven la semana anterior y la actual con la cara y la racha de cada día`() {
+        // 2026-10-14 es miércoles: se ven del lunes 5 al domingo 18.
+        var state = StatsPolicy.start(StatsState(), day("2026-10-13"))
+        state = StatsPolicy.recordUnlock(state, day("2026-10-13"), unlock(minutes = 20), 30)
 
-        val week = StatsPolicy.week(state, day("2026-10-12"))
+        val weeks = StatsPolicy.weeks(state, day("2026-10-14"))
 
-        assertThat(week.map { it.day }).containsExactlyElementsIn(
-            (6 downTo 0).map { day("2026-10-12").minusDays(it.toLong()) },
+        assertThat(weeks.map { it.day }).containsExactlyElementsIn(
+            (5..18).map { day("2026-10-%02d".format(it)) },
         ).inOrder()
-        assertThat(week.map { it.mark }).containsExactly(
-            DayMark.Untracked,
-            DayMark.Untracked,
-            DayMark.Free,
-            DayMark.Unlocked,
-            DayMark.Exhausted,
-            DayMark.Free,
-            DayMark.Free,
+        val thisWeek = weeks.drop(StatsPolicy.WEEK_DAYS)
+        assertThat(thisWeek.map { it.face }).containsExactly(
+            DayFace.Untracked, // lunes, antes de empezar
+            DayFace.Neutral, // martes, 20 de 30 min
+            DayFace.Free, // hoy, sin pedir tiempo
+            DayFace.Untracked, // jueves a domingo aún no han llegado
+            DayFace.Untracked,
+            DayFace.Untracked,
+            DayFace.Untracked,
         ).inOrder()
-        assertThat(week[3].unlockedMinutes).isEqualTo(10)
+        assertThat(weeks.take(StatsPolicy.WEEK_DAYS).map { it.face }.toSet()).containsExactly(DayFace.Untracked)
+        assertThat(thisWeek[1].unlockedMinutes).isEqualTo(20)
+        assertThat(thisWeek[1].limitMinutes).isEqualTo(30)
+        assertThat(thisWeek[2].streak).isEqualTo(1)
     }
 
     @Test
-    fun `sin estadísticas toda la semana está sin contar`() {
-        val week = StatsPolicy.week(StatsState(), day("2026-10-12"))
-        assertThat(week).hasSize(StatsPolicy.WEEK_DAYS)
-        assertThat(week.map { it.mark }.toSet()).containsExactly(DayMark.Untracked)
+    fun `el domingo la última semana termina hoy`() {
+        val weeks = StatsPolicy.weeks(StatsState(), day("2026-10-18"))
+        assertThat(weeks.first().day).isEqualTo(day("2026-10-05"))
+        assertThat(weeks.last().day).isEqualTo(day("2026-10-18"))
+    }
+
+    @Test
+    fun `sin estadísticas ningún día está contado`() {
+        val weeks = StatsPolicy.weeks(StatsState(), day("2026-10-12"))
+        assertThat(weeks).hasSize(StatsPolicy.WEEK_DAYS * StatsPolicy.WEEKS_SHOWN)
+        assertThat(weeks.map { it.face }.toSet()).containsExactly(DayFace.Untracked)
+    }
+
+    @Test
+    fun `la racha de poco uso mejora la cara`() {
+        // Un día de poco uso (5 de 30 min) y luego días sin pedir tiempo.
+        var state = StatsPolicy.start(StatsState(), day("2026-10-01"))
+        state = StatsPolicy.recordUnlock(state, day("2026-10-01"), unlock(minutes = 5), 30)
+        assertThat(StatsPolicy.faceAt(state, day("2026-10-01"))).isEqualTo(DayFace.Happy)
+        assertThat(StatsPolicy.faceAt(state, day("2026-10-02"))).isEqualTo(DayFace.Free)
+        assertThat(StatsPolicy.faceAt(state, day("2026-10-03"))).isEqualTo(DayFace.Cool)
+        assertThat(StatsPolicy.faceAt(state, day("2026-10-07"))).isEqualTo(DayFace.Legend)
+        assertThat(StatsPolicy.faceAt(state, day("2026-10-14"))).isEqualTo(DayFace.Mythic)
+        assertThat(StatsPolicy.streakAt(state, day("2026-10-14"))).isEqualTo(14)
+    }
+
+    @Test
+    fun `un día de mucho uso corta la racha`() {
+        var state = StatsPolicy.start(StatsState(), day("2026-10-01"))
+        state = StatsPolicy.recordUnlock(state, day("2026-10-05"), unlock(minutes = 20), 30)
+        assertThat(StatsPolicy.streakAt(state, day("2026-10-04"))).isEqualTo(4)
+        assertThat(StatsPolicy.streakAt(state, day("2026-10-05"))).isEqualTo(0)
+        assertThat(StatsPolicy.streakAt(state, day("2026-10-06"))).isEqualTo(1)
     }
 
     private companion object {

@@ -1,4 +1,6 @@
 <resources>
     <!-- Igual que Cream y Night en ui/theme/Color.kt. -->
     <color name="splash_background">#FFFBF8EF</color>
+    <!-- Fondo del icono de la app (crema). -->
+    <color name="ic_launcher_background">#FFFBF8EF</color>
 </resources>

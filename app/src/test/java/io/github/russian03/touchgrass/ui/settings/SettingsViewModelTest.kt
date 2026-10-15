@@ -3,6 +3,7 @@ package io.github.russian03.touchgrass.ui.settings
 import com.google.common.truth.Truth.assertThat
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.testing.FakeTime
+import io.github.russian03.touchgrass.testing.testProfile
 import io.github.russian03.touchgrass.testing.testRepository
 import io.github.russian03.touchgrass.ui.onboarding.OnboardingViewModel
 import java.io.File
@@ -46,14 +47,16 @@ class SettingsViewModelTest {
 
     private fun runSettings(test: suspend (SettingsViewModel) -> Unit) = runBlocking {
         val repo = testRepository(File(folder.root, "budget.json"), io, time)
+        // Un solo DataStore por fichero: lo comparten los primeros pasos y Ajustes.
+        val profile = testProfile(File(folder.root, "profile.json"), io)
         // Primeros pasos con 30 min al día.
-        val onboarding = OnboardingViewModel(repo)
+        val onboarding = OnboardingViewModel(repo, profile)
         onboarding.onLimitChange(30)
         // Como en la interfaz: se termina cuando el límite ya está guardado.
         onboarding.saveLimit { onboarding.finish {} }
         withTimeout(5_000) { repo.state.first { it.onboardingDone } }
 
-        val vm = SettingsViewModel(repo)
+        val vm = SettingsViewModel(repo, profile)
         io.launch { vm.state.collect {} }
         withTimeout(5_000) { vm.state.first { it.budget != null } }
         test(vm)
@@ -61,6 +64,24 @@ class SettingsViewModelTest {
 
     private suspend fun SettingsViewModel.settled() = withTimeout(5_000) {
         state.first { !it.saving && it.result != null }
+    }
+
+    @Test
+    fun `el nombre se guarda limpio y vacío se quita`() = runSettings { vm ->
+        vm.onNameChange("  Jan ")
+        assertThat(withTimeout(5_000) { vm.state.first { it.nameDraft != null } }.canSaveName).isTrue()
+        vm.saveName()
+        val saved = withTimeout(5_000) { vm.state.first { it.nameSaved == true && it.savedName == "Jan" } }
+        assertThat(saved.nameDraft).isNull()
+        assertThat(saved.shownName).isEqualTo("Jan")
+
+        vm.onNameChange("   ")
+        vm.saveName()
+        assertThat(
+            withTimeout(5_000) {
+                vm.state.first { it.nameSaved == true && it.savedName == null }
+            }.shownName,
+        ).isEmpty()
     }
 
     @Test
