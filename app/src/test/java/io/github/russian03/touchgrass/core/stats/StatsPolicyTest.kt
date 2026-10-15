@@ -152,6 +152,37 @@ class StatsPolicyTest {
         assertThat(state.since).isEqualTo("2024-11-01")
     }
 
+    @Test
+    fun `la semana son los últimos siete días con lo que pasó en cada uno`() {
+        var state = StatsPolicy.start(StatsState(), day("2026-10-08"))
+        state = StatsPolicy.recordUnlock(state, day("2026-10-09"), unlock(minutes = 10), 30)
+        state = StatsPolicy.recordUnlock(state, day("2026-10-10"), unlock(minutes = 30), 30)
+        state = StatsPolicy.recordBlock(state, day("2026-10-11"), IG)
+
+        val week = StatsPolicy.week(state, day("2026-10-12"))
+
+        assertThat(week.map { it.day }).containsExactlyElementsIn(
+            (6 downTo 0).map { day("2026-10-12").minusDays(it.toLong()) },
+        ).inOrder()
+        assertThat(week.map { it.mark }).containsExactly(
+            DayMark.Untracked,
+            DayMark.Untracked,
+            DayMark.Free,
+            DayMark.Unlocked,
+            DayMark.Exhausted,
+            DayMark.Free,
+            DayMark.Free,
+        ).inOrder()
+        assertThat(week[3].unlockedMinutes).isEqualTo(10)
+    }
+
+    @Test
+    fun `sin estadísticas toda la semana está sin contar`() {
+        val week = StatsPolicy.week(StatsState(), day("2026-10-12"))
+        assertThat(week).hasSize(StatsPolicy.WEEK_DAYS)
+        assertThat(week.map { it.mark }.toSet()).containsExactly(DayMark.Untracked)
+    }
+
     private companion object {
         const val IG = "com.instagram.android"
         const val TT = "com.zhiliaoapp.musically"

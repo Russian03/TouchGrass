@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.stats.StatsPolicy
+import io.github.russian03.touchgrass.core.stats.WeekDay
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleSource
 import io.github.russian03.touchgrass.data.stats.StatsRepository
@@ -51,6 +52,12 @@ class HomeViewModel @Inject constructor(
         stats.state
             .map { StatsPolicy.pendingSummary(it, stats.today()) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** Los últimos siete días, para «Mi semana». */
+    val week: StateFlow<List<WeekDay>> =
+        stats.state
+            .map { StatsPolicy.week(it, stats.today()) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
     private val _unlock = MutableStateFlow(UnlockUiState())
     val unlock: StateFlow<UnlockUiState> = _unlock.asStateFlow()
