@@ -18,6 +18,7 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 11     | `bloque-11/estadisticas`      | Estadísticas: motivo al pedir tiempo, resumen diario y mensual con aviso  | v1.2.0 |
 | 12     | `bloque-12/diseno-v1`         | Primer diseño nuevo: tema lima, Montserrat, Material 3 Expressive; primeros pasos e Inicio | —      |
 | 13     | `bloque-13/logo-y-semana`     | Logo y pantalla de carga animada, saludo con nombre, «Mi semana» con caras | —      |
+| 14     | `bloque-14/logo-final`        | Logo definitivo y pantalla de carga con círculos que lo rellenan | —      |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
 | —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
 | —      | después                       | Reglas para YouTube                                                       | —      |

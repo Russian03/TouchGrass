@@ -1,46 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Pantalla de carga: el logo aparece creciendo con rebote desde la base, parpadea aplastándose
-    un poco y mira a un lado, como la mascota del vídeo de referencia. Dura un segundo.
+    Pantalla de carga: la forma del logo hace de máscara invisible y, detrás, siete círculos llegan
+    a la vez desde fuera y crecen hasta llenarla. Solo se ve lo que cae dentro del logo.
 -->
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:drawable="@drawable/splash_logo">
-
-    <target android:name="body">
+    <target android:name="c0">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <!-- Aparece: de nada a su tamaño, pasándose un poco. -->
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="0" android:valueTo="1"
-                    android:duration="450" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0" android:valueTo="1"
-                    android:duration="450" android:interpolator="@android:interpolator/overshoot" />
-                <!-- Se aplasta al parpadear y vuelve con rebote. -->
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="1" android:valueTo="1.06"
-                    android:startOffset="550" android:duration="80" android:interpolator="@android:interpolator/fast_out_slow_in" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="1" android:valueTo="0.92"
-                    android:startOffset="550" android:duration="80" android:interpolator="@android:interpolator/fast_out_slow_in" />
-                <objectAnimator android:propertyName="scaleX" android:valueFrom="1.06" android:valueTo="1"
-                    android:startOffset="630" android:duration="220" android:interpolator="@android:interpolator/overshoot" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.92" android:valueTo="1"
-                    android:startOffset="630" android:duration="220" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="776.5" android:valueTo="0" android:duration="620" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="-203.4" android:valueTo="0" android:duration="620" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="700" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="700" android:interpolator="@android:interpolator/overshoot" />
             </set>
         </aapt:attr>
     </target>
-
-    <target android:name="eyes">
+    <target android:name="c1">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <!-- Parpadeo: los ojos se cierran en una raya y se vuelven a abrir. -->
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="1" android:valueTo="0.15"
-                    android:startOffset="560" android:duration="70" android:interpolator="@android:interpolator/fast_out_linear_in" />
-                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.15" android:valueTo="1"
-                    android:startOffset="650" android:duration="95" android:interpolator="@android:interpolator/linear_out_slow_in" />
-                <!-- Mira a un lado y vuelve. -->
-                <objectAnimator android:propertyName="translateX" android:valueFrom="0" android:valueTo="-2"
-                    android:startOffset="760" android:duration="100" android:interpolator="@android:interpolator/fast_out_slow_in" />
-                <objectAnimator android:propertyName="translateX" android:valueFrom="-2" android:valueTo="0"
-                    android:startOffset="880" android:duration="100" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="-755.9" android:valueTo="0" android:duration="657" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="270.1" android:valueTo="0" android:duration="657" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="737" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="737" android:interpolator="@android:interpolator/overshoot" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c2">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator android:propertyName="translateX" android:valueFrom="86.7" android:valueTo="0" android:duration="694" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="-798.1" android:valueTo="0" android:duration="694" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="774" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="774" android:interpolator="@android:interpolator/overshoot" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c3">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator android:propertyName="translateX" android:valueFrom="241.5" android:valueTo="0" android:duration="731" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="765.6" android:valueTo="0" android:duration="731" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="811" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="811" android:interpolator="@android:interpolator/overshoot" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c4">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator android:propertyName="translateX" android:valueFrom="-369.0" android:valueTo="0" android:duration="648" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="712.9" android:valueTo="0" android:duration="648" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="728" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="728" android:interpolator="@android:interpolator/overshoot" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c5">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator android:propertyName="translateX" android:valueFrom="-701.0" android:valueTo="0" android:duration="685" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="-391.1" android:valueTo="0" android:duration="685" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="765" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="765" android:interpolator="@android:interpolator/overshoot" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="c6">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator android:propertyName="translateX" android:valueFrom="700.4" android:valueTo="0" android:duration="722" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="392.3" android:valueTo="0" android:duration="722" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="802" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="802" android:interpolator="@android:interpolator/overshoot" />
             </set>
         </aapt:attr>
     </target>
