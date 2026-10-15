@@ -1,4 +1,4 @@
 <resources>
-    <!-- Igual que Paper y Night en ui/theme/Color.kt. -->
-    <color name="splash_background">#FFF9F9F9</color>
+    <!-- Igual que Cream y Night en ui/theme/Color.kt. -->
+    <color name="splash_background">#FFFBF8EF</color>
 </resources>

@@ -2,17 +2,22 @@ package io.github.russian03.touchgrass.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Paleta heredada del diseño original: blanco roto, verde bosque y grises verdosos.
+// Paleta nueva: crema, verde lima y tinta casi negra, con píldoras negras.
+val Cream = Color(0xFFFBF8EF)
+val Lime = Color(0xFFB5E35A)
+val LimeDeep = Color(0xFF7FAF2A)
+val LimeSoft = Color(0xFFE6F5C6)
+val Ink = Color(0xFF151515)
+val InkSoft = Color(0xFF4A4A45)
+val InkMuted = Color(0xFF8A8A80)
+val Alert = Color(0xFFE5533D)
+
+internal val Night = Color(0xFF141513)
+internal val NightSurface = Color(0xFF1F211D)
+internal val NightInk = Color(0xFFF2F1EA)
+internal val NightInkSoft = Color(0xFFC4C3B8)
+
+// Paleta anterior: aún la usa la pantalla de bloqueo, que se rediseña en otro bloque.
 val Grass = Color(0xFF006E1C)
-val GrassDeep = Color(0xFF003C0B)
-val GrassLight = Color(0xFFABF4AC)
 val GrassGlow = Color(0xFF4CAF50)
 val Paper = Color(0xFFF9F9F9)
-val Ink = Color(0xFF1A1C1C)
-val InkSoft = Color(0xFF3F4A3C)
-val InkMuted = Color(0xFF6F7A6B)
-
-internal val Night = Color(0xFF111411)
-internal val NightSurface = Color(0xFF1C201C)
-internal val NightInk = Color(0xFFE2E3DE)
-internal val NightInkSoft = Color(0xFFBECAB9)

@@ -151,6 +151,29 @@ object StatsPolicy {
             .toList()
             .reversed()
 
+    /** Días que se ven en «Mi semana» de Inicio. */
+    const val WEEK_DAYS = 7
+
+    /**
+     * Los últimos [WEEK_DAYS] días hasta [today], del más antiguo al más reciente, con lo que se
+     * hizo en cada uno. Los días anteriores a [StatsState.since] no cuentan ([DayMark.Untracked]).
+     */
+    fun week(state: StatsState, today: LocalDate): List<WeekDay> {
+        val since = state.since?.let(LocalDate::parse)
+        return (WEEK_DAYS - 1 downTo 0).map { back ->
+            val day = today.minusDays(back.toLong())
+            val row = DayRow(day, state.days[day.toString()] ?: DayStats())
+            val mark =
+                when {
+                    since == null || day < since -> DayMark.Untracked
+                    row.exhausted -> DayMark.Exhausted
+                    row.stats.unlocks.isNotEmpty() -> DayMark.Unlocked
+                    else -> DayMark.Free
+                }
+            WeekDay(day, mark, row.unlockedMinutes)
+        }
+    }
+
     private fun updateDay(state: StatsState, day: LocalDate, change: (DayStats) -> DayStats): StatsState {
         val key = day.toString()
         val oldest = YearMonth.from(day).minusMonths(KEEP_MONTHS - 1).atDay(1)
@@ -171,6 +194,23 @@ data class DayRow(val day: LocalDate, val stats: DayStats) {
 
     /** Se gastó todo el saldo del día (con un límite mayor que 0). */
     val exhausted: Boolean get() = stats.limitMinutes?.let { it > 0 && unlockedMinutes >= it } == true
+}
+
+/** Un día de «Mi semana»: qué pasó y cuántos minutos se desbloquearon. */
+data class WeekDay(val day: LocalDate, val mark: DayMark, val unlockedMinutes: Int)
+
+enum class DayMark {
+    /** Aún no había estadísticas. */
+    Untracked,
+
+    /** Sin pedir tiempo: el día que se celebra. */
+    Free,
+
+    /** Se pidió tiempo sin agotar el saldo. */
+    Unlocked,
+
+    /** Se gastó todo el saldo. */
+    Exhausted,
 }
 
 data class AppMonth(val packageName: String, val unlockedMinutes: Int, val unlockCount: Int, val blockCount: Int)

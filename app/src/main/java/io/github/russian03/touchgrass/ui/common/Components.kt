@@ -1,6 +1,5 @@
 package io.github.russian03.touchgrass.ui.common
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -9,8 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -24,18 +21,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
-import io.github.russian03.touchgrass.ui.theme.GrassDeep
+import io.github.russian03.touchgrass.ui.design.InkPillButton
 
-/** Tarjeta blanca (o gris noche) con esquinas redondeadas, la base de todas las pantallas. */
+/** Tarjeta blanca (o gris noche) con esquinas de 28 dp y sin sombra, la base de todas las pantallas. */
 @Composable
 fun Card(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(16.dp),
-        shadowElevation = 1.dp,
+        shape = MaterialTheme.shapes.large,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(20.dp), content = content)
+        Column(Modifier.padding(24.dp), content = content)
     }
 }
 
@@ -45,7 +41,7 @@ fun Card(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> U
  */
 @Composable
 fun TopBar(title: String? = null, onBack: (() -> Unit)? = null, action: (@Composable () -> Unit)? = null) {
-    Surface(color = MaterialTheme.colorScheme.background, shadowElevation = 2.dp) {
+    Surface(color = MaterialTheme.colorScheme.background) {
         Box(
             Modifier
                 .fillMaxWidth()
@@ -61,7 +57,7 @@ fun TopBar(title: String? = null, onBack: (() -> Unit)? = null, action: (@Compos
                 Icon(
                     painter = painterResource(R.drawable.ic_logo),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(start = 12.dp).size(24.dp).align(Alignment.CenterStart),
                 )
             }
@@ -69,7 +65,6 @@ fun TopBar(title: String? = null, onBack: (() -> Unit)? = null, action: (@Compos
                 text = title ?: stringResource(R.string.app_name),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else GrassDeep,
                 modifier = Modifier.align(Alignment.Center),
             )
             if (action != null) Box(Modifier.align(Alignment.CenterEnd)) { action() }
@@ -77,15 +72,8 @@ fun TopBar(title: String? = null, onBack: (() -> Unit)? = null, action: (@Compos
     }
 }
 
-/** Botón principal ancho, en forma de píldora. */
+/** Botón principal ancho: la píldora de tinta del diseño nuevo. */
 @Composable
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        shape = RoundedCornerShape(28.dp),
-        modifier = modifier.fillMaxWidth().height(52.dp),
-    ) {
-        Text(text, style = MaterialTheme.typography.titleSmall)
-    }
+    InkPillButton(text = text, onClick = onClick, enabled = enabled, fillWidth = true, modifier = modifier)
 }

@@ -16,6 +16,7 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 9      | `bloque-9/pedir-tiempo-por-app` | Pantalla para pedir tiempo: elegir app y minutos, saldo compartido      | —      |
 | 10     | `bloque-10/tiktok`            | Reglas para TikTok (Para ti y Comunidad)                                  | v1.1.0 |
 | 11     | `bloque-11/estadisticas`      | Estadísticas: motivo al pedir tiempo, resumen diario y mensual con aviso  | v1.2.0 |
+| 12     | `bloque-12/diseno-v1`         | Primer diseño nuevo: tema lima, Montserrat, Material 3 Expressive; primeros pasos e Inicio | —      |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
 | —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
 | —      | después                       | Reglas para YouTube                                                       | —      |

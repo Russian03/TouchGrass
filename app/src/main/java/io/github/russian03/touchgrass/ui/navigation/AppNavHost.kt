@@ -1,5 +1,10 @@
 package io.github.russian03.touchgrass.ui.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -27,7 +32,17 @@ fun AppNavHost(
     onStatsRequestHandled: () -> Unit = {},
 ) {
     val nav = rememberNavController()
-    NavHost(navController = nav, startDestination = start) {
+    // Las pantallas entran con fundido y creciendo un poco, y salen con fundido y encogiendo.
+    val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    NavHost(
+        navController = nav,
+        startDestination = start,
+        enterTransition = { fadeIn(effects) + scaleIn(spatial, initialScale = 0.96f) },
+        exitTransition = { fadeOut(effects) + scaleOut(spatial, targetScale = 1.02f) },
+        popEnterTransition = { fadeIn(effects) + scaleIn(spatial, initialScale = 1.02f) },
+        popExitTransition = { fadeOut(effects) + scaleOut(spatial, targetScale = 0.96f) },
+    ) {
         composable<Onboarding> {
             OnboardingScreen(
                 onFinished = {

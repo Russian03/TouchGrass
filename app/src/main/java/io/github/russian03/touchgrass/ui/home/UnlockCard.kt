@@ -1,38 +1,59 @@
 package io.github.russian03.touchgrass.ui.home
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.budget.UnlockSession
-import io.github.russian03.touchgrass.ui.common.Card
-import io.github.russian03.touchgrass.ui.common.PrimaryButton
 import io.github.russian03.touchgrass.ui.common.countdown
 import io.github.russian03.touchgrass.ui.common.timeOf
+import io.github.russian03.touchgrass.ui.design.InkPillButton
+import io.github.russian03.touchgrass.ui.design.LimeHeader
+import io.github.russian03.touchgrass.ui.theme.Cream
+import io.github.russian03.touchgrass.ui.theme.Ink
+import io.github.russian03.touchgrass.ui.theme.InkSoft
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 /**
- * Pedir tiempo: con un desbloqueo en marcha muestra la cuenta atrás de esa app ([appNames] da
- * su nombre) y deja terminarlo; si no, lleva a la pantalla de pedir tiempo.
+ * Parte de la cabecera para pedir tiempo. Sin desbloqueo, la píldora «Pedir tiempo» (apagada si
+ * no queda saldo o la hora es manual, con el motivo al lado). Con un desbloqueo en marcha, la
+ * cabecera cambia de contenido y de alto: cuenta atrás con dígitos que ruedan, una onda que se
+ * vacía y «Terminar ya».
  */
 @Composable
-fun UnlockCard(
+fun UnlockSection(
     budget: BudgetSummary,
     state: UnlockUiState,
     appNames: Map<String, String>,
@@ -40,13 +61,22 @@ fun UnlockCard(
     onEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier) {
-        val unlock = budget.unlock
-        if (unlock != null) {
-            val appName = appNames[unlock.packageName] ?: unlock.packageName
-            ActiveUnlock(budget, appName, busy = state.busy, onEnd = onEnd)
-        } else {
-            RequestUnlock(budget, onOpenUnlock)
+    val enter = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    val exit = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+    Column(modifier) {
+        AnimatedContent(
+            targetState = budget.unlock,
+            contentKey = { it != null },
+            transitionSpec = {
+                (fadeIn(enter) + slideInVertically { it / 3 }) togetherWith fadeOut(exit)
+            },
+            label = "unlockHeader",
+        ) { unlock ->
+            if (unlock != null) {
+                ActiveUnlock(budget, unlock, appNames[unlock.packageName] ?: unlock.packageName, state.busy, onEnd)
+            } else {
+                RequestUnlock(budget, onOpenUnlock)
+            }
         }
         state.error?.let {
             Text(
@@ -64,61 +94,82 @@ fun UnlockCard(
 
 @Composable
 private fun RequestUnlock(budget: BudgetSummary, onOpenUnlock: () -> Unit) {
-    Text(
-        text = stringResource(R.string.unlock_title),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Medium,
-    )
     val blocker =
         when {
             !budget.autoTime -> stringResource(R.string.unlock_manual_time)
             budget.remainingMinutes == 0 -> stringResource(R.string.unlock_none_left, timeOf(budget.nextResetMs))
             else -> null
         }
-    Text(
-        text = blocker ?: stringResource(R.string.unlock_body),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 6.dp),
-    )
-    if (blocker != null) return
-
-    PrimaryButton(
-        text = stringResource(R.string.unlock_title),
-        onClick = onOpenUnlock,
-        modifier = Modifier.padding(top = 20.dp),
-    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 20.dp, end = 12.dp),
+    ) {
+        Text(
+            text = blocker ?: stringResource(R.string.unlock_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = InkSoft,
+            modifier = Modifier.weight(1f),
+        )
+        InkPillButton(
+            text = stringResource(R.string.unlock_title),
+            onClick = onOpenUnlock,
+            enabled = blocker == null,
+            containerColor = Ink,
+            contentColor = Cream,
+        )
+    }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ActiveUnlock(budget: BudgetSummary, appName: String, busy: Boolean, onEnd: () -> Unit) {
+private fun ActiveUnlock(
+    budget: BudgetSummary,
+    unlock: UnlockSession,
+    appName: String,
+    busy: Boolean,
+    onEnd: () -> Unit,
+) {
     var confirm by rememberSaveable { mutableStateOf(false) }
-    Text(
-        text = stringResource(R.string.unlock_active_title, appName),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Medium,
-    )
-    Text(
-        text = countdown(budget.unlockRemainingMs),
-        style = MaterialTheme.typography.displayMedium,
-        fontWeight = FontWeight.Light,
-        modifier = Modifier.padding(top = 12.dp),
-    )
-    Text(
-        text = stringResource(
-            R.string.unlock_active_until,
-            timeOf(System.currentTimeMillis() + budget.unlockRemainingMs),
-        ),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    OutlinedButton(
-        onClick = { confirm = true },
-        enabled = !busy,
-        shape = RoundedCornerShape(28.dp),
-        modifier = Modifier.padding(top = 16.dp),
-    ) {
-        Text(stringResource(R.string.unlock_end))
+    val totalMs = unlock.minutes * 60_000L
+    val left = countdown(budget.unlockRemainingMs)
+    Column(Modifier.fillMaxWidth().padding(top = 20.dp, end = 12.dp)) {
+        Text(
+            text = stringResource(R.string.unlock_active_title, appName),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        RollingText(
+            text = left,
+            style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+            description = stringResource(R.string.home_unlock_left, left),
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        LinearWavyProgressIndicator(
+            progress = { if (totalMs > 0) (budget.unlockRemainingMs.toFloat() / totalMs).coerceIn(0f, 1f) else 0f },
+            color = Ink,
+            trackColor = Ink.copy(alpha = 0.15f),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(
+                    R.string.unlock_active_until,
+                    timeOf(
+                        System.currentTimeMillis() + budget.unlockRemainingMs,
+                    ),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkSoft,
+                modifier = Modifier.weight(1f),
+            )
+            InkPillButton(
+                text = stringResource(R.string.unlock_end),
+                onClick = { confirm = true },
+                enabled = !busy,
+                containerColor = Ink,
+                contentColor = Cream,
+            )
+        }
     }
 
     if (confirm) {
@@ -147,23 +198,51 @@ private fun ActiveUnlock(budget: BudgetSummary, appName: String, busy: Boolean, 
     }
 }
 
-@Preview(showBackground = true)
+/**
+ * Texto cuyos caracteres ruedan al cambiar: el nuevo entra desde arriba y el viejo sale por
+ * abajo, como un contador mecánico. Las posiciones se cuentan desde la derecha para que los
+ * segundos sigan siendo los segundos aunque cambie el largo («10:00» → «9:59»).
+ */
 @Composable
-private fun UnlockRequestPreview() {
-    TouchGrassTheme {
-        UnlockCard(previewBudget(used = 17), UnlockUiState(), emptyMap(), {}, {}, Modifier.padding(16.dp))
+fun RollingText(text: String, style: TextStyle, description: String, modifier: Modifier = Modifier) {
+    val spatial = MaterialTheme.motionScheme.fastSpatialSpec<IntOffset>()
+    val effects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+    Row(modifier.clearAndSetSemantics { contentDescription = description }) {
+        text.forEachIndexed { i, char ->
+            key(text.length - i) {
+                AnimatedContent(
+                    targetState = char,
+                    transitionSpec = {
+                        (slideInVertically(spatial) { -it } + fadeIn(effects)) togetherWith
+                            (slideOutVertically(spatial) { it } + fadeOut(effects))
+                    },
+                    label = "rolling",
+                ) { c -> Text(c.toString(), style = style) }
+            }
+        }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun UnlockActivePreview() {
+private fun RequestPreview() {
+    TouchGrassTheme {
+        LimeHeader { UnlockSection(previewBudget(used = 17), UnlockUiState(), emptyMap(), {}, {}) }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ActivePreview() {
     val budget =
         previewBudget().copy(
             unlock = UnlockSession("com.instagram.android", 15, 0, 0, 1, "2026-10-13"),
             unlockRemainingMs = 13 * 60_000L + 20_000,
             refundMinutes = 10,
         )
-    val names = mapOf("com.instagram.android" to "Instagram")
-    TouchGrassTheme { UnlockCard(budget, UnlockUiState(), names, {}, {}, Modifier.padding(16.dp)) }
+    TouchGrassTheme {
+        LimeHeader {
+            UnlockSection(budget, UnlockUiState(), mapOf("com.instagram.android" to "Instagram"), {}, {})
+        }
+    }
 }
