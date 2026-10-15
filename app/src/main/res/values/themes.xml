@@ -6,7 +6,7 @@
     <style name="Theme.TouchGrass.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo_animated</item>
-        <item name="windowSplashScreenAnimationDuration">2400</item>
+        <item name="windowSplashScreenAnimationDuration">2700</item>
         <item name="postSplashScreenTheme">@style/Theme.TouchGrass</item>
     </style>
 </resources>
