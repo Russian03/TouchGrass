@@ -9,8 +9,8 @@
     <target android:name="c0">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="776.5" android:valueTo="0" android:duration="620" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="-203.4" android:valueTo="0" android:duration="620" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="49.1" android:valueTo="0" android:duration="620" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="194.2" android:valueTo="0" android:duration="620" android:interpolator="@android:interpolator/decelerate_cubic" />
                 <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="700" android:interpolator="@android:interpolator/overshoot" />
                 <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="700" android:interpolator="@android:interpolator/overshoot" />
             </set>
@@ -19,8 +19,8 @@
     <target android:name="c1">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="-755.9" android:valueTo="0" android:duration="657" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="270.1" android:valueTo="0" android:duration="657" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="133.8" android:valueTo="0" android:duration="657" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="149.0" android:valueTo="0" android:duration="657" android:interpolator="@android:interpolator/decelerate_cubic" />
                 <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="737" android:interpolator="@android:interpolator/overshoot" />
                 <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="737" android:interpolator="@android:interpolator/overshoot" />
             </set>
@@ -29,8 +29,8 @@
     <target android:name="c2">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="86.7" android:valueTo="0" android:duration="694" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="-798.1" android:valueTo="0" android:duration="694" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="200.2" android:valueTo="0" android:duration="694" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="-5.3" android:valueTo="0" android:duration="694" android:interpolator="@android:interpolator/decelerate_cubic" />
                 <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="774" android:interpolator="@android:interpolator/overshoot" />
                 <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="774" android:interpolator="@android:interpolator/overshoot" />
             </set>
@@ -39,8 +39,8 @@
     <target android:name="c3">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="241.5" android:valueTo="0" android:duration="731" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="765.6" android:valueTo="0" android:duration="731" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="-190.8" android:valueTo="0" android:duration="731" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="-60.9" android:valueTo="0" android:duration="731" android:interpolator="@android:interpolator/decelerate_cubic" />
                 <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="811" android:interpolator="@android:interpolator/overshoot" />
                 <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="811" android:interpolator="@android:interpolator/overshoot" />
             </set>
@@ -49,8 +49,8 @@
     <target android:name="c4">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="-369.0" android:valueTo="0" android:duration="648" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="712.9" android:valueTo="0" android:duration="648" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="28.0" android:valueTo="0" android:duration="648" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="-198.3" android:valueTo="0" android:duration="648" android:interpolator="@android:interpolator/decelerate_cubic" />
                 <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="728" android:interpolator="@android:interpolator/overshoot" />
                 <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="728" android:interpolator="@android:interpolator/overshoot" />
             </set>
@@ -59,8 +59,8 @@
     <target android:name="c5">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="-701.0" android:valueTo="0" android:duration="685" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="-391.1" android:valueTo="0" android:duration="685" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="-162.5" android:valueTo="0" android:duration="685" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="117.0" android:valueTo="0" android:duration="685" android:interpolator="@android:interpolator/decelerate_cubic" />
                 <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="765" android:interpolator="@android:interpolator/overshoot" />
                 <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="765" android:interpolator="@android:interpolator/overshoot" />
             </set>
@@ -69,8 +69,8 @@
     <target android:name="c6">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
-                <objectAnimator android:propertyName="translateX" android:valueFrom="700.4" android:valueTo="0" android:duration="722" android:interpolator="@android:interpolator/decelerate_cubic" />
-                <objectAnimator android:propertyName="translateY" android:valueFrom="392.3" android:valueTo="0" android:duration="722" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="-24.3" android:valueTo="0" android:duration="722" android:interpolator="@android:interpolator/decelerate_cubic" />
+                <objectAnimator android:propertyName="translateY" android:valueFrom="198.8" android:valueTo="0" android:duration="722" android:interpolator="@android:interpolator/decelerate_cubic" />
                 <objectAnimator android:propertyName="scaleX" android:valueFrom="0.3" android:valueTo="1" android:duration="802" android:interpolator="@android:interpolator/overshoot" />
                 <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1" android:duration="802" android:interpolator="@android:interpolator/overshoot" />
             </set>
