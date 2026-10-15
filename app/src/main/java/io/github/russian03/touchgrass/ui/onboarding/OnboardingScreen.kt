@@ -21,10 +21,13 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +46,8 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -66,7 +71,7 @@ import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private enum class Step { Welcome, HowItWorks, Disclosure, Limit, Activate }
+private enum class Step { Welcome, Name, HowItWorks, Disclosure, Limit, Activate }
 
 /** Alto de la ilustración de cada paso, la mitad de arriba como en el diseño. */
 private val HeroHeight = 300.dp
@@ -85,6 +90,8 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
         state = state,
         protection = rememberProtectionState(),
         showXiaomiTip = SystemSettings.isXiaomi,
+        onNameChange = viewModel::onNameChange,
+        onSaveName = viewModel::saveName,
         onLimitChange = viewModel::onLimitChange,
         onSaveLimit = viewModel::saveLimit,
         onFinish = { viewModel.finish(onFinished) },
@@ -104,6 +111,8 @@ private fun OnboardingContent(
     state: OnboardingUiState,
     protection: ProtectionState,
     showXiaomiTip: Boolean,
+    onNameChange: (String) -> Unit,
+    onSaveName: (onSaved: () -> Unit) -> Unit,
     onLimitChange: (Int) -> Unit,
     onSaveLimit: (onSaved: () -> Unit) -> Unit,
     onFinish: () -> Unit,
@@ -157,6 +166,7 @@ private fun OnboardingContent(
                 ) {
                     when (steps[page]) {
                         Step.Welcome -> WelcomeStep(visible)
+                        Step.Name -> NameStep(visible, state.name, onNameChange, onDone = { onSaveName(next) })
                         Step.HowItWorks -> HowItWorksStep(visible)
                         Step.Disclosure -> DisclosureStep(visible)
                         Step.Limit -> LimitStep(visible, state.limitMinutes, onLimitChange)
@@ -186,6 +196,7 @@ private fun OnboardingContent(
                 val (label, action) =
                     when (step) {
                         Step.Welcome -> R.string.onboarding_start to next
+                        Step.Name -> R.string.onboarding_next to { onSaveName(next) }
                         Step.HowItWorks -> R.string.onboarding_next to next
                         Step.Disclosure -> R.string.onboarding_disclosure_accept to next
                         Step.Limit -> R.string.onboarding_limit_save to { onSaveLimit(next) }
@@ -246,6 +257,29 @@ private fun WelcomeStep(visible: Boolean) {
     Hero(visible) { GrassSprouts(visible = visible, modifier = Modifier.fillMaxSize()) }
     Title(stringResource(R.string.onboarding_welcome_title), visible)
     Body(stringResource(R.string.onboarding_welcome_body), visible)
+}
+
+/**
+ * Nombre para el saludo de Inicio (opcional). Arriba, una forma lima con la inicial, que cambia
+ * con un pequeño salto mientras se escribe.
+ */
+@Composable
+private fun NameStep(visible: Boolean, name: String, onChange: (String) -> Unit, onDone: () -> Unit) {
+    Hero(visible) { NameShape(initial = name.trim().firstOrNull()?.uppercaseChar(), modifier = Modifier.fillMaxSize()) }
+    Title(stringResource(R.string.onboarding_name_title), visible)
+    Body(stringResource(R.string.onboarding_name_body), visible)
+    OutlinedTextField(
+        value = name,
+        onValueChange = onChange,
+        singleLine = true,
+        placeholder = { Text(stringResource(R.string.onboarding_name_hint)) },
+        keyboardOptions =
+        KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onDone() }),
+        shape = CircleShape,
+        modifier = Modifier.fillMaxWidth().padding(top = 20.dp).staggerIn(index = 1, visible = visible),
+    )
+    Body(stringResource(R.string.onboarding_name_note), visible, modifier = Modifier.padding(bottom = 8.dp))
 }
 
 /** Los tres puntos van pasando solos; tocar uno lo pone delante. La forma de arriba lo sigue. */
@@ -421,6 +455,8 @@ private fun PreviewStep(step: Step, protection: ProtectionState = ProtectionStat
             state = OnboardingUiState(),
             protection = protection,
             showXiaomiTip = false,
+            onNameChange = {},
+            onSaveName = {},
             onLimitChange = {},
             onSaveLimit = {},
             onFinish = {},
@@ -434,6 +470,10 @@ private fun PreviewStep(step: Step, protection: ProtectionState = ProtectionStat
 @Preview(showSystemUi = true)
 @Composable
 private fun WelcomePreview() = PreviewStep(Step.Welcome)
+
+@Preview(showSystemUi = true)
+@Composable
+private fun NamePreview() = PreviewStep(Step.Name)
 
 @Preview(showSystemUi = true)
 @Composable

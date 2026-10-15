@@ -5,6 +5,8 @@ import io.github.russian03.touchgrass.core.budget.TimeSnapshot
 import io.github.russian03.touchgrass.core.budget.TimeSource
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.budget.BudgetSerializer
+import io.github.russian03.touchgrass.data.profile.ProfileRepository
+import io.github.russian03.touchgrass.data.profile.ProfileSerializer
 import io.github.russian03.touchgrass.data.stats.StatsRepository
 import io.github.russian03.touchgrass.data.stats.StatsSerializer
 import java.io.File
@@ -33,4 +35,8 @@ fun testStats(file: File, scope: CoroutineScope, time: TimeSource = FakeTime()) 
 fun testRepository(file: File, scope: CoroutineScope, time: TimeSource = FakeTime()) = BudgetRepository(
     DataStoreFactory.create(serializer = BudgetSerializer, scope = scope, produceFile = { file }),
     time,
+)
+
+fun testProfile(file: File, scope: CoroutineScope) = ProfileRepository(
+    DataStoreFactory.create(serializer = ProfileSerializer, scope = scope, produceFile = { file }),
 )

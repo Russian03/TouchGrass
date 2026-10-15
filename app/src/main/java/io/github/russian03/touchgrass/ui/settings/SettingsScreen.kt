@@ -6,9 +6,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +27,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,6 +59,8 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
         state = state,
         protection = rememberProtectionState(),
         onBack = onBack,
+        onNameChange = viewModel::onNameChange,
+        onSaveName = viewModel::saveName,
         onDraftChange = viewModel::onDraftChange,
         onSave = viewModel::save,
         onCancelPending = viewModel::cancelPending,
@@ -65,6 +73,8 @@ private fun SettingsContent(
     state: SettingsUiState,
     protection: ProtectionState,
     onBack: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onSaveName: () -> Unit,
     onDraftChange: (Int) -> Unit,
     onSave: () -> Unit,
     onCancelPending: () -> Unit,
@@ -82,7 +92,10 @@ private fun SettingsContent(
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
         ) {
-            Section(stringResource(R.string.settings_limit_section))
+            Section(stringResource(R.string.settings_name_section))
+            NameCard(state, onNameChange, onSaveName)
+
+            Section(stringResource(R.string.settings_limit_section), Modifier.padding(top = 32.dp))
             LimitCard(
                 state = state,
                 onDraftChange = onDraftChange,
@@ -127,6 +140,44 @@ private fun SettingsContent(
                 TextButton(onClick = { confirmLower = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
+    }
+}
+
+/** Nombre del saludo de Inicio: se escribe y se guarda; vacío lo quita. */
+@Composable
+private fun NameCard(state: SettingsUiState, onNameChange: (String) -> Unit, onSave: () -> Unit) {
+    Card {
+        OutlinedTextField(
+            value = state.shownName,
+            onValueChange = onNameChange,
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.onboarding_name_hint)) },
+            keyboardOptions =
+            KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { if (state.canSaveName) onSave() }),
+            shape = CircleShape,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = stringResource(R.string.settings_name_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        PrimaryButton(
+            text = stringResource(R.string.settings_name_save),
+            onClick = onSave,
+            enabled = state.canSaveName,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+        state.nameSaved?.let { ok ->
+            Text(
+                text = stringResource(if (ok) R.string.settings_name_saved else R.string.error_saving),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (ok) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
     }
 }
 
@@ -228,6 +279,8 @@ private fun SettingsPreview() {
             state = SettingsUiState(budget = previewBudget(), draft = 45),
             protection = ProtectionState.Running,
             onBack = {},
+            onNameChange = {},
+            onSaveName = {},
             onDraftChange = {},
             onSave = {},
             onCancelPending = {},
@@ -249,6 +302,8 @@ private fun SettingsPendingPreview() {
             ),
             protection = ProtectionState.Running,
             onBack = {},
+            onNameChange = {},
+            onSaveName = {},
             onDraftChange = {},
             onSave = {},
             onCancelPending = {},

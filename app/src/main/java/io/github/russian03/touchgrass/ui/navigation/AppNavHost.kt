@@ -19,15 +19,15 @@ import io.github.russian03.touchgrass.ui.stats.StatsScreen
 import io.github.russian03.touchgrass.ui.unlock.UnlockScreen
 
 /**
- * Pantallas de la app. [unlockRequest] es la app para la que se ha pedido tiempo desde la
- * pantalla de bloqueo; se abre su pantalla de pedir tiempo y se avisa con [onUnlockRequestHandled].
+ * Pantallas de la app. Con [homeRequest] (desde la pantalla de bloqueo) se vuelve a Inicio y se
+ * avisa con [onHomeRequestHandled].
  * [statsRequest] es el mes cuyas estadísticas se han pedido desde la notificación del resumen.
  */
 @Composable
 fun AppNavHost(
     start: Any,
-    unlockRequest: String? = null,
-    onUnlockRequestHandled: () -> Unit = {},
+    homeRequest: Boolean = false,
+    onHomeRequestHandled: () -> Unit = {},
     statsRequest: String? = null,
     onStatsRequestHandled: () -> Unit = {},
 ) {
@@ -55,7 +55,7 @@ fun AppNavHost(
             HomeScreen(
                 onOpenSettings = { nav.navigate(SettingsRoute) { launchSingleTop = true } },
                 onOpenStats = { month -> nav.navigate(StatsRoute(month?.toString())) { launchSingleTop = true } },
-                onOpenUnlock = { nav.navigate(UnlockRoute()) { launchSingleTop = true } },
+                onOpenUnlock = { nav.navigate(UnlockRoute) { launchSingleTop = true } },
             )
         }
         composable<StatsRoute> { entry ->
@@ -64,22 +64,21 @@ fun AppNavHost(
         composable<SettingsRoute> {
             SettingsScreen(onBack = { nav.popBackStack() })
         }
-        composable<UnlockRoute> { entry ->
+        composable<UnlockRoute> {
             UnlockScreen(
-                preselected = entry.toRoute<UnlockRoute>().packageName,
                 onBack = { nav.popBackStack() },
                 onDone = { nav.popBackStack() },
             )
         }
     }
 
-    LaunchedEffect(unlockRequest) {
-        val packageName = unlockRequest ?: return@LaunchedEffect
-        onUnlockRequestHandled()
-        // Durante los primeros pasos no se pide tiempo: aún no hay saldo.
+    LaunchedEffect(homeRequest) {
+        if (!homeRequest) return@LaunchedEffect
+        onHomeRequestHandled()
+        // Durante los primeros pasos no hay Inicio al que volver.
         if (nav.currentDestination?.hasRoute<Onboarding>() == true) return@LaunchedEffect
-        nav.navigate(UnlockRoute(packageName)) {
-            popUpTo<Home>()
+        nav.navigate(Home) {
+            popUpTo<Home> { inclusive = true }
             launchSingleTop = true
         }
     }

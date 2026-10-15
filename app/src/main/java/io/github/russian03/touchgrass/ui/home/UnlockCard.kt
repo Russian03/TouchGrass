@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,17 +46,16 @@ import io.github.russian03.touchgrass.ui.theme.InkSoft
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 /**
- * Parte de la cabecera para pedir tiempo. Sin desbloqueo, la píldora «Pedir tiempo» (apagada si
- * no queda saldo o la hora es manual, con el motivo al lado). Con un desbloqueo en marcha, la
- * cabecera cambia de contenido y de alto: cuenta atrás con dígitos que ruedan, una onda que se
- * vacía y «Terminar ya».
+ * Parte de la cabecera para pedir tiempo. Sin desbloqueo solo dice por qué no se puede pedir, si
+ * es el caso (la píldora «Pedir tiempo» va arriba, junto a las comillas). Con un desbloqueo en
+ * marcha, la cabecera cambia de contenido y de alto: cuenta atrás con dígitos que ruedan, una onda
+ * que se vacía y «Terminar ya».
  */
 @Composable
 fun UnlockSection(
     budget: BudgetSummary,
     state: UnlockUiState,
     appNames: Map<String, String>,
-    onOpenUnlock: () -> Unit,
     onEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -75,7 +73,7 @@ fun UnlockSection(
             if (unlock != null) {
                 ActiveUnlock(budget, unlock, appNames[unlock.packageName] ?: unlock.packageName, state.busy, onEnd)
             } else {
-                RequestUnlock(budget, onOpenUnlock)
+                RequestUnlock(budget)
             }
         }
         state.error?.let {
@@ -92,33 +90,24 @@ fun UnlockSection(
     }
 }
 
+/** Por qué no se puede pedir tiempo ahora (hora manual o saldo agotado), o `null` si se puede. */
 @Composable
-private fun RequestUnlock(budget: BudgetSummary, onOpenUnlock: () -> Unit) {
-    val blocker =
-        when {
-            !budget.autoTime -> stringResource(R.string.unlock_manual_time)
-            budget.remainingMinutes == 0 -> stringResource(R.string.unlock_none_left, timeOf(budget.nextResetMs))
-            else -> null
-        }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth().padding(top = 20.dp, end = 12.dp),
-    ) {
-        Text(
-            text = blocker ?: stringResource(R.string.unlock_body),
-            style = MaterialTheme.typography.bodySmall,
-            color = InkSoft,
-            modifier = Modifier.weight(1f),
-        )
-        InkPillButton(
-            text = stringResource(R.string.unlock_title),
-            onClick = onOpenUnlock,
-            enabled = blocker == null,
-            containerColor = Ink,
-            contentColor = Cream,
-        )
-    }
+fun unlockBlocker(budget: BudgetSummary): String? = when {
+    !budget.autoTime -> stringResource(R.string.unlock_manual_time)
+    budget.remainingMinutes == 0 -> stringResource(R.string.unlock_none_left, timeOf(budget.nextResetMs))
+    else -> null
+}
+
+/** Sin desbloqueo, la píldora está arriba (junto a las comillas); aquí solo va el motivo si no se puede pedir. */
+@Composable
+private fun RequestUnlock(budget: BudgetSummary) {
+    val blocker = unlockBlocker(budget) ?: return
+    Text(
+        text = blocker,
+        style = MaterialTheme.typography.bodySmall,
+        color = InkSoft,
+        modifier = Modifier.padding(top = 12.dp, end = 12.dp),
+    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -227,7 +216,7 @@ fun RollingText(text: String, style: TextStyle, description: String, modifier: M
 @Composable
 private fun RequestPreview() {
     TouchGrassTheme {
-        LimeHeader { UnlockSection(previewBudget(used = 17), UnlockUiState(), emptyMap(), {}, {}) }
+        LimeHeader { UnlockSection(previewBudget(used = 30), UnlockUiState(), emptyMap(), {}) }
     }
 }
 
@@ -242,7 +231,7 @@ private fun ActivePreview() {
         )
     TouchGrassTheme {
         LimeHeader {
-            UnlockSection(budget, UnlockUiState(), mapOf("com.instagram.android" to "Instagram"), {}, {})
+            UnlockSection(budget, UnlockUiState(), mapOf("com.instagram.android" to "Instagram"), {})
         }
     }
 }

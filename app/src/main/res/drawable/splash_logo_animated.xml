@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Pantalla de carga: el logo aparece creciendo con rebote desde la base, parpadea aplastándose
+    un poco y mira a un lado, como la mascota del vídeo de referencia. Dura un segundo.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:drawable="@drawable/splash_logo">
+
+    <target android:name="body">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <!-- Aparece: de nada a su tamaño, pasándose un poco. -->
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="0" android:valueTo="1"
+                    android:duration="450" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0" android:valueTo="1"
+                    android:duration="450" android:interpolator="@android:interpolator/overshoot" />
+                <!-- Se aplasta al parpadear y vuelve con rebote. -->
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="1" android:valueTo="1.06"
+                    android:startOffset="550" android:duration="80" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="1" android:valueTo="0.92"
+                    android:startOffset="550" android:duration="80" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator android:propertyName="scaleX" android:valueFrom="1.06" android:valueTo="1"
+                    android:startOffset="630" android:duration="220" android:interpolator="@android:interpolator/overshoot" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.92" android:valueTo="1"
+                    android:startOffset="630" android:duration="220" android:interpolator="@android:interpolator/overshoot" />
+            </set>
+        </aapt:attr>
+    </target>
+
+    <target android:name="eyes">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <!-- Parpadeo: los ojos se cierran en una raya y se vuelven a abrir. -->
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="1" android:valueTo="0.15"
+                    android:startOffset="560" android:duration="70" android:interpolator="@android:interpolator/fast_out_linear_in" />
+                <objectAnimator android:propertyName="scaleY" android:valueFrom="0.15" android:valueTo="1"
+                    android:startOffset="650" android:duration="95" android:interpolator="@android:interpolator/linear_out_slow_in" />
+                <!-- Mira a un lado y vuelve. -->
+                <objectAnimator android:propertyName="translateX" android:valueFrom="0" android:valueTo="-2"
+                    android:startOffset="760" android:duration="100" android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator android:propertyName="translateX" android:valueFrom="-2" android:valueTo="0"
+                    android:startOffset="880" android:duration="100" android:interpolator="@android:interpolator/fast_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+</animated-vector>

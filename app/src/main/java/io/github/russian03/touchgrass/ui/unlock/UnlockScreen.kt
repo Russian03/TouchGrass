@@ -48,19 +48,12 @@ private val UNLOCK_PRESETS = listOf(5, 10, 15, 30, 60)
 
 /**
  * Pedir tiempo: primero se elige la app y después los minutos, nunca más de los que quedan
- * hoy. Con [preselected] (al venir de la pantalla de bloqueo) se entra directamente en los
- * minutos de esa app. [onDone] se llama cuando el desbloqueo ya está concedido.
+ * hoy. [onDone] se llama cuando el desbloqueo ya está concedido.
  */
 @Composable
-fun UnlockScreen(
-    preselected: String?,
-    onBack: () -> Unit,
-    onDone: () -> Unit,
-    viewModel: UnlockViewModel = hiltViewModel(),
-) {
+fun UnlockScreen(onBack: () -> Unit, onDone: () -> Unit, viewModel: UnlockViewModel = hiltViewModel()) {
     val budget by viewModel.budget.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
-    LaunchedEffect(preselected) { preselected?.let(viewModel::choose) }
     LaunchedEffect(form.granted) { if (form.granted) onDone() }
     // Atrás en los minutos vuelve a la lista de apps, si hay más de una.
     BackHandler(enabled = form.selected != null && form.canChooseApp) { viewModel.backToApps() }

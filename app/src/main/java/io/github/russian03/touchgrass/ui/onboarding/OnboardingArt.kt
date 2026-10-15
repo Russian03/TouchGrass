@@ -50,8 +50,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.ui.design.MorphingShape
 import io.github.russian03.touchgrass.ui.design.SparkKind
 import io.github.russian03.touchgrass.ui.design.Sparkles
@@ -188,6 +190,44 @@ fun HowShape(active: Int, modifier: Modifier = Modifier) {
                 label = "howNumber",
             ) { index ->
                 Text((index + 1).toString(), style = MaterialTheme.typography.displayLarge, color = Ink)
+            }
+        }
+    }
+}
+
+/**
+ * Forma lima con la inicial del nombre en el centro. Cada letra nueva entra con un salto; al
+ * escribir la primera, la galleta se transforma en sol. Sin nombre, dice «¡Hola!».
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun NameShape(initial: Char?, modifier: Modifier = Modifier) {
+    val enter = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val exit = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Sparkles(Modifier.fillMaxSize())
+        MorphingShape(
+            polygon = if (initial == null) MaterialShapes.Cookie9Sided else MaterialShapes.Sunny,
+            color = Lime,
+            outline = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.size(200.dp),
+        ) {
+            AnimatedContent(
+                targetState = initial,
+                transitionSpec = { scaleIn(enter, initialScale = 0.4f) togetherWith fadeOut(exit) },
+                label = "nameInitial",
+            ) { letter ->
+                Text(
+                    text = letter?.toString() ?: stringResource(R.string.home_greeting_anonymous).replace("*", ""),
+                    style = if (letter ==
+                        null
+                    ) {
+                        MaterialTheme.typography.headlineMedium
+                    } else {
+                        MaterialTheme.typography.displayLarge
+                    },
+                    color = Ink,
+                )
             }
         }
     }

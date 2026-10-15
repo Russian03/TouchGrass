@@ -11,6 +11,7 @@ import io.github.russian03.touchgrass.core.stats.UnlockReason
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.stats.StatsRepository
 import io.github.russian03.touchgrass.testing.FakeTime
+import io.github.russian03.touchgrass.testing.testProfile
 import io.github.russian03.touchgrass.testing.testRepository
 import io.github.russian03.touchgrass.testing.testStats
 import io.github.russian03.touchgrass.ui.onboarding.OnboardingViewModel
@@ -71,7 +72,7 @@ class UnlockViewModelTest {
         val repo = testRepository(File(folder.root, "budget.json"), io, FakeTime())
         stats = testStats(File(folder.root, "stats.json"), io, FakeTime())
         // Primeros pasos con 30 min al día.
-        val onboarding = OnboardingViewModel(repo)
+        val onboarding = OnboardingViewModel(repo, testProfile(File(folder.root, "profile.json"), io))
         onboarding.onLimitChange(30)
         onboarding.saveLimit { onboarding.finish {} }
         withTimeout(5_000) { repo.state.first { it.onboardingDone } }

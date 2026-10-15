@@ -1,7 +1,9 @@
 package io.github.russian03.touchgrass.core.stats
 
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.TemporalAdjusters
 
 /**
  * Cómo se apuntan y se resumen las estadísticas, sin nada de Android para probarlo con JUnit.
@@ -151,26 +153,53 @@ object StatsPolicy {
             .toList()
             .reversed()
 
-    /** Días que se ven en «Mi semana» de Inicio. */
+    /** Días de una semana. */
     const val WEEK_DAYS = 7
 
+    /** Fila de [day], vacía si ese día no tiene nada apuntado. */
+    private fun rowAt(state: StatsState, day: LocalDate) = DayRow(day, state.days[day.toString()] ?: DayStats())
+
     /**
-     * Los últimos [WEEK_DAYS] días hasta [today], del más antiguo al más reciente, con lo que se
-     * hizo en cada uno. Los días anteriores a [StatsState.since] no cuentan ([DayMark.Untracked]).
+     * Días seguidos de poco uso que terminan en [day] (incluido), sin contar los anteriores a
+     * [StatsState.since]. Es 0 si [day] no fue de poco uso.
      */
-    fun week(state: StatsState, today: LocalDate): List<WeekDay> {
+    fun streakAt(state: StatsState, day: LocalDate): Int {
+        val since = state.since?.let(LocalDate::parse) ?: return 0
+        var streak = 0
+        var current = day
+        while (current >= since && DayFaces.isLow(rowAt(state, current))) {
+            streak++
+            current = current.minusDays(1)
+        }
+        return streak
+    }
+
+    /** Cara de [day], o [DayFace.Untracked] si aún no había estadísticas. */
+    fun faceAt(state: StatsState, day: LocalDate): DayFace {
         val since = state.since?.let(LocalDate::parse)
-        return (WEEK_DAYS - 1 downTo 0).map { back ->
-            val day = today.minusDays(back.toLong())
-            val row = DayRow(day, state.days[day.toString()] ?: DayStats())
-            val mark =
-                when {
-                    since == null || day < since -> DayMark.Untracked
-                    row.exhausted -> DayMark.Exhausted
-                    row.stats.unlocks.isNotEmpty() -> DayMark.Unlocked
-                    else -> DayMark.Free
-                }
-            WeekDay(day, mark, row.unlockedMinutes)
+        if (since == null || day < since) return DayFace.Untracked
+        return DayFaces.face(rowAt(state, day), streakAt(state, day))
+    }
+
+    /** Semanas que se ven en «Mi semana»: la anterior y la actual. */
+    const val WEEKS_SHOWN = 2
+
+    /**
+     * Las [WEEKS_SHOWN] últimas semanas hasta la de [today], de lunes a domingo, con la cara y la
+     * racha de cada día. Hoy cuenta con lo que lleva el día; los días que aún no han llegado salen
+     * sin contar.
+     */
+    fun weeks(state: StatsState, today: LocalDate): List<WeekDay> {
+        val monday =
+            today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(WEEKS_SHOWN - 1L)
+        return (0 until WEEK_DAYS * WEEKS_SHOWN).map { offset ->
+            val day = monday.plusDays(offset.toLong())
+            if (day > today) {
+                WeekDay(day, DayFace.Untracked, 0, 0, null)
+            } else {
+                val row = rowAt(state, day)
+                WeekDay(day, faceAt(state, day), streakAt(state, day), row.unlockedMinutes, row.stats.limitMinutes)
+            }
         }
     }
 
@@ -196,22 +225,14 @@ data class DayRow(val day: LocalDate, val stats: DayStats) {
     val exhausted: Boolean get() = stats.limitMinutes?.let { it > 0 && unlockedMinutes >= it } == true
 }
 
-/** Un día de «Mi semana»: qué pasó y cuántos minutos se desbloquearon. */
-data class WeekDay(val day: LocalDate, val mark: DayMark, val unlockedMinutes: Int)
-
-enum class DayMark {
-    /** Aún no había estadísticas. */
-    Untracked,
-
-    /** Sin pedir tiempo: el día que se celebra. */
-    Free,
-
-    /** Se pidió tiempo sin agotar el saldo. */
-    Unlocked,
-
-    /** Se gastó todo el saldo. */
-    Exhausted,
-}
+/** Un día de «Mi semana»: su cara, su racha y los minutos desbloqueados de su límite. */
+data class WeekDay(
+    val day: LocalDate,
+    val face: DayFace,
+    val streak: Int,
+    val unlockedMinutes: Int,
+    val limitMinutes: Int?,
+)
 
 data class AppMonth(val packageName: String, val unlockedMinutes: Int, val unlockCount: Int, val blockCount: Int)
 
