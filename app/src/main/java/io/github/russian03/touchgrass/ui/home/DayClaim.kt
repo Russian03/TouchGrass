@@ -7,12 +7,14 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -47,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.stats.DayFace
 import io.github.russian03.touchgrass.core.stats.WeekDay
@@ -59,6 +61,7 @@ import io.github.russian03.touchgrass.ui.design.mixedWeights
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.LocalDate
 import java.util.Locale
+import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -74,15 +77,18 @@ private const val GREEN_MS = 380
 private const val BETWEEN_DAYS_MS = 150L
 private const val PHRASE_MS = 400
 private const val BUTTONS_AFTER_PHRASE_MS = 500L
-private const val LEAVE_MS = 350
+private const val LEAVE_MS = 650
 
-/** Tamaño del recuadro al salir de su sitio en Inicio y oscuridad del fondo con el pop-up. */
-private const val START_SCALE = 0.85f
+/** Oscuridad del fondo con el pop-up. */
 private const val SCRIM_ALPHA = 0.4f
 
 /** Píldoras a la vista en el pop-up: menos que en Inicio, así que más grandes. */
 private const val POPUP_PILLS = 5.25f
 private val CardPadding = 20.dp
+
+/** Margen del recuadro con los lados de la pantalla y de las píldoras con el recuadro. */
+private val CardMargin = 16.dp
+private val PopupEdge = 16.dp
 
 /** Sitio dentro de la tira para que la píldora y los ojos, al crecer, no se corten; sale del margen del recuadro. */
 private val GrowRoom = 10.dp
@@ -121,6 +127,7 @@ fun DayClaim(
     var visible by remember { mutableStateOf(inspection) }
     var leaving by remember { mutableStateOf(false) }
     var cardTop by remember { mutableFloatStateOf(0f) }
+    val scroll = rememberScrollState(Int.MAX_VALUE)
     // Las píldoras empiezan tras el margen del recuadro, que ya incluye el sitio para crecer.
     val stripOffset = with(LocalDensity.current) { CardPadding.toPx() }
 
@@ -158,7 +165,19 @@ fun DayClaim(
         if (done && !leaving) {
             leaving = true
             scope.launch {
+                // A la vez que la tira vuelve a su tamaño de Inicio, se desliza hasta el final, que
+                // es donde está la de Inicio.
+                val from = scroll.value
+                val follow =
+                    launch {
+                        snapshotFlow { zoom.value }.collect { z ->
+                            val t = 1f - z.coerceIn(0f, 1f)
+                            scroll.scrollTo((from + (scroll.maxValue - from) * t).roundToInt())
+                        }
+                    }
                 zoom.animateTo(0f, tween(LEAVE_MS, easing = FastOutSlowInEasing))
+                follow.cancel()
+                scroll.scrollTo(scroll.maxValue)
                 onDone()
             }
         }
@@ -178,10 +197,17 @@ fun DayClaim(
                 }
             }
             .drawBehind { drawRect(Color.Black.copy(alpha = SCRIM_ALPHA * zoom.value.coerceIn(0f, 1f))) }
-            .systemBarsPadding()
-            .padding(horizontal = 16.dp),
+            .systemBarsPadding(),
     ) {
-        Box(Modifier.fillMaxWidth().onGloballyPositioned { cardTop = it.positionInRoot().y }) {
+        // Todo el tamaño va con el zoom: a 0 la tira es igual que la de Inicio (de borde a borde)
+        // y a 1 es la del recuadro, así que al salir y al volver no hay saltos.
+        val z = zoom.value.coerceIn(0f, 1f)
+        Box(
+            Modifier
+                .padding(horizontal = CardMargin * z)
+                .fillMaxWidth()
+                .onGloballyPositioned { cardTop = it.positionInRoot().y },
+        ) {
             val background = MaterialTheme.colorScheme.background
             val corner = with(LocalDensity.current) { CardCorner.toPx() }
             Surface(
@@ -189,15 +215,10 @@ fun DayClaim(
                 contentColor = MaterialTheme.colorScheme.onBackground,
                 modifier =
                 Modifier.fillMaxWidth().graphicsLayer {
-                    val z = zoom.value
                     alpha = if (visible) 1f else 0f
-                    transformOrigin = TransformOrigin(0.5f, 0f)
                     // Sale desde la tira de Inicio: su borde de arriba coincide con el de la tira.
                     val dy = fromTop?.let { it - (cardTop + stripOffset) } ?: 0f
-                    translationY = dy * (1f - z)
-                    val scale = START_SCALE + (1f - START_SCALE) * z
-                    scaleX = scale
-                    scaleY = scale
+                    translationY = dy * (1f - zoom.value)
                 }
                     // El recuadro aparece con el zoom; la tira se ve desde el principio.
                     .drawBehind {
@@ -213,6 +234,8 @@ fun DayClaim(
                     today = today,
                     reveals = reveals,
                     focus = focus,
+                    scroll = scroll,
+                    leaving = leaving,
                     zoom = zoom,
                     phrase = phrase,
                     buttons = buttons,
@@ -232,6 +255,8 @@ private fun ClaimCard(
     today: LocalDate,
     reveals: Map<LocalDate, DayReveal>,
     focus: LocalDate?,
+    scroll: ScrollState,
+    leaving: Boolean,
     zoom: Animatable<Float, *>,
     phrase: Animatable<Float, *>,
     buttons: Animatable<Float, *>,
@@ -239,6 +264,7 @@ private fun ClaimCard(
     onEnableProtection: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val z = zoom.value.coerceIn(0f, 1f)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(top = CardPadding - GrowRoom, bottom = CardPadding),
@@ -249,11 +275,14 @@ private fun ClaimCard(
             pending = claim.days.toSet(),
             reveals = reveals,
             focus = focus,
-            visiblePills = POPUP_PILLS,
-            edge = 16.dp,
+            visiblePills = VISIBLE_PILLS + (POPUP_PILLS - VISIBLE_PILLS) * z,
+            edge = lerp(ScreenEdge, PopupEdge, z),
             bleed = false,
             growRoom = GrowRoom,
             interactive = false,
+            scroll = scroll,
+            appearing = leaving,
+            appear = { 1f - zoom.value },
         )
         // El texto y los botones ocupan su sitio desde el principio, para que el recuadro no salte.
         Text(

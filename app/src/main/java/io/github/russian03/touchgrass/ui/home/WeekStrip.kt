@@ -46,12 +46,16 @@ import kotlin.math.roundToInt
 /** Retraso entre píldoras al entrar, de izquierda a derecha. */
 private const val PILL_STEP_MS = 40L
 
+/** Cascada de las píldoras que entran al volver del pop-up: retraso entre una y otra y lo que dura cada una. */
+private const val APPEAR_STEP = 0.12f
+private const val APPEAR_SPAN = 0.5f
+
 /** Píldoras que caben a la vez: la que asoma por el borde invita a deslizar. */
-private const val VISIBLE_PILLS = 6.75f
+internal const val VISIBLE_PILLS = 6.75f
 private val PillGap = 10.dp
 
 /** Margen de la pantalla, el mismo que el resto de Inicio. */
-private val ScreenEdge = 24.dp
+internal val ScreenEdge = 24.dp
 
 /**
  * «Mi semana»: la semana anterior y la actual, de lunes a domingo, como «My Week». Ocupa todo el
@@ -64,6 +68,9 @@ private val ScreenEdge = 24.dp
  * ([bleed] a `false`), con píldoras más grandes ([visiblePills]) y sin que se pueda tocar
  * ([interactive] a `false`). [growRoom] deja sitio arriba y abajo para que una píldora que crece
  * al animarse no quede cortada por el borde de la tira.
+ *
+ * Con [appearing], las píldoras que no se veían en ese momento entran desde abajo, en cascada,
+ * según [appear] (de 0 a 1): es lo que pasa al volver del pop-up a Inicio, cuando caben más.
  */
 @Composable
 fun WeekStrip(
@@ -78,15 +85,33 @@ fun WeekStrip(
     bleed: Boolean = true,
     growRoom: Dp = 0.dp,
     interactive: Boolean = true,
-) {
     // Empieza al final (la semana actual): el valor se ajusta al máximo real al medir.
-    val scroll = rememberScrollState(Int.MAX_VALUE)
+    scroll: ScrollState = rememberScrollState(Int.MAX_VALUE),
+    appearing: Boolean = false,
+    appear: () -> Float = { 1f },
+) {
     val currentWeekStart = (week.size - StatsPolicy.WEEK_DAYS).coerceAtLeast(0)
     // Un día por descubrir sin animación propia se queda con todo a 0.
     val hidden = remember { DayReveal() }
     BoxWithConstraints(if (bleed) modifier.bleed(edge) else modifier) {
         val pillWidth = (maxWidth - edge - PillGap * (visiblePills - 1)) / visiblePills
         val density = LocalDensity.current
+        // Píldoras que se veían cuando empezó a entrar el resto.
+        val shown =
+            remember(appearing) {
+                if (!appearing) return@remember null
+                with(density) {
+                    val step = (pillWidth + PillGap).toPx()
+                    val from = scroll.value - edge.toPx()
+                    val to = from + maxWidth.toPx()
+                    week.indices.filter { i ->
+                        val left = i * step
+                        left + pillWidth.toPx() * 0.7f > from && left + pillWidth.toPx() * 0.3f < to
+                    }.toSet()
+                }
+            }
+        val entering = shown?.let { week.indices.filter { it !in shown && it > shown.max() } }.orEmpty()
+        val rise = with(density) { 8.dp.toPx() }
         LaunchedEffect(focus, week) {
             val index = week.indexOfFirst { it.day == focus }
             if (index < 0) return@LaunchedEffect
@@ -116,7 +141,8 @@ fun WeekStrip(
                     number = day.day.dayOfMonth.toString(),
                     weekday = weekdayShort(day.day),
                     time = time,
-                    face = if (time == DayTime.Future) null else day.face.simple(),
+                    // Hoy aún no ha acabado: sin cara hasta que se enseñe mañana.
+                    face = if (time == DayTime.Past) day.face.simple() else null,
                     description =
                     if (isPending && day.day !in reveals) {
                         stringResource(R.string.week_day_pending, weekdayDay(day.day))
@@ -127,6 +153,21 @@ fun WeekStrip(
                     modifier =
                     Modifier
                         .width(pillWidth)
+                        .then(
+                            if (i in entering) {
+                                val k = entering.indexOf(i)
+                                Modifier.graphicsLayer {
+                                    val a = ((appear() - k * APPEAR_STEP) / APPEAR_SPAN).coerceIn(0f, 1f)
+                                    alpha = a
+                                    translationY = (1f - a) * rise
+                                    val scale = 0.8f + 0.2f * a
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                            } else {
+                                Modifier
+                            },
+                        )
                         .then(
                             if (interactive) {
                                 // La cascada empieza en el lunes de esta semana, que es lo que se ve al entrar.

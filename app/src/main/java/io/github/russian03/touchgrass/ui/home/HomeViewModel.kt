@@ -103,8 +103,12 @@ class HomeViewModel @Inject constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
-    /** Ya se han enseñado los días que faltaban. */
+    /**
+     * Ya se han enseñado los días que faltaban. En la app debug no se guarda, para que la animación
+     * salga igual cada vez que se vuelve a la app.
+     */
     fun claim() {
+        if (BuildConfig.DEBUG) return
         viewModelScope.launch { stats.markClaimed() }
     }
 
