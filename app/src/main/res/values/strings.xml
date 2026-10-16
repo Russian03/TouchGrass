@@ -46,7 +46,6 @@
     <string name="today_resets_tomorrow">Se renueva mañana a las %1$s</string>
     <string name="manual_time_title">Hora manual</string>
     <string name="manual_time_body">Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva ni se puede desbloquear nada. Así nadie puede adelantar el reloj para saltarse el límite.</string>
-    <string name="manual_time_open">Activar hora automática</string>
 
     <!-- Pedir tiempo -->
     <string name="unlock_title">Pedir tiempo</string>

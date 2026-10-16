@@ -21,11 +21,16 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // La pantalla de carga se queda hasta saber si toca primeros pasos o Inicio, y al menos lo
-        // que dura la animación del logo, para que no se corte.
+        // La pantalla de carga se queda hasta saber si toca primeros pasos o Inicio y, después, hasta
+        // que acabe el ciclo de la animación en curso: normalmente uno; si la app tarda, varios enteros.
         val shownAt = SystemClock.uptimeMillis()
+        var readyAt = -1L
         installSplashScreen().setKeepOnScreenCondition {
-            viewModel.start.value == null || SystemClock.uptimeMillis() - shownAt < SPLASH_MIN_MS
+            val elapsed = SystemClock.uptimeMillis() - shownAt
+            if (viewModel.start.value == null) return@setKeepOnScreenCondition true
+            if (readyAt < 0) readyAt = elapsed
+            val cycles = maxOf(1L, (readyAt + SPLASH_CYCLE_MS - 1) / SPLASH_CYCLE_MS)
+            elapsed < cycles * SPLASH_CYCLE_MS
         }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -61,8 +66,8 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        /** Lo que dura la animación del logo en la pantalla de carga (`splash_logo_animated`). */
-        private const val SPLASH_MIN_MS = 1_000L
+        /** Lo que dura un ciclo de la animación de la pantalla de carga (`splash_logo_animated`). */
+        private const val SPLASH_CYCLE_MS = 4_200L
 
         /** Desde la pantalla de bloqueo: abre Inicio, sea cual sea la pantalla en la que se quedó la app. */
         const val EXTRA_OPEN_HOME = "io.github.russian03.touchgrass.extra.OPEN_HOME"
