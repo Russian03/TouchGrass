@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +43,7 @@ import io.github.russian03.touchgrass.service.ProtectionState
 import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.MixedTitle
 import io.github.russian03.touchgrass.ui.design.StatusRow
+import io.github.russian03.touchgrass.ui.design.fadingEdges
 import io.github.russian03.touchgrass.ui.design.staggerIn
 import io.github.russian03.touchgrass.ui.theme.ChunkyNeutral
 import io.github.russian03.touchgrass.ui.theme.ChunkyNeutralEdge
@@ -119,7 +121,10 @@ fun ConsentDialog(onAccept: () -> Unit, onDecline: () -> Unit) {
 private fun ConsentContent(onAccept: () -> Unit, onDecline: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.statusBarsPadding().navigationBarsPadding().padding(24.dp)) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            val textScroll = rememberScrollState()
+            Column(
+                Modifier.weight(1f).fadingEdges(textScroll, Orientation.Vertical, 24.dp).verticalScroll(textScroll),
+            ) {
                 MixedTitle(
                     text = stringResource(R.string.onboarding_disclosure_title),
                     style = MaterialTheme.typography.headlineMedium,

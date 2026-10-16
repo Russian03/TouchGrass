@@ -11,6 +11,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -88,6 +89,7 @@ import io.github.russian03.touchgrass.ui.design.Sprout
 import io.github.russian03.touchgrass.ui.design.SproutGeometry
 import io.github.russian03.touchgrass.ui.design.SproutMood
 import io.github.russian03.touchgrass.ui.design.StatusRow
+import io.github.russian03.touchgrass.ui.design.fadingEdges
 import io.github.russian03.touchgrass.ui.design.staggerIn
 import io.github.russian03.touchgrass.ui.theme.CardBeige
 import io.github.russian03.touchgrass.ui.theme.CardBeigeEdge
@@ -120,7 +122,7 @@ private val TwigRoom = 14.dp
  */
 private val SproutWidth = 64.dp
 private val SproutHeight = SproutWidth * SproutGeometry.ASPECT
-private val SproutLift = 8.dp
+private val SproutLift = 14.dp
 private val SproutTop = TwigRoom + BumpRadius - SproutLift - SproutHeight * SproutGeometry.BODY_CENTRE_Y
 private val ContentTop = SproutTop - TwigRoom + SproutHeight * SproutGeometry.BODY_BOTTOM_Y + 12.dp
 
@@ -481,9 +483,13 @@ private fun SetupPage(
                 modifier = Modifier.padding(top = TwigRoom).fillMaxWidth(),
             ) {
                 Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = ContentTop)) {
+                    val textScroll = rememberScrollState()
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                        modifier = Modifier.weight(
+                            1f,
+                            fill = false,
+                        ).fadingEdges(textScroll, Orientation.Vertical, 24.dp).verticalScroll(textScroll),
                     ) {
                         MixedTitle(
                             text = title,
