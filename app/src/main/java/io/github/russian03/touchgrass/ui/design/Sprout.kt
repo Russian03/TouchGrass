@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -39,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.ui.theme.Ink
+import io.github.russian03.touchgrass.ui.theme.SproutGreen
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.random.Random
@@ -81,7 +83,8 @@ private fun SproutMood.face(): Face = when (this) {
 }
 
 /**
- * El logo hecho personaje: la silueta lima con la ramita y la cara recortada (del color de lo que
+ * El logo hecho personaje: la silueta verde ([bodyColor], algo más intenso que el lima para que la
+ * cara se lea sobre fondos claros) con la ramita y la cara recortada (del color de lo que
  * hay detrás, [faceColor]). Parpadea solo, respira, mece la ramita y mira a los lados de vez en
  * cuando; con [look] (de −1 a 1 en cada eje) mira hacia ahí. Cada vez que cambia [bounce] da un
  * saltito y la ramita se sacude. [mood] cambia la boca y los ojos con muelle.
@@ -93,9 +96,11 @@ fun Sprout(
     look: Offset? = null,
     bounce: Int = 0,
     faceColor: Color = Ink,
+    bodyColor: Color = SproutGreen,
 ) {
     val inspection = LocalInspectionMode.current
     val body = painterResource(R.drawable.sprout_body)
+    val tint = ColorFilter.tint(bodyColor)
     val target = mood.face()
     val smile = remember { Animatable(target.smile) }
     val open = remember { Animatable(target.open) }
@@ -182,10 +187,12 @@ fun Sprout(
             val full = Size(BODY_W, BODY_H)
             // La ramita, aparte, girando sobre su base; sacudida al saltar.
             rotate(sway + 18f * h * sin(PI * h).toFloat(), pivot = TwigBase) {
-                clipRect(right = BODY_W, bottom = TWIG_BOTTOM) { with(body) { draw(full) } }
+                clipRect(right = BODY_W, bottom = TWIG_BOTTOM) { with(body) { draw(full, colorFilter = tint) } }
             }
             // Los recortes van en el espacio del dibujo, no en píxeles: por eso los bordes son explícitos.
-            clipRect(top = TWIG_BOTTOM, right = BODY_W, bottom = BODY_H) { with(body) { draw(full) } }
+            clipRect(top = TWIG_BOTTOM, right = BODY_W, bottom = BODY_H) {
+                with(body) { draw(full, colorFilter = tint) }
+            }
             drawFace(
                 faceColor = faceColor,
                 look = Offset(lookX.value * LookReach.x, lookY.value * LookReach.y),

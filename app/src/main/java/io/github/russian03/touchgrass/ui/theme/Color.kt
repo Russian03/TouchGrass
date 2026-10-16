@@ -20,6 +20,9 @@ val ChunkyNeutralEdge = Color(0xFFCDC8B8)
 val CardBeige = Color(0xFFEDE6D3)
 val CardBeigeEdge = Color(0xFFD3CBB4)
 
+/** Verde del personaje: algo más intenso que el lima, para que su cara se distinga sobre el beige. */
+val SproutGreen = Color(0xFF96C73A)
+
 /** Gris apagado de los días malos en «Mi semana», en lugar del lima. */
 val Dull = Color(0xFFC4C2B8)
 
