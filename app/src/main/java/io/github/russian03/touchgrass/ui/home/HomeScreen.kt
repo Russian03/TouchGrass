@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -139,18 +140,26 @@ private fun HomeContent(
 ) {
     val openStats = { summary.onOpen(null) }
     // Primer acceso del día: los días por enseñar, si la tira ya ha saltado al pop-up y si ya ha
-    // vuelto. Se recuerda para qué días, así que al día siguiente vuelve a salir.
+    // vuelto. Se recuerda para qué días (como texto, para que sobreviva al ir a Ajustes y volver),
+    // así que al día siguiente vuelve a salir.
     val claimDays = claim.state?.days.orEmpty()
-    var startedFor by remember { mutableStateOf<List<LocalDate>?>(null) }
-    var finishedFor by remember { mutableStateOf<List<LocalDate>?>(null) }
+    val claimKey = claimDays.joinToString()
+    var startedFor by rememberSaveable { mutableStateOf<String?>(null) }
+    var finishedFor by rememberSaveable { mutableStateOf<String?>(null) }
     var stripTop by remember { mutableStateOf<Float?>(null) }
-    val claiming = claimDays.isNotEmpty() && finishedFor != claimDays
-    // En la app debug se repite cada vez que se vuelve a la app, para ver cómo queda.
+    val claiming = claimDays.isNotEmpty() && finishedFor != claimKey
+    // En la app debug se repite cada vez que se vuelve a la app desde fuera, para ver cómo queda.
+    // Solo tras haberse ido de verdad (ON_STOP con Inicio en pantalla): al volver de Ajustes, no.
     if (BuildConfig.DEBUG) {
         LocalActivity.current?.let { activity ->
-            LifecycleEventEffect(Lifecycle.Event.ON_START, activity as LifecycleOwner) {
-                startedFor = null
-                finishedFor = null
+            var stopped by remember { mutableStateOf(false) }
+            LifecycleEventEffect(Lifecycle.Event.ON_STOP, activity as LifecycleOwner) { stopped = true }
+            LifecycleEventEffect(Lifecycle.Event.ON_START, activity) {
+                if (stopped) {
+                    startedFor = null
+                    finishedFor = null
+                }
+                stopped = false
             }
         }
     }
@@ -221,7 +230,7 @@ private fun HomeContent(
                             .staggerIn(order++)
                             .onGloballyPositioned { stripTop = it.positionInRoot().y }
                             // Mientras está en el pop-up, aquí no se ve.
-                            .graphicsLayer { alpha = if (claiming && startedFor == claimDays) 0f else 1f },
+                            .graphicsLayer { alpha = if (claiming && startedFor == claimKey) 0f else 1f },
                     )
                 }
                 SectionTitle(stringResource(R.string.home_my_protection), Modifier.staggerIn(order++))
@@ -265,13 +274,13 @@ private fun HomeContent(
                 protectionOff = protection != ProtectionState.Running,
                 // Cuenta como visto y lleva al apartado de la protección de Ajustes.
                 onEnableProtection = {
-                    finishedFor = claimDays
+                    finishedFor = claimKey
                     claim.onClaimed()
                     claim.onOpenProtection()
                 },
-                onStart = { startedFor = claimDays },
+                onStart = { startedFor = claimKey },
                 onDone = {
-                    finishedFor = claimDays
+                    finishedFor = claimKey
                     claim.onClaimed()
                 },
             )

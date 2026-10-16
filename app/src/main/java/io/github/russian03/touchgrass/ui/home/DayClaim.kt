@@ -108,7 +108,7 @@ private val CardCorner = 28.dp
  * altura de la tira en Inicio) hacia el centro, dentro de un recuadro. Uno a uno, de más antiguo
  * a ayer, cada día que faltaba enseña su cara (ojos, boca y verde). Al final sale la frase según
  * cómo fue ayer y, medio segundo después, «Volver». Si la protección no funciona, el botón
- * principal pasa a ser «Activar protección» (lleva a su apartado de Ajustes) y «Volver» queda debajo.
+ * principal pasa a ser «Activar protección» (lleva a su apartado de Ajustes), debajo de «Volver».
  *
  * [onStart] avisa cuando el recuadro empieza a moverse (para esconder la tira de Inicio) y
  * [onDone], cuando ha vuelto a su sitio tras pulsar «Volver».
@@ -320,14 +320,18 @@ private fun ClaimCard(
                     scaleY = scale
                 },
         ) {
-            // Si la protección sigue quitada, lo principal es volver a activarla: «Volver» pasa a segundo plano.
+            // Si la protección sigue quitada, lo principal es volver a activarla: va en lima, debajo
+            // de «Volver», que queda en crema.
             if (protectionOff) {
-                ChunkyPillButton(text = stringResource(R.string.claim_enable), onClick = onEnableProtection)
                 ChunkyPillButton(
                     text = stringResource(R.string.claim_back),
                     onClick = onBack,
                     containerColor = Neutral,
                     edgeColor = NeutralEdge,
+                )
+                ChunkyPillButton(
+                    text = stringResource(R.string.claim_enable),
+                    onClick = onEnableProtection,
                     modifier = Modifier.padding(top = 12.dp),
                 )
             } else {

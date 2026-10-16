@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.stats.DayFace
 import io.github.russian03.touchgrass.ui.theme.Cream
+import io.github.russian03.touchgrass.ui.theme.Dull
 import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
@@ -110,7 +111,7 @@ class DayReveal(eyes: Float = 0f, mouth: Float = 0f, green: Float = 0f) {
 
 /**
  * Píldora vertical de «Mi semana», como «My Week»: un círculo arriba con la cara del día, el
- * número y su abreviatura. Los días pasados van en lima, hoy en tinta y los que vienen, solo con
+ * número y su abreviatura. Los días pasados van en lima (los malos, en gris apagado), hoy en tinta y los que vienen, solo con
  * borde y un punto en lugar del círculo.
  */
 @Composable
@@ -131,7 +132,7 @@ fun DayPill(
     }
     val (container, content) =
         when (time) {
-            DayTime.Past -> Lime to Ink
+            DayTime.Past -> face.pastColor() to Ink
             DayTime.Today -> ink to MaterialTheme.colorScheme.background
             DayTime.Future -> Color.Transparent to ink
         }
@@ -170,6 +171,7 @@ private fun RevealPill(
     modifier: Modifier,
 ) {
     val green = reveal.green.value.coerceIn(0f, 1f)
+    val fill = face.pastColor()
     val content = lerp(ink, Ink, green)
     val border = with(LocalDensity.current) { 1.5.dp.toPx() }
     Column(
@@ -186,7 +188,7 @@ private fun RevealPill(
             .drawBehind {
                 val g = reveal.green.value.coerceIn(0f, 1f)
                 val radius = CornerRadius(size.width / 2)
-                drawRoundRect(Lime.copy(alpha = g), cornerRadius = radius)
+                drawRoundRect(fill.copy(alpha = g), cornerRadius = radius)
                 if (g < 1f) {
                     drawRoundRect(
                         ink.copy(alpha = 1f - g),
@@ -206,6 +208,9 @@ private fun RevealPill(
         Text(weekday, style = MaterialTheme.typography.labelSmall, color = content)
     }
 }
+
+/** Relleno de un día pasado: lima, o gris apagado si fue un mal día. */
+private fun SimpleFace?.pastColor(): Color = if (this == SimpleFace.Bad) Dull else Lime
 
 /** Cuánto crece la píldora a mitad del paso a verde. */
 private const val REVEAL_BUMP = 0.08f
