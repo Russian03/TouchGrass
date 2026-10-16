@@ -114,8 +114,15 @@ import kotlinx.coroutines.launch
  */
 private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Disclosure, Activate, Done }
 
-/** Fundido del resaltado entre apartados de «Cómo funciona»: lento, para que no parpadee. */
-private const val POINT_FADE_MS = 600
+/** Fundido del resaltado entre apartados de «Cómo funciona». */
+private const val POINT_FADE_MS = 320
+
+/**
+ * El apartado que se apaga lo hace del todo antes de que se encienda el siguiente: el que se
+ * enciende espera a que termine el fundido del otro, y así nunca hay dos a medias.
+ */
+private fun <T> pointFade(highlighted: Boolean) =
+    if (highlighted) tween<T>(POINT_FADE_MS, delayMillis = POINT_FADE_MS) else tween(POINT_FADE_MS)
 
 /** Cada punto de «Cómo funciona» se queda en primer plano este tiempo antes de pasar al siguiente. */
 private const val HOW_CYCLE_MS = 2_600L
@@ -687,7 +694,7 @@ private fun ActivateRows(protection: ProtectionState, showXiaomiTip: Boolean, ac
 
 /**
  * Apartado de «Cómo funciona», con su número. El que toca se resalta en un beige más oscuro que la
- * tarjeta y su número pasa a tinta; el cambio es un fundido lento, para que no parpadee.
+ * tarjeta y su número pasa a tinta. El anterior se apaga del todo antes de que se encienda este.
  */
 @Composable
 private fun Point(
@@ -702,7 +709,7 @@ private fun Point(
     val shade = if (dark) Color.White.copy(alpha = 0.08f) else CardBeigeEdge.copy(alpha = 0.6f)
     val background by animateColorAsState(
         targetValue = if (highlighted) shade else Color.Transparent,
-        animationSpec = tween(POINT_FADE_MS),
+        animationSpec = pointFade(highlighted),
         label = "pointBackground",
     )
     Row(
@@ -734,12 +741,12 @@ private fun NumberCircle(number: Int, highlighted: Boolean) {
     val ink = MaterialTheme.colorScheme.onBackground
     val circle by animateColorAsState(
         targetValue = if (highlighted) ink else CardBeigeEdge,
-        animationSpec = tween(POINT_FADE_MS),
+        animationSpec = pointFade(highlighted),
         label = "numberCircle",
     )
     val text by animateColorAsState(
         targetValue = if (highlighted) MaterialTheme.colorScheme.background else Ink,
-        animationSpec = tween(POINT_FADE_MS),
+        animationSpec = pointFade(highlighted),
         label = "numberText",
     )
     Box(Modifier.size(32.dp).background(circle, CircleShape), contentAlignment = Alignment.Center) {
