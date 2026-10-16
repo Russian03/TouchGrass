@@ -182,9 +182,10 @@ fun Sprout(
             val full = Size(BODY_W, BODY_H)
             // La ramita, aparte, girando sobre su base; sacudida al saltar.
             rotate(sway + 18f * h * sin(PI * h).toFloat(), pivot = TwigBase) {
-                clipRect(bottom = TWIG_BOTTOM) { with(body) { draw(full) } }
+                clipRect(right = BODY_W, bottom = TWIG_BOTTOM) { with(body) { draw(full) } }
             }
-            clipRect(top = TWIG_BOTTOM) { with(body) { draw(full) } }
+            // Los recortes van en el espacio del dibujo, no en píxeles: por eso los bordes son explícitos.
+            clipRect(top = TWIG_BOTTOM, right = BODY_W, bottom = BODY_H) { with(body) { draw(full) } }
             drawFace(
                 faceColor = faceColor,
                 look = Offset(lookX.value * LookReach.x, lookY.value * LookReach.y),

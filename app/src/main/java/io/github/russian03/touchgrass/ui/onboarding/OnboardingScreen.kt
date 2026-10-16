@@ -108,8 +108,8 @@ private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Discl
 private const val HOW_CYCLE_MS = 2_600L
 
 /** Bulto de la tarjeta: radio del círculo y cuánto sobresale por encima del borde. */
-private val BumpRadius = 34.dp
-private val BumpRise = 22.dp
+private val BumpRadius = 46.dp
+private val BumpRise = 30.dp
 
 /** Sitio por encima de la tarjeta para la ramita. */
 private val TwigRoom = 14.dp
@@ -118,9 +118,9 @@ private val TwigRoom = 14.dp
  * Ancho del personaje y su posición: el centro del cuerpo queda [SproutLift] por encima del centro
  * del bulto, así que asoma por arriba. El texto de la tarjeta empieza por debajo del cuerpo.
  */
-private val SproutWidth = 52.dp
+private val SproutWidth = 64.dp
 private val SproutHeight = SproutWidth * SproutGeometry.ASPECT
-private val SproutLift = 10.dp
+private val SproutLift = 8.dp
 private val SproutTop = TwigRoom + BumpRadius - SproutLift - SproutHeight * SproutGeometry.BODY_CENTRE_Y
 private val ContentTop = SproutTop - TwigRoom + SproutHeight * SproutGeometry.BODY_BOTTOM_Y + 12.dp
 
