@@ -90,12 +90,14 @@ import io.github.russian03.touchgrass.ui.common.rememberProtectionState
 import io.github.russian03.touchgrass.ui.design.BumpCardShape
 import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.MixedTitle
+import io.github.russian03.touchgrass.ui.design.PointingHand
 import io.github.russian03.touchgrass.ui.design.Sparkles
 import io.github.russian03.touchgrass.ui.design.Sprout
 import io.github.russian03.touchgrass.ui.design.SproutGeometry
 import io.github.russian03.touchgrass.ui.design.SproutMood
 import io.github.russian03.touchgrass.ui.design.StatusRow
 import io.github.russian03.touchgrass.ui.design.fadingEdges
+import io.github.russian03.touchgrass.ui.design.handAppear
 import io.github.russian03.touchgrass.ui.theme.CardBeige
 import io.github.russian03.touchgrass.ui.theme.CardBeigeEdge
 import io.github.russian03.touchgrass.ui.theme.Ink
@@ -405,7 +407,6 @@ private fun stepCard(
                     )
                 points.forEachIndexed { i, (title, body) ->
                     Point(
-                        mark = (i + 1).toString(),
                         title = title,
                         body = body,
                         highlighted = i == howActive,
@@ -668,24 +669,21 @@ private fun ActivateRows(protection: ProtectionState, showXiaomiTip: Boolean, ac
     }
 }
 
-/** Punto de una lista: círculo con su marca y, si está [highlighted], fondo resaltado detrás. */
+/**
+ * Apartado de «Cómo funciona». El que toca se resalta en un beige más oscuro que la tarjeta y lleva
+ * a su izquierda la mano señalándolo, que aparece creciendo con un pequeño giro.
+ */
 @Composable
-private fun Point(
-    mark: String,
-    title: Int,
-    body: Int,
-    highlighted: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun Point(title: Int, body: Int, highlighted: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val dark = isSystemInDarkTheme()
+    val shade = if (dark) Color.White.copy(alpha = 0.08f) else CardBeigeEdge.copy(alpha = 0.6f)
     val background by animateColorAsState(
-        targetValue =
-        if (highlighted) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+        targetValue = if (highlighted) shade else Color.Transparent,
         animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "pointBackground",
     )
     Row(
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
         modifier =
         modifier
             .fillMaxWidth()
@@ -694,8 +692,15 @@ private fun Point(
             .clickable(onClick = onClick)
             .padding(12.dp),
     ) {
-        MarkCircle(mark, highlighted)
-        Column(Modifier.padding(start = 16.dp)) {
+        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+            if (highlighted) {
+                PointingHand(
+                    fill = if (dark) MaterialTheme.colorScheme.surfaceContainer else CardBeige,
+                    modifier = Modifier.handAppear(),
+                )
+            }
+        }
+        Column(Modifier.padding(start = 12.dp)) {
             Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
             Text(
                 stringResource(body),
