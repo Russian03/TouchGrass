@@ -16,6 +16,10 @@ val Alert = Color(0xFFE5533D)
 val ChunkyNeutral = Color(0xFFECE8DB)
 val ChunkyNeutralEdge = Color(0xFFCDC8B8)
 
+/** Tarjeta de los primeros pasos: un beige más oscuro que el crema del fondo, y el canto de sus botones. */
+val CardBeige = Color(0xFFEDE6D3)
+val CardBeigeEdge = Color(0xFFD3CBB4)
+
 /** Gris apagado de los días malos en «Mi semana», en lugar del lima. */
 val Dull = Color(0xFFC4C2B8)
 

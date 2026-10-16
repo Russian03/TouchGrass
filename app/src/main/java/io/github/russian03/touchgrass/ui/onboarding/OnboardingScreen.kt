@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -88,8 +89,8 @@ import io.github.russian03.touchgrass.ui.design.SproutGeometry
 import io.github.russian03.touchgrass.ui.design.SproutMood
 import io.github.russian03.touchgrass.ui.design.StatusRow
 import io.github.russian03.touchgrass.ui.design.staggerIn
-import io.github.russian03.touchgrass.ui.theme.ChunkyNeutral
-import io.github.russian03.touchgrass.ui.theme.ChunkyNeutralEdge
+import io.github.russian03.touchgrass.ui.theme.CardBeige
+import io.github.russian03.touchgrass.ui.theme.CardBeigeEdge
 import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.LimeDeep
@@ -107,19 +108,20 @@ private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Discl
 private const val HOW_CYCLE_MS = 2_600L
 
 /** Bulto de la tarjeta: radio del círculo y cuánto sobresale por encima del borde. */
-private val BumpRadius = 56.dp
-private val BumpRise = 40.dp
+private val BumpRadius = 34.dp
+private val BumpRise = 22.dp
 
 /** Sitio por encima de la tarjeta para la ramita. */
-private val TwigRoom = 16.dp
+private val TwigRoom = 14.dp
 
 /**
- * Ancho del personaje y su posición: el centro del cuerpo cae en el centro del bulto. El texto de
- * la tarjeta empieza por debajo del cuerpo.
+ * Ancho del personaje y su posición: el centro del cuerpo queda [SproutLift] por encima del centro
+ * del bulto, así que asoma por arriba. El texto de la tarjeta empieza por debajo del cuerpo.
  */
-private val SproutWidth = 104.dp
+private val SproutWidth = 52.dp
 private val SproutHeight = SproutWidth * SproutGeometry.ASPECT
-private val SproutTop = TwigRoom + BumpRadius - SproutHeight * SproutGeometry.BODY_CENTRE_Y
+private val SproutLift = 10.dp
+private val SproutTop = TwigRoom + BumpRadius - SproutLift - SproutHeight * SproutGeometry.BODY_CENTRE_Y
 private val ContentTop = SproutTop - TwigRoom + SproutHeight * SproutGeometry.BODY_BOTTOM_Y + 12.dp
 
 /** Letras con las que los ojos llegan al otro lado al escribir el nombre. */
@@ -464,7 +466,8 @@ private fun SetupPage(
 ) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val cardMax = maxHeight
-        val cardColor = MaterialTheme.colorScheme.surfaceContainer
+        // Beige más oscuro que el fondo, para que la tarjeta se distinga del crema.
+        val cardColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceContainer else CardBeige
         Box(
             Modifier
                 .padding(horizontal = 16.dp)
@@ -517,8 +520,8 @@ private fun SetupPage(
                         ChunkyPillButton(
                             text = secondary.first,
                             onClick = { if (!busy) secondary.second() },
-                            containerColor = ChunkyNeutral,
-                            edgeColor = ChunkyNeutralEdge,
+                            containerColor = MaterialTheme.colorScheme.background,
+                            edgeColor = CardBeigeEdge,
                             modifier = Modifier.padding(top = 12.dp),
                         )
                     }
