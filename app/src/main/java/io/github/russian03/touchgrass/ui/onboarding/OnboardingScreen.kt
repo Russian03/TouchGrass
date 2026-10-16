@@ -11,6 +11,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -51,6 +53,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
@@ -71,15 +74,22 @@ import io.github.russian03.touchgrass.service.ProtectionState
 import io.github.russian03.touchgrass.ui.common.DarkChunky
 import io.github.russian03.touchgrass.ui.common.DarkChunkyEdge
 import io.github.russian03.touchgrass.ui.common.DisclosurePoints
+import io.github.russian03.touchgrass.ui.common.LIMIT_RANGE
 import io.github.russian03.touchgrass.ui.common.LimitPicker
 import io.github.russian03.touchgrass.ui.common.ProtectionRow
 import io.github.russian03.touchgrass.ui.common.SystemSettings
 import io.github.russian03.touchgrass.ui.common.XiaomiTipRow
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
+import io.github.russian03.touchgrass.ui.design.BumpCardShape
 import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.MixedTitle
+import io.github.russian03.touchgrass.ui.design.Sparkles
+import io.github.russian03.touchgrass.ui.design.Sprout
+import io.github.russian03.touchgrass.ui.design.SproutGeometry
+import io.github.russian03.touchgrass.ui.design.SproutMood
 import io.github.russian03.touchgrass.ui.design.StatusRow
 import io.github.russian03.touchgrass.ui.design.staggerIn
+import io.github.russian03.touchgrass.ui.theme.Cream
 import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
@@ -95,11 +105,28 @@ private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Discl
 /** Cada punto de «Cómo funciona» se queda en primer plano este tiempo antes de pasar al siguiente. */
 private const val HOW_CYCLE_MS = 2_600L
 
-/** El gráfico entra un poco después que la tarjeta de su página. */
-private const val HERO_STEP_MS = 80L
+/** Bulto de la tarjeta: radio del círculo y cuánto sobresale por encima del borde. */
+private val BumpRadius = 56.dp
+private val BumpRise = 40.dp
 
-/** Lo más alto que puede ser la tarjeta: el resto es para el gráfico. */
-private const val CARD_MAX_SHARE = 0.66f
+/** Sitio por encima de la tarjeta para la ramita. */
+private val TwigRoom = 16.dp
+
+/**
+ * Ancho del personaje y su posición: el centro del cuerpo cae en el centro del bulto. El texto de
+ * la tarjeta empieza por debajo del cuerpo.
+ */
+private val SproutWidth = 104.dp
+private val SproutHeight = SproutWidth * SproutGeometry.ASPECT
+private val SproutTop = TwigRoom + BumpRadius - SproutHeight * SproutGeometry.BODY_CENTRE_Y
+private val ContentTop = SproutTop - TwigRoom + SproutHeight * SproutGeometry.BODY_BOTTOM_Y + 12.dp
+
+/** Letras con las que los ojos llegan al otro lado al escribir el nombre. */
+private const val NAME_LOOK_CHARS = 14
+
+/** Lo que se queda triste antes de pasar al final, y cada cuánto salta al celebrar. */
+private const val SAD_MS = 700L
+private const val CELEBRATE_MS = 1_400L
 
 /** Los avisos se piden en su paso solo en Android 13+ y si aún no hay permiso. */
 private fun needsNotificationStep(context: Context): Boolean {
@@ -232,24 +259,31 @@ private fun StepPage(
     goTo: (Step) -> Unit,
 ) {
     val on = protection == ProtectionState.Running
+    val scope = rememberCoroutineScope()
+    // Saltos que se lanzan desde aquí (al entrar en la página, al rechazar…).
+    var hops by remember { mutableIntStateOf(0) }
+    LaunchedEffect(visible) { if (visible) hops++ }
     when (step) {
         Step.Welcome ->
             SetupPage(
                 visible = visible,
-                hero = { GrassSprouts(visible = visible, modifier = Modifier.fillMaxSize()) },
+                sprout = SproutState(SproutMood.Joy, bounce = hops),
                 title = stringResource(R.string.onboarding_welcome_title),
                 body = stringResource(R.string.onboarding_welcome_body),
                 primary = stringResource(R.string.onboarding_start) to next,
             )
-        Step.Name ->
+        Step.Name -> {
+            val nameInteraction = remember { MutableInteractionSource() }
+            val nameFocused by nameInteraction.collectIsFocusedAsState()
             SetupPage(
                 visible = visible,
-                hero = {
-                    NameShape(
-                        initial = state.name.trim().firstOrNull()?.uppercaseChar(),
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                },
+                // Mira el campo y sigue el final del texto; con nombre, sonríe; salta con cada letra.
+                sprout =
+                SproutState(
+                    mood = if (state.name.isBlank()) SproutMood.Curious else SproutMood.Happy,
+                    look = nameLook(state.name, nameFocused),
+                    bounce = hops + state.name.length,
+                ),
                 title = stringResource(R.string.onboarding_name_title),
                 body = stringResource(R.string.onboarding_name_body),
                 primary = stringResource(R.string.onboarding_next) to { actions.onSaveName(next) },
@@ -265,15 +299,23 @@ private fun StepPage(
                     KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { actions.onSaveName(next) }),
                     shape = CircleShape,
+                    interactionSource = nameInteraction,
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 )
                 Note(stringResource(R.string.onboarding_name_note))
             }
+        }
         Step.HowItWorks -> HowItWorksPage(visible, next)
         Step.Limit ->
             SetupPage(
                 visible = visible,
-                hero = { MinutesShape(state.limitMinutes, Modifier.fillMaxSize()) },
+                // Pocos minutos le encantan; muchos le preocupan.
+                sprout = SproutState(
+                    limitMood(state.limitMinutes),
+                    look = Offset(0f, 1f),
+                    bounce =
+                    hops + state.limitMinutes,
+                ),
                 title = stringResource(R.string.onboarding_limit_title),
                 body = stringResource(R.string.onboarding_limit_body),
                 primary = stringResource(R.string.onboarding_limit_save) to { actions.onSaveLimit(next) },
@@ -291,40 +333,49 @@ private fun StepPage(
         Step.Notifications ->
             SetupPage(
                 visible = visible,
-                hero = { RingingBell(Modifier.fillMaxSize()) },
+                sprout = SproutState(SproutMood.Curious, look = Offset(0.3f, -1f), bounce = hops),
                 title = stringResource(R.string.onboarding_notify_title),
                 body = stringResource(R.string.onboarding_notify_body),
                 primary = stringResource(R.string.onboarding_notify_allow) to { actions.onRequestNotifications(next) },
                 secondary = stringResource(R.string.onboarding_notify_later) to next,
             )
-        Step.Disclosure ->
+        Step.Disclosure -> {
+            var sad by remember { mutableStateOf(false) }
             SetupPage(
                 visible = visible,
-                hero = { BreathingLock(Modifier.fillMaxSize()) },
+                sprout = SproutState(if (sad) SproutMood.Sad else SproutMood.Calm, bounce = hops),
                 title = stringResource(R.string.onboarding_disclosure_title),
                 body = stringResource(R.string.onboarding_disclosure_intro),
                 primary = stringResource(R.string.onboarding_disclosure_accept) to {
                     actions.onAccept { goTo(Step.Activate) }
                 },
+                // Se pone triste un momento antes de pasar al final.
                 secondary = stringResource(R.string.onboarding_disclosure_decline) to {
                     actions.onDecline()
-                    goTo(Step.Done)
+                    scope.launch {
+                        sad = true
+                        delay(SAD_MS)
+                        goTo(Step.Done)
+                        sad = false
+                    }
                 },
                 busy = state.saving,
                 error = state.error,
             ) {
                 DisclosurePoints(visible = visible)
             }
+        }
         Step.Activate ->
             SetupPage(
                 visible = visible,
-                hero = {
-                    ProtectionSwitch(
-                        on = on,
-                        alert = protection == ProtectionState.Stopped,
-                        onClick = actions.onOpenAccessibilitySettings,
-                    )
-                },
+                // Espera mirando a un lado; al activarse, salta de alegría.
+                sprout =
+                SproutState(
+                    mood = if (on) SproutMood.Joy else SproutMood.Curious,
+                    look = if (on) null else Offset(0.9f, 0.3f),
+                    bounce = hops + if (on) 1 else 0,
+                    sparkle = on,
+                ),
                 title = stringResource(R.string.onboarding_activate_title),
                 body = stringResource(if (on) R.string.onboarding_protection_on else R.string.onboarding_activate_body),
                 primary =
@@ -337,28 +388,72 @@ private fun StepPage(
             ) {
                 ActivateRows(protection, showXiaomiTip, actions)
             }
-        Step.Done ->
+        Step.Done -> {
+            // Con la protección puesta, celebra saltando cada poco.
+            var celebrations by remember { mutableIntStateOf(0) }
+            LaunchedEffect(visible, on) {
+                while (visible && on) {
+                    delay(CELEBRATE_MS)
+                    celebrations++
+                }
+            }
             SetupPage(
                 visible = visible,
-                hero = { AllSetBadge(visible, Modifier.fillMaxSize()) },
+                sprout =
+                SproutState(
+                    mood = if (on) SproutMood.Joy else SproutMood.Happy,
+                    bounce = hops + celebrations,
+                    sparkle = on,
+                ),
                 title = stringResource(R.string.onboarding_done_title),
                 body = stringResource(if (on) R.string.onboarding_done_on else R.string.onboarding_done_off),
                 primary = stringResource(R.string.onboarding_finish) to actions.onFinish,
                 busy = state.saving,
                 error = state.error,
             )
+        }
     }
 }
 
 /**
- * Esqueleto de cada paso: el gráfico ocupa lo que deja la tarjeta y la tarjeta (en el tema oscuro,
- * para que todo lo de dentro tenga buen contraste) va abajo, sin pasar de dos tercios del alto. Si
- * su contenido no cabe, se desliza dentro y los botones se quedan siempre a la vista.
+ * Adónde mira mientras se escribe el nombre: hacia abajo, al campo, y de izquierda a derecha según
+ * lo largo que va el texto. Sin foco ni texto, mira a su aire.
+ */
+private fun nameLook(name: String, focused: Boolean): Offset? {
+    if (!focused && name.isEmpty()) return null
+    val progress = name.length.coerceAtMost(NAME_LOOK_CHARS) / NAME_LOOK_CHARS.toFloat()
+    return Offset(-0.8f + 1.6f * progress, 1f)
+}
+
+/** Con pocos minutos, alegría; en la parte alta del rango, preocupación. */
+private fun limitMood(minutes: Int): SproutMood {
+    val share = (minutes - LIMIT_RANGE.first).toFloat() / (LIMIT_RANGE.last - LIMIT_RANGE.first)
+    return when {
+        share <= 0.25f -> SproutMood.Joy
+        share <= 0.5f -> SproutMood.Happy
+        share <= 0.75f -> SproutMood.Calm
+        else -> SproutMood.Worried
+    }
+}
+
+/** Lo que hace el personaje en una página: cómo está, adónde mira, cuándo salta y si hay destellos. */
+private class SproutState(
+    val mood: SproutMood,
+    val look: Offset? = null,
+    val bounce: Int = 0,
+    val sparkle: Boolean = false,
+)
+
+/**
+ * Esqueleto de cada paso: una tarjeta oscura (con el tema noche, para que todo lo de dentro tenga
+ * buen contraste) centrada en el lima, con un bulto arriba donde se asoma el personaje; la ramita
+ * sale por encima del bulto. Si el contenido no cabe, se desliza dentro y los botones se quedan
+ * siempre a la vista.
  */
 @Composable
 private fun SetupPage(
     visible: Boolean,
-    hero: @Composable () -> Unit,
+    sprout: SproutState,
     title: String,
     body: String?,
     primary: Pair<String, () -> Unit>,
@@ -367,31 +462,23 @@ private fun SetupPage(
     error: Boolean = false,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val cardMax = maxHeight * CARD_MAX_SHARE
-        Column(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val cardMax = maxHeight
+        TouchGrassTheme(darkTheme = true) {
+            val cardColor = MaterialTheme.colorScheme.background
             Box(
-                contentAlignment = Alignment.Center,
-                modifier =
                 Modifier
-                    .weight(1f)
+                    .padding(horizontal = 16.dp)
                     .fillMaxWidth()
-                    .staggerIn(index = 1, visible = visible, stepMs = HERO_STEP_MS, offsetY = 24.dp, fromScale = 0.9f),
+                    .heightIn(max = cardMax)
+                    .staggerIn(index = 0, visible = visible, offsetY = 32.dp, fromScale = 1f),
             ) {
-                TouchGrassTheme(darkTheme = false) { hero() }
-            }
-            TouchGrassTheme(darkTheme = true) {
                 Surface(
-                    color = MaterialTheme.colorScheme.background,
-                    shape = MaterialTheme.shapes.large,
-                    modifier =
-                    Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth()
-                        .heightIn(max = cardMax)
-                        .staggerIn(index = 0, visible = visible, offsetY = 32.dp, fromScale = 1f),
+                    color = cardColor,
+                    shape = BumpCardShape(bump = BumpRadius, rise = BumpRise),
+                    modifier = Modifier.padding(top = TwigRoom).fillMaxWidth(),
                 ) {
-                    Column(Modifier.padding(24.dp)) {
+                    Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = ContentTop)) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
@@ -439,6 +526,16 @@ private fun SetupPage(
                         }
                     }
                 }
+                if (sprout.sparkle) {
+                    Sparkles(Modifier.align(Alignment.TopCenter).size(240.dp, 130.dp), color = Cream, boost = 1.3f)
+                }
+                Sprout(
+                    mood = sprout.mood,
+                    look = sprout.look,
+                    bounce = sprout.bounce,
+                    faceColor = cardColor,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = SproutTop).width(SproutWidth),
+                )
             }
         }
     }
@@ -491,7 +588,12 @@ private fun HowItWorksPage(visible: Boolean, next: () -> Unit) {
     }
     SetupPage(
         visible = visible,
-        hero = { HowShape(active = active, modifier = Modifier.fillMaxSize()) },
+        // Mira hacia el punto destacado (más abajo cuanto más avanza) y asiente al cambiar.
+        sprout = SproutState(
+            SproutMood.Calm,
+            look = Offset(-0.4f + 0.4f * active, 0.4f + 0.3f * active),
+            bounce = active,
+        ),
         title = stringResource(R.string.onboarding_how_title),
         body = null,
         primary = stringResource(R.string.onboarding_next) to next,
