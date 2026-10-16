@@ -62,6 +62,13 @@ class StatsRepository internal constructor(private val store: DataStore<StatsSta
 
     suspend fun markNotified(month: YearMonth) = update { StatsPolicy.markNotified(it, month) }
 
+    /** Ya se han enseñado las caras hasta ayer. */
+    suspend fun markClaimed() = update { StatsPolicy.markClaimed(it, today().minusDays(1)) }
+
+    suspend fun markProtectionOff() = update { StatsPolicy.markProtectionOff(it, today()) }
+
+    suspend fun markProtectionOn() = update { StatsPolicy.markProtectionOn(it, today()) }
+
     private suspend fun update(change: (StatsState) -> StatsState) {
         try {
             store.updateData(change)

@@ -12,6 +12,9 @@ val InkSoft = Color(0xFF4A4A45)
 val InkMuted = Color(0xFF8A8A80)
 val Alert = Color(0xFFE5533D)
 
+/** Gris apagado de los días malos en «Mi semana», en lugar del lima. */
+val Dull = Color(0xFFC4C2B8)
+
 internal val Night = Color(0xFF141513)
 internal val NightSurface = Color(0xFF1F211D)
 internal val NightInk = Color(0xFFF2F1EA)

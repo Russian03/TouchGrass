@@ -215,6 +215,72 @@ class StatsPolicyTest {
         assertThat(StatsPolicy.streakAt(state, day("2026-10-06"))).isEqualTo(1)
     }
 
+    @Test
+    fun `sin reclamar nunca solo queda ayer`() {
+        assertThat(StatsPolicy.unclaimedDays(started, day("2026-10-14"))).containsExactly(day("2026-10-13"))
+    }
+
+    @Test
+    fun `quedan los días desde el último reclamado hasta ayer`() {
+        val state = StatsPolicy.markClaimed(started, day("2026-10-10"))
+        assertThat(StatsPolicy.unclaimedDays(state, day("2026-10-14")))
+            .containsExactly(day("2026-10-11"), day("2026-10-12"), day("2026-10-13")).inOrder()
+        // Ya reclamado ayer, no queda nada; y reclamar uno anterior no hace retroceder.
+        val done = StatsPolicy.markClaimed(state, day("2026-10-13"))
+        assertThat(StatsPolicy.unclaimedDays(done, day("2026-10-14"))).isEmpty()
+        assertThat(StatsPolicy.markClaimed(done, day("2026-10-11")).lastDayClaimed).isEqualTo("2026-10-13")
+    }
+
+    @Test
+    fun `el primer día no hay nada que reclamar`() {
+        val state = StatsPolicy.start(StatsState(), day("2026-10-14"))
+        assertThat(StatsPolicy.unclaimedDays(state, day("2026-10-14"))).isEmpty()
+        assertThat(StatsPolicy.unclaimedDays(StatsState(), day("2026-10-14"))).isEmpty()
+    }
+
+    @Test
+    fun `no se reclaman días de antes del primero ni fuera de «Mi semana»`() {
+        val fresh = StatsPolicy.markClaimed(StatsPolicy.start(StatsState(), day("2026-10-12")), day("2026-10-01"))
+        assertThat(StatsPolicy.unclaimedDays(fresh, day("2026-10-14")))
+            .containsExactly(day("2026-10-12"), day("2026-10-13")).inOrder()
+        // El miércoles 14, la tira empieza el lunes 5.
+        val old = StatsPolicy.markClaimed(StatsPolicy.start(StatsState(), day("2026-09-01")), day("2026-09-10"))
+        assertThat(StatsPolicy.unclaimedDays(old, day("2026-10-14")).first()).isEqualTo(day("2026-10-05"))
+    }
+
+    @Test
+    fun `quitar la protección marca los días hasta que vuelve`() {
+        var state = StatsPolicy.markProtectionOff(started, day("2026-10-03"))
+        assertThat(state.protectionOffSince).isEqualTo("2026-10-03")
+        // Volver a ver que no funciona no cambia desde cuándo.
+        state = StatsPolicy.markProtectionOff(state, day("2026-10-04"))
+        assertThat(state.protectionOffSince).isEqualTo("2026-10-03")
+        // Mientras sigue quitada, esos días ya cuentan sin protección.
+        assertThat(StatsPolicy.faceAt(state, day("2026-10-05"))).isEqualTo(DayFace.Disabled)
+        state = StatsPolicy.markProtectionOn(state, day("2026-10-05"))
+        assertThat(state.protectionOffSince).isNull()
+        assertThat(state.days.filterValues { it.protectionOff }.keys)
+            .containsExactly("2026-10-03", "2026-10-04", "2026-10-05")
+        assertThat(StatsPolicy.faceAt(state, day("2026-10-06"))).isNotEqualTo(DayFace.Disabled)
+        // Volver sin haberla quitado no cambia nada.
+        assertThat(StatsPolicy.markProtectionOn(state, day("2026-10-07"))).isEqualTo(state)
+    }
+
+    @Test
+    fun `sin haber empezado quitar la protección no marca nada`() {
+        assertThat(StatsPolicy.markProtectionOff(StatsState(), day("2026-10-03"))).isEqualTo(StatsState())
+    }
+
+    @Test
+    fun `un día sin protección sale triste y corta la racha`() {
+        var state = StatsPolicy.markProtectionOff(started, day("2026-10-03"))
+        state = StatsPolicy.markProtectionOn(state, day("2026-10-03"))
+        assertThat(StatsPolicy.faceAt(state, day("2026-10-03"))).isEqualTo(DayFace.Disabled)
+        assertThat(StatsPolicy.streakAt(state, day("2026-10-02"))).isEqualTo(2)
+        assertThat(StatsPolicy.streakAt(state, day("2026-10-03"))).isEqualTo(0)
+        assertThat(StatsPolicy.streakAt(state, day("2026-10-04"))).isEqualTo(1)
+    }
+
     private companion object {
         const val IG = "com.instagram.android"
         const val TT = "com.zhiliaoapp.musically"

@@ -19,6 +19,13 @@ data class StatsState(
     val lastMonthSeen: String? = null,
     /** Último mes del que se ha enviado la notificación del resumen. */
     val lastMonthNotified: String? = null,
+    /** Último día cuya cara ya se ha enseñado al abrir la app («reclamado»). */
+    val lastDayClaimed: String? = null,
+    /**
+     * Día en que la protección dejó de funcionar, mientras siga sin funcionar. Al volver se
+     * marcan todos esos días con [DayStats.protectionOff] y se borra.
+     */
+    val protectionOffSince: String? = null,
 )
 
 @Serializable
@@ -30,6 +37,8 @@ data class DayStats(
     val blocks: Map<String, Int> = emptyMap(),
     /** Veces que el usuario se ha ido con «Volver atrás», por app. */
     val leaves: Map<String, Int> = emptyMap(),
+    /** La protección estuvo desactivada en algún momento del día. */
+    val protectionOff: Boolean = false,
 )
 
 /** Un desbloqueo pedido: [minutes] restados al pedirlo, de los que se devolvieron [refundedMinutes]. */

@@ -34,6 +34,9 @@ enum class DayFace {
 
     /** Saldo agotado. */
     Sad,
+
+    /** Se quitó la protección: no cuenta lo que se usó. */
+    Disabled,
 }
 
 object DayFaces {
@@ -58,10 +61,11 @@ object DayFaces {
     }
 
     /** Día de poco uso: suma a la racha. */
-    fun isLow(row: DayRow): Boolean = !row.exhausted && usage(row) <= LOW_USE
+    fun isLow(row: DayRow): Boolean = !row.stats.protectionOff && !row.exhausted && usage(row) <= LOW_USE
 
     /** Cara de [row], que lleva una racha de [streak] días de poco uso contándolo a él. */
     fun face(row: DayRow, streak: Int): DayFace {
+        if (row.stats.protectionOff) return DayFace.Disabled
         if (row.exhausted) return DayFace.Sad
         val use = usage(row)
         return when {
