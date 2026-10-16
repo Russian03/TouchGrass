@@ -72,6 +72,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onOpenStats: (YearMonth?) -> Unit,
     onOpenUnlock: () -> Unit,
+    onOpenProtection: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -98,7 +99,7 @@ fun HomeScreen(
         unlockActions = UnlockActions(appNames = appNames, onOpen = onOpenUnlock, onEnd = viewModel::endUnlock),
         showXiaomiTip = SystemSettings.isXiaomi,
         summary = SummaryActions(pendingSummary, onOpenStats),
-        claim = ClaimActions(claim, viewModel::claim),
+        claim = ClaimActions(claim, viewModel::claim, onOpenProtection),
         onOpenSettings = onOpenSettings,
         onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
         onOpenAppSettings = { SystemSettings.openAppDetails(context) },
@@ -110,7 +111,7 @@ fun HomeScreen(
 private class SummaryActions(val month: YearMonth?, val onOpen: (YearMonth?) -> Unit)
 
 /** Días por enseñar en el primer acceso del día ([state]) y cómo guardar que ya se han visto. */
-private class ClaimActions(val state: ClaimState?, val onClaimed: () -> Unit)
+private class ClaimActions(val state: ClaimState?, val onClaimed: () -> Unit, val onOpenProtection: () -> Unit)
 
 private class UnlockActions(val appNames: Map<String, String>, val onOpen: () -> Unit, val onEnd: () -> Unit)
 
@@ -262,7 +263,12 @@ private fun HomeContent(
                 today = today,
                 fromTop = stripTop,
                 protectionOff = protection != ProtectionState.Running,
-                onEnableProtection = onOpenAccessibilitySettings,
+                // Cuenta como visto y lleva al apartado de la protección de Ajustes.
+                onEnableProtection = {
+                    finishedFor = claimDays
+                    claim.onClaimed()
+                    claim.onOpenProtection()
+                },
                 onStart = { startedFor = claimDays },
                 onDone = {
                     finishedFor = claimDays
@@ -367,7 +373,7 @@ private val noActions = UnlockActions(emptyMap(), {}, {})
 
 private val noSummary = SummaryActions(null) {}
 
-private val noClaim = ClaimActions(null) {}
+private val noClaim = ClaimActions(null, {}, {})
 
 @Preview(showBackground = true, heightDp = 1400)
 @Composable

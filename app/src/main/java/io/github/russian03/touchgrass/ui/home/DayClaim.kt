@@ -56,7 +56,6 @@ import io.github.russian03.touchgrass.ui.common.onWeekday
 import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.DayReveal
 import io.github.russian03.touchgrass.ui.design.LocalSplashGone
-import io.github.russian03.touchgrass.ui.design.OutlinePillButton
 import io.github.russian03.touchgrass.ui.design.mixedWeights
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.LocalDate
@@ -79,6 +78,16 @@ private const val PHRASE_MS = 400
 private const val BUTTONS_AFTER_PHRASE_MS = 500L
 private const val LEAVE_MS = 650
 
+/** «Volver» cuando lo principal es activar la protección: crema oscuro con su canto. */
+private val Neutral = Color(0xFFECE8DB)
+private val NeutralEdge = Color(0xFFCDC8B8)
+
+/**
+ * El recuadro, la frase y los botones solo se ven en la mitad final del zoom: al volver
+ * desaparecen pronto y las píldoras siguen bajando solas hasta su sitio en Inicio.
+ */
+private fun boxAlpha(zoom: Float) = ((zoom - 0.5f) * 2f).coerceIn(0f, 1f)
+
 /** Oscuridad del fondo con el pop-up. */
 private const val SCRIM_ALPHA = 0.4f
 
@@ -98,8 +107,8 @@ private val CardCorner = 28.dp
  * Primer acceso del día: Inicio se queda quieto y «Mi semana» sale de su sitio ([fromTop], la
  * altura de la tira en Inicio) hacia el centro, dentro de un recuadro. Uno a uno, de más antiguo
  * a ayer, cada día que faltaba enseña su cara (ojos, boca y verde). Al final sale la frase según
- * cómo fue ayer y, medio segundo después, «Volver»; si se quitó la protección y sigue sin
- * funcionar, también «Activar protección».
+ * cómo fue ayer y, medio segundo después, «Volver». Si la protección no funciona, el botón
+ * principal pasa a ser «Activar protección» (lleva a su apartado de Ajustes) y «Volver» queda debajo.
  *
  * [onStart] avisa cuando el recuadro empieza a moverse (para esconder la tira de Inicio) y
  * [onDone], cuando ha vuelto a su sitio tras pulsar «Volver».
@@ -223,7 +232,7 @@ fun DayClaim(
                     // El recuadro aparece con el zoom; la tira se ve desde el principio.
                     .drawBehind {
                         drawRoundRect(
-                            background.copy(alpha = zoom.value.coerceIn(0f, 1f)),
+                            background.copy(alpha = boxAlpha(zoom.value)),
                             cornerRadius = CornerRadius(corner),
                         )
                     },
@@ -295,7 +304,7 @@ private fun ClaimCard(
                 .padding(top = 20.dp - GrowRoom)
                 .semantics { liveRegion = LiveRegionMode.Polite }
                 .graphicsLayer {
-                    alpha = phrase.value * zoom.value.coerceIn(0f, 1f)
+                    alpha = phrase.value * boxAlpha(zoom.value)
                     translationY = (1f - phrase.value) * 12.dp.toPx()
                 },
         )
@@ -305,21 +314,25 @@ private fun ClaimCard(
                 .padding(horizontal = 24.dp)
                 .padding(top = 20.dp)
                 .graphicsLayer {
-                    alpha = buttons.value.coerceIn(0f, 1f) * zoom.value.coerceIn(0f, 1f)
+                    alpha = buttons.value.coerceIn(0f, 1f) * boxAlpha(zoom.value)
                     val scale = 0.9f + 0.1f * buttons.value
                     scaleX = scale
                     scaleY = scale
                 },
         ) {
-            if (protectionOff && claim.disabledDay != null) {
-                OutlinePillButton(
-                    text = stringResource(R.string.claim_enable),
-                    onClick = onEnableProtection,
-                    fillWidth = true,
-                    modifier = Modifier.padding(bottom = 12.dp),
+            // Si la protección sigue quitada, lo principal es volver a activarla: «Volver» pasa a segundo plano.
+            if (protectionOff) {
+                ChunkyPillButton(text = stringResource(R.string.claim_enable), onClick = onEnableProtection)
+                ChunkyPillButton(
+                    text = stringResource(R.string.claim_back),
+                    onClick = onBack,
+                    containerColor = Neutral,
+                    edgeColor = NeutralEdge,
+                    modifier = Modifier.padding(top = 12.dp),
                 )
+            } else {
+                ChunkyPillButton(text = stringResource(R.string.claim_back), onClick = onBack)
             }
-            ChunkyPillButton(text = stringResource(R.string.claim_back), onClick = onBack)
         }
     }
 }

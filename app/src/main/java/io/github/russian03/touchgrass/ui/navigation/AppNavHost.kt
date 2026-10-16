@@ -53,7 +53,8 @@ fun AppNavHost(
         }
         composable<Home> {
             HomeScreen(
-                onOpenSettings = { nav.navigate(SettingsRoute) { launchSingleTop = true } },
+                onOpenSettings = { nav.navigate(SettingsRoute()) { launchSingleTop = true } },
+                onOpenProtection = { nav.navigate(SettingsRoute(protection = true)) { launchSingleTop = true } },
                 onOpenStats = { month -> nav.navigate(StatsRoute(month?.toString())) { launchSingleTop = true } },
                 onOpenUnlock = { nav.navigate(UnlockRoute) { launchSingleTop = true } },
             )
@@ -61,8 +62,11 @@ fun AppNavHost(
         composable<StatsRoute> { entry ->
             StatsScreen(initialMonth = entry.toRoute<StatsRoute>().month, onBack = { nav.popBackStack() })
         }
-        composable<SettingsRoute> {
-            SettingsScreen(onBack = { nav.popBackStack() })
+        composable<SettingsRoute> { entry ->
+            SettingsScreen(
+                focusProtection = entry.toRoute<SettingsRoute>().protection,
+                onBack = { nav.popBackStack() },
+            )
         }
         composable<UnlockRoute> {
             UnlockScreen(

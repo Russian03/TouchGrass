@@ -17,11 +17,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -52,12 +56,17 @@ import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.YearMonth
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    focusProtection: Boolean = false,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     SettingsContent(
         state = state,
         protection = rememberProtectionState(),
+        focusProtection = focusProtection,
         onBack = onBack,
         onNameChange = viewModel::onNameChange,
         onSaveName = viewModel::saveName,
@@ -72,6 +81,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
 private fun SettingsContent(
     state: SettingsUiState,
     protection: ProtectionState,
+    focusProtection: Boolean,
     onBack: () -> Unit,
     onNameChange: (String) -> Unit,
     onSaveName: () -> Unit,
@@ -81,6 +91,12 @@ private fun SettingsContent(
     onOpenAccessibilitySettings: () -> Unit,
 ) {
     var confirmLower by remember { mutableStateOf(false) }
+    val scroll = rememberScrollState()
+    // Altura del apartado de la protección, para abrir Ajustes ya ahí.
+    var protectionTop by remember { mutableIntStateOf(-1) }
+    LaunchedEffect(focusProtection, protectionTop) {
+        if (focusProtection && protectionTop >= 0) scroll.animateScrollTo(protectionTop)
+    }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { TopBar(title = stringResource(R.string.settings_title), onBack = onBack) },
@@ -89,7 +105,7 @@ private fun SettingsContent(
             Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(24.dp),
         ) {
             Section(stringResource(R.string.settings_name_section))
@@ -103,7 +119,10 @@ private fun SettingsContent(
                 onCancelPending = onCancelPending,
             )
 
-            Section(stringResource(R.string.settings_protection_section), Modifier.padding(top = 32.dp))
+            Section(
+                stringResource(R.string.settings_protection_section),
+                Modifier.padding(top = 32.dp).onPlaced { protectionTop = it.positionInParent().y.toInt() },
+            )
             ProtectionCard(state = protection, onOpenAccessibilitySettings = onOpenAccessibilitySettings)
 
             Section(stringResource(R.string.settings_privacy_section), Modifier.padding(top = 32.dp))
@@ -278,6 +297,7 @@ private fun SettingsPreview() {
         SettingsContent(
             state = SettingsUiState(budget = previewBudget(), draft = 45),
             protection = ProtectionState.Running,
+            focusProtection = false,
             onBack = {},
             onNameChange = {},
             onSaveName = {},
@@ -301,6 +321,7 @@ private fun SettingsPendingPreview() {
                 ),
             ),
             protection = ProtectionState.Running,
+            focusProtection = false,
             onBack = {},
             onNameChange = {},
             onSaveName = {},
