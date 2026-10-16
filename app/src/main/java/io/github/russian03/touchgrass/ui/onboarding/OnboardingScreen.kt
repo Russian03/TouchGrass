@@ -114,15 +114,15 @@ import kotlinx.coroutines.launch
  */
 private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Disclosure, Activate, Done }
 
+/** Resaltado del apartado de «Cómo funciona» que toca, en claro y en modo noche. */
+private val PointShade = Color(0xFFDDD6C0)
+private val NightPointShade = Color(0xFF2B2D28)
+
 /** Fundido del resaltado entre apartados de «Cómo funciona». */
 private const val POINT_FADE_MS = 320
 
-/**
- * El apartado que se apaga lo hace del todo antes de que se encienda el siguiente: el que se
- * enciende espera a que termine el fundido del otro, y así nunca hay dos a medias.
- */
-private fun <T> pointFade(highlighted: Boolean) =
-    if (highlighted) tween<T>(POINT_FADE_MS, delayMillis = POINT_FADE_MS) else tween(POINT_FADE_MS)
+/** El que se apaga y el que se enciende cambian a la vez, de un beige al otro. */
+private fun <T> pointFade() = tween<T>(POINT_FADE_MS, easing = FastOutSlowInEasing)
 
 /** Cada punto de «Cómo funciona» se queda en primer plano este tiempo antes de pasar al siguiente. */
 private const val HOW_CYCLE_MS = 2_600L
@@ -694,7 +694,7 @@ private fun ActivateRows(protection: ProtectionState, showXiaomiTip: Boolean, ac
 
 /**
  * Apartado de «Cómo funciona», con su número. El que toca se resalta en un beige más oscuro que la
- * tarjeta y su número pasa a tinta. El anterior se apaga del todo antes de que se encienda este.
+ * tarjeta y su número pasa a tinta; el anterior vuelve a la vez al beige de la tarjeta.
  */
 @Composable
 private fun Point(
@@ -706,10 +706,13 @@ private fun Point(
     modifier: Modifier = Modifier,
 ) {
     val dark = isSystemInDarkTheme()
-    val shade = if (dark) Color.White.copy(alpha = 0.08f) else CardBeigeEdge.copy(alpha = 0.6f)
+    // Dos colores opacos (el de la tarjeta y uno más oscuro): pasar de uno a otro no destella, a
+    // diferencia de fundir a transparente.
+    val card = if (dark) MaterialTheme.colorScheme.surfaceContainer else CardBeige
+    val shade = if (dark) NightPointShade else PointShade
     val background by animateColorAsState(
-        targetValue = if (highlighted) shade else Color.Transparent,
-        animationSpec = pointFade(highlighted),
+        targetValue = if (highlighted) shade else card,
+        animationSpec = pointFade(),
         label = "pointBackground",
     )
     Row(
@@ -741,12 +744,12 @@ private fun NumberCircle(number: Int, highlighted: Boolean) {
     val ink = MaterialTheme.colorScheme.onBackground
     val circle by animateColorAsState(
         targetValue = if (highlighted) ink else CardBeigeEdge,
-        animationSpec = pointFade(highlighted),
+        animationSpec = pointFade(),
         label = "numberCircle",
     )
     val text by animateColorAsState(
         targetValue = if (highlighted) MaterialTheme.colorScheme.background else Ink,
-        animationSpec = pointFade(highlighted),
+        animationSpec = pointFade(),
         label = "numberText",
     )
     Box(Modifier.size(32.dp).background(circle, CircleShape), contentAlignment = Alignment.Center) {
