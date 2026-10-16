@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.ui.home
 
 import android.content.res.Configuration
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,7 +36,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.russian03.touchgrass.BuildConfig
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.stats.WeekDay
@@ -139,6 +144,15 @@ private fun HomeContent(
     var finishedFor by remember { mutableStateOf<List<LocalDate>?>(null) }
     var stripTop by remember { mutableStateOf<Float?>(null) }
     val claiming = claimDays.isNotEmpty() && finishedFor != claimDays
+    // En la app debug se repite cada vez que se vuelve a la app, para ver cómo queda.
+    if (BuildConfig.DEBUG) {
+        LocalActivity.current?.let { activity ->
+            LifecycleEventEffect(Lifecycle.Event.ON_START, activity as LifecycleOwner) {
+                startedFor = null
+                finishedFor = null
+            }
+        }
+    }
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()) {
             // La cabecera baja desde arriba; el resto entra en cascada detrás.

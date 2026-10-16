@@ -62,7 +62,8 @@ private val ScreenEdge = 24.dp
  * animación. Con [focus], la tira se desliza sola hasta dejar ese día en el centro. En el pop-up
  * del primer acceso del día la tira va dentro de un recuadro: sin salirse por los lados
  * ([bleed] a `false`), con píldoras más grandes ([visiblePills]) y sin que se pueda tocar
- * ([interactive] a `false`).
+ * ([interactive] a `false`). [growRoom] deja sitio arriba y abajo para que una píldora que crece
+ * al animarse no quede cortada por el borde de la tira.
  */
 @Composable
 fun WeekStrip(
@@ -75,6 +76,7 @@ fun WeekStrip(
     visiblePills: Float = VISIBLE_PILLS,
     edge: Dp = ScreenEdge,
     bleed: Boolean = true,
+    growRoom: Dp = 0.dp,
     interactive: Boolean = true,
 ) {
     // Empieza al final (la semana actual): el valor se ajusta al máximo real al medir.
@@ -100,7 +102,7 @@ fun WeekStrip(
             Modifier
                 .fadingEdges(scroll)
                 .horizontalScroll(scroll, enabled = interactive)
-                .padding(horizontal = edge),
+                .padding(horizontal = edge, vertical = growRoom),
         ) {
             week.forEachIndexed { i, day ->
                 val time =

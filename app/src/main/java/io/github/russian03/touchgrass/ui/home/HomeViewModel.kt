@@ -3,6 +3,7 @@ package io.github.russian03.touchgrass.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.russian03.touchgrass.BuildConfig
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.stats.DayFace
@@ -86,7 +87,13 @@ class HomeViewModel @Inject constructor(
         stats.state
             .map { state ->
                 val today = stats.today()
-                val days = StatsPolicy.unclaimedDays(state, today)
+                val days =
+                    StatsPolicy.unclaimedDays(state, today).ifEmpty {
+                        // En la app debug, ayer se vuelve a enseñar siempre, para ver la animación.
+                        val yesterday = today.minusDays(1)
+                        val since = state.since?.let(LocalDate::parse)
+                        if (BuildConfig.DEBUG && since != null && since <= yesterday) listOf(yesterday) else emptyList()
+                    }
                 val faces = days.associateWith { StatsPolicy.faceAt(state, it) }
                 ClaimState(
                     days = days,

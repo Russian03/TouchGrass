@@ -83,6 +83,9 @@ private const val SCRIM_ALPHA = 0.4f
 /** Píldoras a la vista en el pop-up: menos que en Inicio, así que más grandes. */
 private const val POPUP_PILLS = 5.25f
 private val CardPadding = 20.dp
+
+/** Sitio dentro de la tira para que la píldora y los ojos, al crecer, no se corten; sale del margen del recuadro. */
+private val GrowRoom = 10.dp
 private val CardCorner = 28.dp
 
 /**
@@ -118,6 +121,7 @@ fun DayClaim(
     var visible by remember { mutableStateOf(inspection) }
     var leaving by remember { mutableStateOf(false) }
     var cardTop by remember { mutableFloatStateOf(0f) }
+    // Las píldoras empiezan tras el margen del recuadro, que ya incluye el sitio para crecer.
     val stripOffset = with(LocalDensity.current) { CardPadding.toPx() }
 
     val splashGone = LocalSplashGone.current
@@ -235,7 +239,10 @@ private fun ClaimCard(
     onEnableProtection: () -> Unit,
     onBack: () -> Unit,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = CardPadding)) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(top = CardPadding - GrowRoom, bottom = CardPadding),
+    ) {
         WeekStrip(
             week = week,
             today = today,
@@ -245,6 +252,7 @@ private fun ClaimCard(
             visiblePills = POPUP_PILLS,
             edge = 16.dp,
             bleed = false,
+            growRoom = GrowRoom,
             interactive = false,
         )
         // El texto y los botones ocupan su sitio desde el principio, para que el recuadro no salte.
@@ -255,7 +263,7 @@ private fun ClaimCard(
             modifier =
             Modifier
                 .padding(horizontal = 24.dp)
-                .padding(top = 20.dp)
+                .padding(top = 20.dp - GrowRoom)
                 .semantics { liveRegion = LiveRegionMode.Polite }
                 .graphicsLayer {
                     alpha = phrase.value * zoom.value.coerceIn(0f, 1f)
