@@ -1,22 +1,31 @@
 package io.github.russian03.touchgrass.ui.onboarding
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -24,8 +33,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -35,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -52,16 +63,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.service.ProtectionState
+import io.github.russian03.touchgrass.ui.common.DarkChunky
+import io.github.russian03.touchgrass.ui.common.DarkChunkyEdge
+import io.github.russian03.touchgrass.ui.common.DisclosurePoints
 import io.github.russian03.touchgrass.ui.common.LimitPicker
 import io.github.russian03.touchgrass.ui.common.ProtectionRow
 import io.github.russian03.touchgrass.ui.common.SystemSettings
 import io.github.russian03.touchgrass.ui.common.XiaomiTipRow
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
-import io.github.russian03.touchgrass.ui.design.InkPillButton
+import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.MixedTitle
 import io.github.russian03.touchgrass.ui.design.StatusRow
 import io.github.russian03.touchgrass.ui.design.staggerIn
@@ -71,220 +86,402 @@ import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private enum class Step { Welcome, Name, HowItWorks, Disclosure, Limit, Activate }
-
-/** Alto de la ilustración de cada paso, la mitad de arriba como en el diseño. */
-private val HeroHeight = 300.dp
+/**
+ * Pasos de los primeros pasos, en orden. El aviso del servicio va justo antes de activarlo, como
+ * pide Google Play; si se rechaza, se salta la activación y se va al final.
+ */
+private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Disclosure, Activate, Done }
 
 /** Cada punto de «Cómo funciona» se queda en primer plano este tiempo antes de pasar al siguiente. */
 private const val HOW_CYCLE_MS = 2_600L
 
-/** El gráfico entra un poco después que el texto de su página. */
+/** El gráfico entra un poco después que la tarjeta de su página. */
 private const val HERO_STEP_MS = 80L
+
+/** Lo más alto que puede ser la tarjeta: el resto es para el gráfico. */
+private const val CARD_MAX_SHARE = 0.66f
+
+/** Los avisos se piden en su paso solo en Android 13+ y si aún no hay permiso. */
+private fun needsNotificationStep(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
+    val permission = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+    return permission != PackageManager.PERMISSION_GRANTED
+}
+
+/** Lo que hace cada botón de los primeros pasos (para no pasar una docena de parámetros sueltos). */
+private class SetupActions(
+    val onNameChange: (String) -> Unit,
+    val onSaveName: (onSaved: () -> Unit) -> Unit,
+    val onLimitChange: (Int) -> Unit,
+    val onSaveLimit: (onSaved: () -> Unit) -> Unit,
+    val onRequestNotifications: (onDone: () -> Unit) -> Unit,
+    val onAccept: (onSaved: () -> Unit) -> Unit,
+    val onDecline: () -> Unit,
+    val onFinish: () -> Unit,
+    val onOpenAccessibilitySettings: () -> Unit,
+    val onOpenAppSettings: () -> Unit,
+)
 
 @Composable
 fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val steps =
+        remember {
+            Step.entries.filter { it != Step.Notifications || needsNotificationStep(context) }
+        }
+    // Se acepte o no el permiso de avisos, se sigue al paso siguiente.
+    var afterPermission by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            afterPermission?.invoke()
+            afterPermission = null
+        }
     OnboardingContent(
         state = state,
         protection = rememberProtectionState(),
         showXiaomiTip = SystemSettings.isXiaomi,
-        onNameChange = viewModel::onNameChange,
-        onSaveName = viewModel::saveName,
-        onLimitChange = viewModel::onLimitChange,
-        onSaveLimit = viewModel::saveLimit,
-        onFinish = { viewModel.finish(onFinished) },
-        onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
-        onOpenAppSettings = { SystemSettings.openAppDetails(context) },
+        steps = steps,
+        actions =
+        SetupActions(
+            onNameChange = viewModel::onNameChange,
+            onSaveName = viewModel::saveName,
+            onLimitChange = viewModel::onLimitChange,
+            onSaveLimit = viewModel::saveLimit,
+            onRequestNotifications = { onDone ->
+                // El paso solo sale en Android 13+, que es donde existe el permiso.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    afterPermission = onDone
+                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    onDone()
+                }
+            },
+            onAccept = viewModel::acceptAccessibility,
+            onDecline = viewModel::declineAccessibility,
+            onFinish = { viewModel.finish(onFinished) },
+            onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
+            onOpenAppSettings = { SystemSettings.openAppDetails(context) },
+        ),
     )
 }
 
 /**
- * Primeros pasos: cinco páginas con la misma estructura que el diseño. Arriba, un gráfico grande
- * hecho en código; abajo, título con grosores mezclados, texto y la píldora de tinta. Una onda
- * arriba del todo marca el progreso.
+ * Primeros pasos con el estilo de la referencia: fondo lima entero, el gráfico arriba y, abajo, una
+ * tarjeta oscura con el título, el texto y los botones con relieve. Debajo, un punto por paso.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun OnboardingContent(
     state: OnboardingUiState,
     protection: ProtectionState,
     showXiaomiTip: Boolean,
-    onNameChange: (String) -> Unit,
-    onSaveName: (onSaved: () -> Unit) -> Unit,
-    onLimitChange: (Int) -> Unit,
-    onSaveLimit: (onSaved: () -> Unit) -> Unit,
-    onFinish: () -> Unit,
-    onOpenAccessibilitySettings: () -> Unit,
-    onOpenAppSettings: () -> Unit,
+    steps: List<Step>,
+    actions: SetupActions,
     initialStep: Step = Step.Welcome,
 ) {
-    val steps = Step.entries
-    // Solo se avanza con los botones: así el límite se guarda antes de pasar de página.
-    val pager = rememberPagerState(initialPage = initialStep.ordinal) { steps.size }
+    // Solo se avanza con los botones: así el nombre y el límite se guardan antes de pasar de página.
+    val pager = rememberPagerState(initialPage = steps.indexOf(initialStep).coerceAtLeast(0)) { steps.size }
     val scope = rememberCoroutineScope()
-    val step = steps[pager.currentPage]
     val pageSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
-    val goTo: (Int) -> Unit = { page -> scope.launch { pager.animateScrollToPage(page, animationSpec = pageSpec) } }
-    val next = { goTo(pager.currentPage + 1) }
+    val goTo: (Step) -> Unit = { target ->
+        scope.launch { pager.animateScrollToPage(steps.indexOf(target), animationSpec = pageSpec) }
+    }
+    val current = steps[pager.currentPage]
+    val next = { goTo(steps[(pager.currentPage + 1).coerceAtMost(steps.lastIndex)]) }
+    // Desde el final se vuelve al aviso si se rechazó (la activación se saltó).
+    val back = {
+        val skippedActivate = current == Step.Done && state.declined
+        goTo(if (skippedActivate) Step.Disclosure else steps[(pager.currentPage - 1).coerceAtLeast(0)])
+    }
+    BackHandler(enabled = pager.currentPage > 0) { back() }
 
-    BackHandler(enabled = pager.currentPage > 0) { goTo(pager.currentPage - 1) }
-
-    // La onda avanza con muelle al cambiar de paso.
-    val inspection = LocalInspectionMode.current
-    val target = (pager.currentPage + 1f) / steps.size
-    val progress = remember { Animatable(if (inspection) target else 0f) }
-    val progressSpec = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
-    LaunchedEffect(target) { progress.animateTo(target, progressSpec) }
-
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+    Surface(color = Lime, contentColor = Ink, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            val stepLabel = stringResource(R.string.onboarding_step, pager.currentPage + 1, steps.size)
-            LinearWavyProgressIndicator(
-                progress = { progress.value.coerceIn(0f, 1f) },
-                color = MaterialTheme.colorScheme.onBackground,
-                trackColor = MaterialTheme.colorScheme.outlineVariant,
-                modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp, vertical = 20.dp)
-                    .semantics { contentDescription = stepLabel },
-            )
-            HorizontalPager(
-                state = pager,
-                userScrollEnabled = false,
-                modifier = Modifier.weight(1f),
-            ) { page ->
-                val visible = pager.currentPage == page
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 28.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    when (steps[page]) {
-                        Step.Welcome -> WelcomeStep(visible)
-                        Step.Name -> NameStep(visible, state.name, onNameChange, onDone = { onSaveName(next) })
-                        Step.HowItWorks -> HowItWorksStep(visible)
-                        Step.Disclosure -> DisclosureStep(visible)
-                        Step.Limit -> LimitStep(visible, state.limitMinutes, onLimitChange)
-                        Step.Activate -> ActivateStep(
-                            visible,
-                            protection,
-                            showXiaomiTip,
-                            onOpenAccessibilitySettings,
-                            onOpenAppSettings,
+            Box(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp)) {
+                if (pager.currentPage > 0 && current != Step.Done) {
+                    IconButton(onClick = back, modifier = Modifier.align(Alignment.CenterStart)) {
+                        Icon(
+                            painterResource(R.drawable.ic_arrow_back),
+                            contentDescription = stringResource(R.string.back),
                         )
                     }
                 }
             }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 12.dp),
-            ) {
-                if (state.error) {
-                    Text(
-                        text = stringResource(R.string.error_saving),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            HorizontalPager(state = pager, userScrollEnabled = false, modifier = Modifier.weight(1f)) { page ->
+                val visible = pager.currentPage == page
+                StepPage(steps[page], visible, state, protection, showXiaomiTip, actions, next, goTo)
+            }
+            PageDots(
+                count = steps.size,
+                current = pager.currentPage,
+                label = stringResource(R.string.onboarding_step, pager.currentPage + 1, steps.size),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StepPage(
+    step: Step,
+    visible: Boolean,
+    state: OnboardingUiState,
+    protection: ProtectionState,
+    showXiaomiTip: Boolean,
+    actions: SetupActions,
+    next: () -> Unit,
+    goTo: (Step) -> Unit,
+) {
+    val on = protection == ProtectionState.Running
+    when (step) {
+        Step.Welcome ->
+            SetupPage(
+                visible = visible,
+                hero = { GrassSprouts(visible = visible, modifier = Modifier.fillMaxSize()) },
+                title = stringResource(R.string.onboarding_welcome_title),
+                body = stringResource(R.string.onboarding_welcome_body),
+                primary = stringResource(R.string.onboarding_start) to next,
+            )
+        Step.Name ->
+            SetupPage(
+                visible = visible,
+                hero = {
+                    NameShape(
+                        initial = state.name.trim().firstOrNull()?.uppercaseChar(),
+                        modifier = Modifier.fillMaxSize(),
                     )
-                }
-                val (label, action) =
-                    when (step) {
-                        Step.Welcome -> R.string.onboarding_start to next
-                        Step.Name -> R.string.onboarding_next to { onSaveName(next) }
-                        Step.HowItWorks -> R.string.onboarding_next to next
-                        Step.Disclosure -> R.string.onboarding_disclosure_accept to next
-                        Step.Limit -> R.string.onboarding_limit_save to { onSaveLimit(next) }
-                        Step.Activate ->
-                            (
-                                if (protection == ProtectionState.Running) {
-                                    R.string.onboarding_finish
-                                } else {
-                                    R.string.onboarding_finish_later
-                                }
-                                ) to onFinish
+                },
+                title = stringResource(R.string.onboarding_name_title),
+                body = stringResource(R.string.onboarding_name_body),
+                primary = stringResource(R.string.onboarding_next) to { actions.onSaveName(next) },
+                busy = state.saving,
+                error = state.error,
+            ) {
+                OutlinedTextField(
+                    value = state.name,
+                    onValueChange = actions.onNameChange,
+                    singleLine = true,
+                    placeholder = { Text(stringResource(R.string.onboarding_name_hint)) },
+                    keyboardOptions =
+                    KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { actions.onSaveName(next) }),
+                    shape = CircleShape,
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                )
+                Note(stringResource(R.string.onboarding_name_note))
+            }
+        Step.HowItWorks -> HowItWorksPage(visible, next)
+        Step.Limit ->
+            SetupPage(
+                visible = visible,
+                hero = { MinutesShape(state.limitMinutes, Modifier.fillMaxSize()) },
+                title = stringResource(R.string.onboarding_limit_title),
+                body = stringResource(R.string.onboarding_limit_body),
+                primary = stringResource(R.string.onboarding_limit_save) to { actions.onSaveLimit(next) },
+                busy = state.saving,
+                error = state.error,
+            ) {
+                LimitPicker(
+                    minutes = state.limitMinutes,
+                    onChange = actions.onLimitChange,
+                    numberSize = 48.sp,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+                Note(stringResource(R.string.onboarding_limit_note))
+            }
+        Step.Notifications ->
+            SetupPage(
+                visible = visible,
+                hero = { RingingBell(Modifier.fillMaxSize()) },
+                title = stringResource(R.string.onboarding_notify_title),
+                body = stringResource(R.string.onboarding_notify_body),
+                primary = stringResource(R.string.onboarding_notify_allow) to { actions.onRequestNotifications(next) },
+                secondary = stringResource(R.string.onboarding_notify_later) to next,
+            )
+        Step.Disclosure ->
+            SetupPage(
+                visible = visible,
+                hero = { BreathingLock(Modifier.fillMaxSize()) },
+                title = stringResource(R.string.onboarding_disclosure_title),
+                body = stringResource(R.string.onboarding_disclosure_intro),
+                primary = stringResource(R.string.onboarding_disclosure_accept) to {
+                    actions.onAccept { goTo(Step.Activate) }
+                },
+                secondary = stringResource(R.string.onboarding_disclosure_decline) to {
+                    actions.onDecline()
+                    goTo(Step.Done)
+                },
+                busy = state.saving,
+                error = state.error,
+            ) {
+                DisclosurePoints(visible = visible)
+            }
+        Step.Activate ->
+            SetupPage(
+                visible = visible,
+                hero = {
+                    ProtectionSwitch(
+                        on = on,
+                        alert = protection == ProtectionState.Stopped,
+                        onClick = actions.onOpenAccessibilitySettings,
+                    )
+                },
+                title = stringResource(R.string.onboarding_activate_title),
+                body = stringResource(if (on) R.string.onboarding_protection_on else R.string.onboarding_activate_body),
+                primary =
+                if (on) {
+                    stringResource(R.string.onboarding_next) to { goTo(Step.Done) }
+                } else {
+                    stringResource(R.string.onboarding_activate_open) to actions.onOpenAccessibilitySettings
+                },
+                secondary = if (on) null else stringResource(R.string.onboarding_finish_later) to { goTo(Step.Done) },
+            ) {
+                ActivateRows(protection, showXiaomiTip, actions)
+            }
+        Step.Done ->
+            SetupPage(
+                visible = visible,
+                hero = { AllSetBadge(visible, Modifier.fillMaxSize()) },
+                title = stringResource(R.string.onboarding_done_title),
+                body = stringResource(if (on) R.string.onboarding_done_on else R.string.onboarding_done_off),
+                primary = stringResource(R.string.onboarding_finish) to actions.onFinish,
+                busy = state.saving,
+                error = state.error,
+            )
+    }
+}
+
+/**
+ * Esqueleto de cada paso: el gráfico ocupa lo que deja la tarjeta y la tarjeta (en el tema oscuro,
+ * para que todo lo de dentro tenga buen contraste) va abajo, sin pasar de dos tercios del alto. Si
+ * su contenido no cabe, se desliza dentro y los botones se quedan siempre a la vista.
+ */
+@Composable
+private fun SetupPage(
+    visible: Boolean,
+    hero: @Composable () -> Unit,
+    title: String,
+    body: String?,
+    primary: Pair<String, () -> Unit>,
+    secondary: Pair<String, () -> Unit>? = null,
+    busy: Boolean = false,
+    error: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit = {},
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val cardMax = maxHeight * CARD_MAX_SHARE
+        Column(Modifier.fillMaxSize()) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .staggerIn(index = 1, visible = visible, stepMs = HERO_STEP_MS, offsetY = 24.dp, fromScale = 0.9f),
+            ) {
+                TouchGrassTheme(darkTheme = false) { hero() }
+            }
+            TouchGrassTheme(darkTheme = true) {
+                Surface(
+                    color = MaterialTheme.colorScheme.background,
+                    shape = MaterialTheme.shapes.large,
+                    modifier =
+                    Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                        .heightIn(max = cardMax)
+                        .staggerIn(index = 0, visible = visible, offsetY = 32.dp, fromScale = 1f),
+                ) {
+                    Column(Modifier.padding(24.dp)) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                        ) {
+                            MixedTitle(
+                                text = title,
+                                style = MaterialTheme.typography.headlineSmall,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            if (body != null) {
+                                Text(
+                                    text = body,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                )
+                            }
+                            content()
+                        }
+                        if (error) {
+                            Text(
+                                text = stringResource(R.string.error_saving),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            )
+                        }
+                        ChunkyPillButton(
+                            text = primary.first,
+                            onClick = { if (!busy) primary.second() },
+                            modifier = Modifier.padding(top = 20.dp),
+                        )
+                        if (secondary != null) {
+                            ChunkyPillButton(
+                                text = secondary.first,
+                                onClick = { if (!busy) secondary.second() },
+                                containerColor = DarkChunky,
+                                edgeColor = DarkChunkyEdge,
+                                contentColor = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(top = 12.dp),
+                            )
+                        }
                     }
-                InkPillButton(text = stringResource(label), onClick = action, enabled = !state.saving)
-                // Ocupa su sitio siempre, para que la píldora no salte entre páginas.
-                TextButton(onClick = { goTo(pager.currentPage - 1) }, enabled = pager.currentPage > 0) {
-                    Text(if (pager.currentPage > 0) stringResource(R.string.back) else "")
                 }
             }
         }
     }
 }
 
-/** Gráfico de arriba: entra después del texto, en cuanto su página se ve. */
 @Composable
-private fun Hero(visible: Boolean, content: @Composable () -> Unit) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(HeroHeight)
-            .staggerIn(index = 1, visible = visible, stepMs = HERO_STEP_MS, offsetY = 24.dp, fromScale = 0.9f),
-        contentAlignment = Alignment.Center,
-    ) { content() }
-}
-
-@Composable
-private fun Title(text: String, visible: Boolean) {
-    MixedTitle(
-        text = text,
-        style = MaterialTheme.typography.headlineMedium,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).staggerIn(index = 0, visible = visible),
-    )
-}
-
-@Composable
-private fun Body(text: String, visible: Boolean, modifier: Modifier = Modifier) {
+private fun Note(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.bodyLarge,
+        style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
-        modifier = modifier.padding(top = 12.dp).staggerIn(index = 0, visible = visible),
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
     )
 }
 
+/** Un punto por paso: el actual se alarga con muelle, como en la referencia. */
 @Composable
-private fun WelcomeStep(visible: Boolean) {
-    Hero(visible) { GrassSprouts(visible = visible, modifier = Modifier.fillMaxSize()) }
-    Title(stringResource(R.string.onboarding_welcome_title), visible)
-    Body(stringResource(R.string.onboarding_welcome_body), visible)
-}
-
-/**
- * Nombre para el saludo de Inicio (opcional). Arriba, una forma lima con la inicial, que cambia
- * con un pequeño salto mientras se escribe.
- */
-@Composable
-private fun NameStep(visible: Boolean, name: String, onChange: (String) -> Unit, onDone: () -> Unit) {
-    Hero(visible) { NameShape(initial = name.trim().firstOrNull()?.uppercaseChar(), modifier = Modifier.fillMaxSize()) }
-    Title(stringResource(R.string.onboarding_name_title), visible)
-    Body(stringResource(R.string.onboarding_name_body), visible)
-    OutlinedTextField(
-        value = name,
-        onValueChange = onChange,
-        singleLine = true,
-        placeholder = { Text(stringResource(R.string.onboarding_name_hint)) },
-        keyboardOptions =
-        KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(onDone = { onDone() }),
-        shape = CircleShape,
-        modifier = Modifier.fillMaxWidth().padding(top = 20.dp).staggerIn(index = 1, visible = visible),
-    )
-    Body(stringResource(R.string.onboarding_name_note), visible, modifier = Modifier.padding(bottom = 8.dp))
+private fun PageDots(count: Int, current: Int, label: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().height(48.dp).semantics { contentDescription = label },
+    ) {
+        repeat(count) { i ->
+            val width by animateDpAsState(
+                targetValue = if (i == current) 24.dp else 8.dp,
+                animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                label = "dot",
+            )
+            Box(
+                Modifier
+                    .height(8.dp)
+                    .width(width)
+                    .background(Ink.copy(alpha = if (i == current) 1f else 0.3f), CircleShape),
+            )
+        }
+    }
 }
 
 /** Los tres puntos van pasando solos; tocar uno lo pone delante. La forma de arriba lo sigue. */
 @Composable
-private fun HowItWorksStep(visible: Boolean) {
+private fun HowItWorksPage(visible: Boolean, next: () -> Unit) {
     var active by rememberSaveable { mutableIntStateOf(0) }
     val inspection = LocalInspectionMode.current
     LaunchedEffect(visible, active) {
@@ -292,95 +489,42 @@ private fun HowItWorksStep(visible: Boolean) {
         delay(HOW_CYCLE_MS)
         active = (active + 1) % 3
     }
-    Hero(visible) { HowShape(active = active, modifier = Modifier.fillMaxSize()) }
-    Title(stringResource(R.string.onboarding_how_title), visible)
-    Spacer(Modifier.height(16.dp))
-    val points =
-        listOf(
-            R.string.onboarding_how_block_title to R.string.onboarding_how_block_body,
-            R.string.onboarding_how_budget_title to R.string.onboarding_how_budget_body,
-            R.string.onboarding_how_unlock_title to R.string.onboarding_how_unlock_body,
-        )
-    points.forEachIndexed { i, (title, body) ->
-        Point(
-            mark = (i + 1).toString(),
-            title = title,
-            body = body,
-            highlighted = i == active,
-            onClick = { active = i },
-            modifier = Modifier.staggerIn(index = 1 + i, visible = visible),
-        )
+    SetupPage(
+        visible = visible,
+        hero = { HowShape(active = active, modifier = Modifier.fillMaxSize()) },
+        title = stringResource(R.string.onboarding_how_title),
+        body = null,
+        primary = stringResource(R.string.onboarding_next) to next,
+    ) {
+        val points =
+            listOf(
+                R.string.onboarding_how_block_title to R.string.onboarding_how_block_body,
+                R.string.onboarding_how_budget_title to R.string.onboarding_how_budget_body,
+                R.string.onboarding_how_unlock_title to R.string.onboarding_how_unlock_body,
+            )
+        points.forEachIndexed { i, (title, body) ->
+            Point(
+                mark = (i + 1).toString(),
+                title = title,
+                body = body,
+                highlighted = i == active,
+                onClick = { active = i },
+                modifier = Modifier.padding(top = if (i == 0) 12.dp else 0.dp),
+            )
+        }
     }
 }
 
-/** Aviso destacado que exige Google Play antes de pedir el servicio de accesibilidad. */
+/** Estado del servicio y, si hacen falta, los avisos de ajustes restringidos y de Xiaomi. */
 @Composable
-private fun DisclosureStep(visible: Boolean) {
-    Hero(visible) { BreathingLock(Modifier.fillMaxSize()) }
-    Title(stringResource(R.string.onboarding_disclosure_title), visible)
-    Body(stringResource(R.string.onboarding_disclosure_intro), visible)
-    Spacer(Modifier.height(12.dp))
-    val points =
-        listOf(
-            Triple("✓", R.string.onboarding_disclosure_reads_title, R.string.onboarding_disclosure_reads_body),
-            Triple("✕", R.string.onboarding_disclosure_never_title, R.string.onboarding_disclosure_never_body),
-            Triple("⌂", R.string.onboarding_disclosure_local_title, R.string.onboarding_disclosure_local_body),
-        )
-    points.forEachIndexed { i, (mark, title, body) ->
-        StatusRow(
-            title = stringResource(title),
-            detail = stringResource(body),
-            divider = i < points.lastIndex,
-            leading = { MarkCircle(mark, highlighted = true) },
-            modifier = Modifier.staggerIn(index = 1 + i, visible = visible),
-        )
-    }
-}
-
-/** Como el «12 Days planned»: el número gigante es el gráfico, con destellos alrededor. */
-@Composable
-private fun LimitStep(visible: Boolean, minutes: Int, onChange: (Int) -> Unit) {
-    LimitPicker(
-        minutes = minutes,
-        onChange = onChange,
-        numberSize = 112.sp,
-        sparkles = true,
-        modifier = Modifier.padding(top = 8.dp).staggerIn(index = 1, visible = visible, stepMs = HERO_STEP_MS),
-    )
-    Title(stringResource(R.string.onboarding_limit_title), visible)
-    Body(stringResource(R.string.onboarding_limit_body), visible)
-    Body(stringResource(R.string.onboarding_limit_note), visible, modifier = Modifier.padding(bottom = 8.dp))
-}
-
-@Composable
-private fun ActivateStep(
-    visible: Boolean,
-    protection: ProtectionState,
-    showXiaomiTip: Boolean,
-    onOpenAccessibilitySettings: () -> Unit,
-    onOpenAppSettings: () -> Unit,
-) {
-    val on = protection == ProtectionState.Running
-    Hero(visible) {
-        ProtectionSwitch(
-            on = on,
-            alert = protection == ProtectionState.Stopped,
-            onClick = onOpenAccessibilitySettings,
-        )
-    }
-    Title(stringResource(R.string.onboarding_activate_title), visible)
-    Body(
-        stringResource(if (on) R.string.onboarding_protection_on else R.string.onboarding_activate_body),
-        visible,
-    )
-    Spacer(Modifier.height(12.dp))
+private fun ActivateRows(protection: ProtectionState, showXiaomiTip: Boolean, actions: SetupActions) {
     // Android 13+ bloquea la accesibilidad a apps instaladas fuera de una tienda.
     val restricted = protection == ProtectionState.Off && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     val xiaomi = showXiaomiTip && protection != ProtectionState.Off
-    Column(Modifier.staggerIn(index = 2, visible = visible)) {
+    Column(Modifier.padding(top = 8.dp)) {
         ProtectionRow(
             state = protection,
-            onOpenAccessibilitySettings = onOpenAccessibilitySettings,
+            onOpenAccessibilitySettings = actions.onOpenAccessibilitySettings,
             divider = restricted || xiaomi,
         )
         if (restricted) {
@@ -390,15 +534,15 @@ private fun ActivateStep(
                 divider = xiaomi,
                 leading = { MarkCircle("⋮", highlighted = false) },
                 trailing = {
-                    TextButton(onClick = onOpenAppSettings) { Text(stringResource(R.string.home_open_short)) }
+                    TextButton(onClick = actions.onOpenAppSettings) { Text(stringResource(R.string.home_open_short)) }
                 },
             )
         }
-        if (xiaomi) XiaomiTipRow(onOpenAppSettings = onOpenAppSettings, divider = false)
+        if (xiaomi) XiaomiTipRow(onOpenAppSettings = actions.onOpenAppSettings, divider = false)
     }
 }
 
-/** Punto de una lista: círculo con su marca y, si está [highlighted], fondo lima suave detrás. */
+/** Punto de una lista: círculo con su marca y, si está [highlighted], fondo resaltado detrás. */
 @Composable
 private fun Point(
     mark: String,
@@ -448,6 +592,8 @@ private fun MarkCircle(mark: String, highlighted: Boolean) {
     }
 }
 
+private val noActions = SetupActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+
 @Composable
 private fun PreviewStep(step: Step, protection: ProtectionState = ProtectionState.Off) {
     TouchGrassTheme {
@@ -455,13 +601,8 @@ private fun PreviewStep(step: Step, protection: ProtectionState = ProtectionStat
             state = OnboardingUiState(),
             protection = protection,
             showXiaomiTip = false,
-            onNameChange = {},
-            onSaveName = {},
-            onLimitChange = {},
-            onSaveLimit = {},
-            onFinish = {},
-            onOpenAccessibilitySettings = {},
-            onOpenAppSettings = {},
+            steps = Step.entries,
+            actions = noActions,
             initialStep = step,
         )
     }
@@ -481,12 +622,20 @@ private fun HowPreview() = PreviewStep(Step.HowItWorks)
 
 @Preview(showSystemUi = true)
 @Composable
-private fun DisclosurePreview() = PreviewStep(Step.Disclosure)
-
-@Preview(showSystemUi = true)
-@Composable
 private fun LimitPreview() = PreviewStep(Step.Limit)
 
 @Preview(showSystemUi = true)
 @Composable
+private fun NotificationsPreview() = PreviewStep(Step.Notifications)
+
+@Preview(showSystemUi = true)
+@Composable
+private fun DisclosurePreview() = PreviewStep(Step.Disclosure)
+
+@Preview(showSystemUi = true)
+@Composable
 private fun ActivatePreview() = PreviewStep(Step.Activate, ProtectionState.Running)
+
+@Preview(showSystemUi = true)
+@Composable
+private fun DonePreview() = PreviewStep(Step.Done, ProtectionState.Running)

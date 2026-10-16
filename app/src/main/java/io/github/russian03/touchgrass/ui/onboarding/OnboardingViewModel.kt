@@ -20,6 +20,8 @@ data class OnboardingUiState(
     val limitMinutes: Int = DEFAULT_LIMIT,
     val saving: Boolean = false,
     val error: Boolean = false,
+    /** Ha dicho «No, gracias» al aviso del servicio de accesibilidad: no se le manda a activarlo. */
+    val declined: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_LIMIT = 30
@@ -47,6 +49,15 @@ class OnboardingViewModel @Inject constructor(
 
     /** Guarda el límite elegido y llama a [onSaved] si se ha podido. */
     fun saveLimit(onSaved: () -> Unit) = save({ repository.setInitialLimit(_state.value.limitMinutes) }, onSaved)
+
+    /** Acepta el aviso del servicio de accesibilidad y llama a [onSaved] si se ha podido guardar. */
+    fun acceptAccessibility(onSaved: () -> Unit) {
+        _state.update { it.copy(declined = false) }
+        save({ if (profile.acceptAccessibility()) null else Denial.Storage }, onSaved)
+    }
+
+    /** No acepta el aviso: se sigue sin protección y no se guarda nada. */
+    fun declineAccessibility() = _state.update { it.copy(declined = true, error = false) }
 
     /** Marca los primeros pasos como hechos: a partir de aquí el límite solo se cambia en Ajustes. */
     fun finish(onFinished: () -> Unit) = save({ repository.completeOnboarding() }, onFinished)

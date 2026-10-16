@@ -51,6 +51,7 @@ import io.github.russian03.touchgrass.ui.common.SystemSettings
 import io.github.russian03.touchgrass.ui.common.XiaomiTipRow
 import io.github.russian03.touchgrass.ui.common.fullDay
 import io.github.russian03.touchgrass.ui.common.monthName
+import io.github.russian03.touchgrass.ui.common.rememberActivateProtection
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
 import io.github.russian03.touchgrass.ui.design.InkPillButton
 import io.github.russian03.touchgrass.ui.design.LimeHeader
@@ -102,7 +103,8 @@ fun HomeScreen(
         summary = SummaryActions(pendingSummary, onOpenStats),
         claim = ClaimActions(claim, viewModel::claim, onOpenProtection),
         onOpenSettings = onOpenSettings,
-        onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
+        // Pasa antes por el aviso del servicio si aún no se ha aceptado.
+        onOpenAccessibilitySettings = rememberActivateProtection(protection),
         onOpenAppSettings = { SystemSettings.openAppDetails(context) },
         onOpenDateSettings = { SystemSettings.openDateTime(context) },
     )

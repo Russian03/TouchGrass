@@ -19,6 +19,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -60,7 +61,6 @@ import io.github.russian03.touchgrass.ui.design.Sparkles
 import io.github.russian03.touchgrass.ui.design.drawSpark
 import io.github.russian03.touchgrass.ui.theme.Cream
 import io.github.russian03.touchgrass.ui.theme.Ink
-import io.github.russian03.touchgrass.ui.theme.Lime
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -85,7 +85,7 @@ private const val BLADE_STEP_MS = 90L
 
 /**
  * Briznas de hierba que crecen desde el suelo de una en una (muelle con rebote) y luego se mecen
- * ±3° cada una a su ritmo. El relleno lima va desplazado de la línea, como mal impreso, y la
+ * ±3° cada una a su ritmo. El relleno crema va desplazado de la línea, como mal impreso, y la
  * línea solo marca un borde de cada brizna: es una guía, no un contorno.
  */
 @Composable
@@ -140,7 +140,7 @@ fun GrassSprouts(visible: Boolean, modifier: Modifier = Modifier, ink: Color = M
                     }
                 rotate(sway * g, pivot = base) {
                     scale(scaleX = 1f, scaleY = g, pivot = base) {
-                        translate(misprint.x, misprint.y) { drawPath(fill, Lime) }
+                        translate(misprint.x, misprint.y) { drawPath(fill, Cream) }
                         drawPath(guide, ink, style = Stroke(width = stroke, cap = StrokeCap.Round))
                     }
                 }
@@ -165,7 +165,7 @@ fun GrassSprouts(visible: Boolean, modifier: Modifier = Modifier, ink: Color = M
 }
 
 /**
- * Forma lima que se transforma en cada punto de «Cómo funciona» (galleta, trébol, sol) y gira
+ * Forma crema que se transforma en cada punto de «Cómo funciona» (galleta, trébol, sol) y gira
  * 45°, con el número del punto en el centro.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -178,7 +178,7 @@ fun HowShape(active: Int, modifier: Modifier = Modifier) {
         Sparkles(Modifier.fillMaxSize())
         MorphingShape(
             polygon = polygons[active % polygons.size],
-            color = Lime,
+            color = Cream,
             outline = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.size(200.dp),
         ) {
@@ -196,7 +196,7 @@ fun HowShape(active: Int, modifier: Modifier = Modifier) {
 }
 
 /**
- * Forma lima con la inicial del nombre en el centro. Cada letra nueva entra con un salto; al
+ * Forma crema con la inicial del nombre en el centro. Cada letra nueva entra con un salto; al
  * escribir la primera, la galleta se transforma en sol. Sin nombre, dice «¡Hola!».
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -208,7 +208,7 @@ fun NameShape(initial: Char?, modifier: Modifier = Modifier) {
         Sparkles(Modifier.fillMaxSize())
         MorphingShape(
             polygon = if (initial == null) MaterialShapes.Cookie9Sided else MaterialShapes.Sunny,
-            color = Lime,
+            color = Cream,
             outline = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.size(200.dp),
         ) {
@@ -233,7 +233,7 @@ fun NameShape(initial: Char?, modifier: Modifier = Modifier) {
     }
 }
 
-/** Galleta lima que respira y gira despacio, con un candado de línea encima. */
+/** Galleta crema que respira y gira despacio, con un candado de línea encima. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BreathingLock(modifier: Modifier = Modifier) {
@@ -255,7 +255,7 @@ fun BreathingLock(modifier: Modifier = Modifier) {
         Sparkles(Modifier.fillMaxSize())
         MorphingShape(
             polygon = MaterialShapes.Cookie9Sided,
-            color = Lime,
+            color = Cream,
             outline = ink,
             modifier =
             Modifier.size(190.dp).graphicsLayer {
@@ -299,7 +299,7 @@ fun ProtectionSwitch(on: Boolean, alert: Boolean, onClick: () -> Unit, modifier:
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "knob",
     )
-    val track by animateColorAsState(if (on) Lime else Color.Transparent, label = "track")
+    val track by animateColorAsState(if (on) Cream else Color.Transparent, label = "track")
     val check = remember { Animatable(if (on) 1f else 0f) }
     val burst = remember { Animatable(0f) }
     LaunchedEffect(on) {
@@ -367,6 +367,133 @@ fun ProtectionSwitch(on: Boolean, alert: Boolean, onClick: () -> Unit, modifier:
                             drawLine(Cream, b, b + (d - b) * second, stroke, StrokeCap.Round)
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** Galleta crema con los minutos elegidos en el centro: cada cambio entra con un salto. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun MinutesShape(minutes: Int, modifier: Modifier = Modifier) {
+    val enter = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val exit = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Sparkles(Modifier.fillMaxSize())
+        MorphingShape(
+            polygon = MaterialShapes.Sunny,
+            color = Cream,
+            outline = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.size(200.dp),
+        ) {
+            AnimatedContent(
+                targetState = minutes,
+                transitionSpec = { scaleIn(enter, initialScale = 0.6f) togetherWith fadeOut(exit) },
+                label = "minutes",
+            ) { value ->
+                Text(value.toString(), style = MaterialTheme.typography.displayLarge, color = Ink)
+            }
+        }
+    }
+}
+
+/** Campana de línea sobre una galleta crema que se balancea, como si sonara. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun RingingBell(modifier: Modifier = Modifier) {
+    val swing by rememberInfiniteTransition(label = "bell").animateFloat(
+        initialValue = -12f,
+        targetValue = 12f,
+        animationSpec = infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "bellSwing",
+    )
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Sparkles(Modifier.fillMaxSize())
+        MorphingShape(
+            polygon = MaterialShapes.Cookie9Sided,
+            color = Cream,
+            outline = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.size(190.dp),
+        )
+        Canvas(Modifier.size(80.dp).graphicsLayer { rotationZ = swing }) {
+            val w = size.width
+            val h = size.height
+            val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+            val body =
+                Path().apply {
+                    moveTo(w * 0.18f, h * 0.72f)
+                    quadraticTo(w * 0.26f, h * 0.62f, w * 0.26f, h * 0.45f)
+                    quadraticTo(w * 0.28f, h * 0.16f, w * 0.5f, h * 0.15f)
+                    quadraticTo(w * 0.72f, h * 0.16f, w * 0.74f, h * 0.45f)
+                    quadraticTo(w * 0.74f, h * 0.62f, w * 0.82f, h * 0.72f)
+                    close()
+                }
+            drawPath(body, Ink, style = stroke)
+            drawLine(Ink, Offset(w * 0.5f, h * 0.06f), Offset(w * 0.5f, h * 0.15f), stroke.width, StrokeCap.Round)
+            drawArc(Ink, 0f, 180f, false, Offset(w * 0.4f, h * 0.7f), Size(w * 0.2f, h * 0.16f), style = stroke)
+        }
+    }
+}
+
+/**
+ * «¡Todo listo!»: un círculo de tinta entra con rebote, se dibuja el ✓ y saltan destellos
+ * alrededor, como el confeti de la referencia.
+ */
+@Composable
+fun AllSetBadge(visible: Boolean, modifier: Modifier = Modifier) {
+    val inspection = LocalInspectionMode.current
+    val haptics = LocalHapticFeedback.current
+    val pop = remember { Animatable(if (inspection) 1f else 0f) }
+    val check = remember { Animatable(if (inspection) 1f else 0f) }
+    val burst = remember { Animatable(if (inspection) 1f else 0f) }
+    LaunchedEffect(visible) {
+        if (!visible || inspection) return@LaunchedEffect
+        pop.snapTo(0f)
+        check.snapTo(0f)
+        burst.snapTo(0f)
+        pop.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        launch { burst.animateTo(1f, tween(1_100)) }
+        check.animateTo(1f, tween(450))
+    }
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Sparkles(Modifier.fillMaxSize().graphicsLayer { alpha = burst.value }, boost = 1.4f)
+        Canvas(Modifier.fillMaxSize()) {
+            val p = burst.value
+            if (p <= 0f || p >= 1f) return@Canvas
+            repeat(12) { i ->
+                val angle = 2 * PI * i / 12
+                val r = size.minDimension * (0.2f + 0.3f * p)
+                val c = Offset(center.x + cos(angle).toFloat() * r, center.y + sin(angle).toFloat() * r)
+                drawSpark(
+                    if (i % 3 == 0) SparkKind.Star else SparkKind.Cross,
+                    c,
+                    9.dp.toPx(),
+                    Ink.copy(alpha = 1f - p),
+                )
+            }
+        }
+        Box(
+            Modifier
+                .size(120.dp)
+                .graphicsLayer {
+                    scaleX = pop.value
+                    scaleY = pop.value
+                }
+                .background(Ink, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.size(52.dp)) {
+                val c = check.value
+                if (c <= 0f) return@Canvas
+                val a = Offset(size.width * 0.12f, size.height * 0.52f)
+                val b = Offset(size.width * 0.4f, size.height * 0.8f)
+                val d = Offset(size.width * 0.9f, size.height * 0.2f)
+                val stroke = 6.dp.toPx()
+                drawLine(Cream, a, a + (b - a) * (c / 0.4f).coerceAtMost(1f), stroke, StrokeCap.Round)
+                if (c > 0.4f) {
+                    drawLine(Cream, b, b + (d - b) * ((c - 0.4f) / 0.6f).coerceAtMost(1f), stroke, StrokeCap.Round)
                 }
             }
         }

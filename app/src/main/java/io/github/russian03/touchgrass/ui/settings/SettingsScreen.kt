@@ -22,11 +22,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -46,10 +46,11 @@ import io.github.russian03.touchgrass.service.ProtectionState
 import io.github.russian03.touchgrass.ui.common.Card
 import io.github.russian03.touchgrass.ui.common.LimitPicker
 import io.github.russian03.touchgrass.ui.common.PrimaryButton
+import io.github.russian03.touchgrass.ui.common.PrivacyPolicyDialog
 import io.github.russian03.touchgrass.ui.common.ProtectionCard
-import io.github.russian03.touchgrass.ui.common.SystemSettings
 import io.github.russian03.touchgrass.ui.common.TopBar
 import io.github.russian03.touchgrass.ui.common.firstDayOf
+import io.github.russian03.touchgrass.ui.common.rememberActivateProtection
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
 import io.github.russian03.touchgrass.ui.home.previewBudget
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
@@ -62,10 +63,11 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val protection = rememberProtectionState()
+    var showPolicy by rememberSaveable { mutableStateOf(false) }
     SettingsContent(
         state = state,
-        protection = rememberProtectionState(),
+        protection = protection,
         focusProtection = focusProtection,
         onBack = onBack,
         onNameChange = viewModel::onNameChange,
@@ -73,8 +75,11 @@ fun SettingsScreen(
         onDraftChange = viewModel::onDraftChange,
         onSave = viewModel::save,
         onCancelPending = viewModel::cancelPending,
-        onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
+        // Pasa antes por el aviso del servicio si aún no se ha aceptado.
+        onOpenAccessibilitySettings = rememberActivateProtection(protection),
+        onOpenPrivacy = { showPolicy = true },
     )
+    if (showPolicy) PrivacyPolicyDialog(onDismiss = { showPolicy = false })
 }
 
 @Composable
@@ -89,6 +94,7 @@ private fun SettingsContent(
     onSave: () -> Unit,
     onCancelPending: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
+    onOpenPrivacy: () -> Unit,
 ) {
     var confirmLower by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
@@ -132,6 +138,9 @@ private fun SettingsContent(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                TextButton(onClick = onOpenPrivacy, modifier = Modifier.padding(top = 4.dp)) {
+                    Text(stringResource(R.string.privacy_open))
+                }
             }
 
             Text(
@@ -305,6 +314,7 @@ private fun SettingsPreview() {
             onSave = {},
             onCancelPending = {},
             onOpenAccessibilitySettings = {},
+            onOpenPrivacy = {},
         )
     }
 }
@@ -329,6 +339,7 @@ private fun SettingsPendingPreview() {
             onSave = {},
             onCancelPending = {},
             onOpenAccessibilitySettings = {},
+            onOpenPrivacy = {},
         )
     }
 }

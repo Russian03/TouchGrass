@@ -19,7 +19,30 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 12     | `bloque-12/diseno-v1`         | Primer diseño nuevo: tema lima, Montserrat, Material 3 Expressive; primeros pasos e Inicio | —      |
 | 13     | `bloque-13/logo-y-semana`     | Logo y pantalla de carga animada, saludo con nombre, «Mi semana» con caras | —      |
 | 14     | `bloque-14/logo-final`        | Logo definitivo y pantalla de carga con círculos que lo rellenan | —      |
+| 15     | `bloque-15/reclamar-dia`      | Primer acceso del día: las caras de los días que faltaban, días sin protección | —      |
+| 16     | `bloque-16/primeros-pasos`    | Primeros pasos nuevos, consentimiento de accesibilidad y política de privacidad | —      |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
 | —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
 | —      | después                       | Reglas para YouTube                                                       | —      |
 | —      | después                       | Diseño: revisar el aspecto visual de la app                               | —      |
+
+## Publicar en Google Play
+
+Lo que ya está en la app:
+
+- Aviso destacado del servicio de accesibilidad justo antes de pedir activarlo, con «Acepto» y
+  «No, gracias». Cualquier «Activar» de la app vuelve a enseñarlo si no se ha aceptado.
+- Política de privacidad dentro de la app (Ajustes y el aviso); el texto está en
+  [`PRIVACIDAD.md`](PRIVACIDAD.md).
+- Permiso de avisos pedido en su paso, con explicación (Android 13+).
+- `isAccessibilityTool="false"` y sin permiso de Internet.
+
+Lo que se hace en Play Console:
+
+- [ ] Publicar la política en una URL pública (p. ej. GitHub Pages) y ponerla en la ficha.
+- [ ] Declaración de la API de accesibilidad, con un vídeo corto del aviso, el consentimiento y el
+  bloqueo funcionando.
+- [ ] Seguridad de los datos: no se recogen ni se comparten datos (todo se queda en el móvil).
+- [ ] Clasificación de contenido y público objetivo (13 años o más).
+- [ ] Acceso a la app para la revisión: no hay cuenta; explicar cómo activar la protección.
+- [ ] Nivel de API objetivo el que pida Play en ese momento.
