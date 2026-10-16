@@ -10,6 +10,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -90,14 +93,12 @@ import io.github.russian03.touchgrass.ui.common.rememberProtectionState
 import io.github.russian03.touchgrass.ui.design.BumpCardShape
 import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.MixedTitle
-import io.github.russian03.touchgrass.ui.design.PointingHand
 import io.github.russian03.touchgrass.ui.design.Sparkles
 import io.github.russian03.touchgrass.ui.design.Sprout
 import io.github.russian03.touchgrass.ui.design.SproutGeometry
 import io.github.russian03.touchgrass.ui.design.SproutMood
 import io.github.russian03.touchgrass.ui.design.StatusRow
 import io.github.russian03.touchgrass.ui.design.fadingEdges
-import io.github.russian03.touchgrass.ui.design.handAppear
 import io.github.russian03.touchgrass.ui.theme.CardBeige
 import io.github.russian03.touchgrass.ui.theme.CardBeigeEdge
 import io.github.russian03.touchgrass.ui.theme.Ink
@@ -113,8 +114,16 @@ import kotlinx.coroutines.launch
  */
 private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Disclosure, Activate, Done }
 
+/** Fundido del resaltado entre apartados de «Cómo funciona»: lento, para que no parpadee. */
+private const val POINT_FADE_MS = 600
+
 /** Cada punto de «Cómo funciona» se queda en primer plano este tiempo antes de pasar al siguiente. */
 private const val HOW_CYCLE_MS = 2_600L
+
+/** Cambio de paso en la tarjeta: lo que tarda en irse el texto, en llegar el nuevo y en cambiar de tamaño. */
+private const val CARD_FADE_OUT_MS = 260
+private const val CARD_FADE_IN_MS = 420
+private const val CARD_RESIZE_MS = 480
 
 /** Bulto de la tarjeta: radio del círculo y cuánto sobresale por encima del borde. */
 private val BumpRadius = 46.dp
@@ -407,6 +416,7 @@ private fun stepCard(
                     )
                 points.forEachIndexed { i, (title, body) ->
                     Point(
+                        number = i + 1,
                         title = title,
                         body = body,
                         highlighted = i == howActive,
@@ -514,9 +524,10 @@ private fun SetupCard(
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val cardMax = maxHeight
         val cardColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceContainer else CardBeige
-        val enter = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
-        val exit = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
-        val resize = MaterialTheme.motionScheme.defaultSpatialSpec<IntSize>()
+        // Fundido cruzado largo: el texto viejo se va mientras el nuevo ya está entrando, sin hueco.
+        val enter = tween<Float>(CARD_FADE_IN_MS, delayMillis = CARD_FADE_OUT_MS / 2, easing = LinearOutSlowInEasing)
+        val exit = tween<Float>(CARD_FADE_OUT_MS, easing = FastOutLinearInEasing)
+        val resize = tween<IntSize>(CARD_RESIZE_MS, easing = FastOutSlowInEasing)
         Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().heightIn(max = cardMax)) {
             Surface(
                 color = cardColor,
@@ -527,7 +538,12 @@ private fun SetupCard(
                     targetState = step,
                     contentAlignment = Alignment.TopCenter,
                     transitionSpec = {
-                        (fadeIn(enter) + slideInVertically(tween(260)) { it / 16 }) togetherWith
+                        (
+                            fadeIn(enter) +
+                                slideInVertically(tween(CARD_FADE_IN_MS, easing = LinearOutSlowInEasing)) {
+                                    it / 24
+                                }
+                            ) togetherWith
                             fadeOut(exit) using SizeTransform(clip = false) { _, _ -> resize }
                     },
                     label = "setupCard",
@@ -670,16 +686,23 @@ private fun ActivateRows(protection: ProtectionState, showXiaomiTip: Boolean, ac
 }
 
 /**
- * Apartado de «Cómo funciona». El que toca se resalta en un beige más oscuro que la tarjeta y lleva
- * a su izquierda la mano señalándolo, que aparece creciendo con un pequeño giro.
+ * Apartado de «Cómo funciona», con su número. El que toca se resalta en un beige más oscuro que la
+ * tarjeta y su número pasa a tinta; el cambio es un fundido lento, para que no parpadee.
  */
 @Composable
-private fun Point(title: Int, body: Int, highlighted: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun Point(
+    number: Int,
+    title: Int,
+    body: Int,
+    highlighted: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val dark = isSystemInDarkTheme()
     val shade = if (dark) Color.White.copy(alpha = 0.08f) else CardBeigeEdge.copy(alpha = 0.6f)
     val background by animateColorAsState(
         targetValue = if (highlighted) shade else Color.Transparent,
-        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        animationSpec = tween(POINT_FADE_MS),
         label = "pointBackground",
     )
     Row(
@@ -692,14 +715,7 @@ private fun Point(title: Int, body: Int, highlighted: Boolean, onClick: () -> Un
             .clickable(onClick = onClick)
             .padding(12.dp),
     ) {
-        Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-            if (highlighted) {
-                PointingHand(
-                    fill = if (dark) MaterialTheme.colorScheme.surfaceContainer else CardBeige,
-                    modifier = Modifier.handAppear(),
-                )
-            }
-        }
+        NumberCircle(number, highlighted)
         Column(Modifier.padding(start = 12.dp)) {
             Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
             Text(
@@ -709,6 +725,25 @@ private fun Point(title: Int, body: Int, highlighted: Boolean, onClick: () -> Un
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
+    }
+}
+
+/** Número del apartado: en tinta si le toca, en beige si no. */
+@Composable
+private fun NumberCircle(number: Int, highlighted: Boolean) {
+    val ink = MaterialTheme.colorScheme.onBackground
+    val circle by animateColorAsState(
+        targetValue = if (highlighted) ink else CardBeigeEdge,
+        animationSpec = tween(POINT_FADE_MS),
+        label = "numberCircle",
+    )
+    val text by animateColorAsState(
+        targetValue = if (highlighted) MaterialTheme.colorScheme.background else Ink,
+        animationSpec = tween(POINT_FADE_MS),
+        label = "numberText",
+    )
+    Box(Modifier.size(32.dp).background(circle, CircleShape), contentAlignment = Alignment.Center) {
+        Text(number.toString(), color = text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
