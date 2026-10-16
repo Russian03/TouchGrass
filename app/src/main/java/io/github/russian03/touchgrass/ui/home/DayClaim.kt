@@ -57,6 +57,8 @@ import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.DayReveal
 import io.github.russian03.touchgrass.ui.design.LocalSplashGone
 import io.github.russian03.touchgrass.ui.design.mixedWeights
+import io.github.russian03.touchgrass.ui.theme.ChunkyNeutral
+import io.github.russian03.touchgrass.ui.theme.ChunkyNeutralEdge
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.LocalDate
 import java.util.Locale
@@ -77,10 +79,6 @@ private const val BETWEEN_DAYS_MS = 150L
 private const val PHRASE_MS = 400
 private const val BUTTONS_AFTER_PHRASE_MS = 500L
 private const val LEAVE_MS = 650
-
-/** «Volver» cuando lo principal es activar la protección: crema oscuro con su canto. */
-private val Neutral = Color(0xFFECE8DB)
-private val NeutralEdge = Color(0xFFCDC8B8)
 
 /**
  * El recuadro, la frase y los botones solo se ven en la mitad final del zoom: al volver
@@ -326,8 +324,8 @@ private fun ClaimCard(
                 ChunkyPillButton(
                     text = stringResource(R.string.claim_back),
                     onClick = onBack,
-                    containerColor = Neutral,
-                    edgeColor = NeutralEdge,
+                    containerColor = ChunkyNeutral,
+                    edgeColor = ChunkyNeutralEdge,
                 )
                 ChunkyPillButton(
                     text = stringResource(R.string.claim_enable),

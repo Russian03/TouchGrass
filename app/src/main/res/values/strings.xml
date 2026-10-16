@@ -218,7 +218,14 @@
     <string name="onboarding_disclosure_never_body">Tus mensajes, publicaciones, nombres, contraseñas ni nada de otras apps.</string>
     <string name="onboarding_disclosure_local_title">Nada sale del móvil</string>
     <string name="onboarding_disclosure_local_body">La app no tiene permiso de Internet. Tu nombre, tu límite y tu uso se guardan solo en este dispositivo, sin copias en la nube.</string>
-    <string name="onboarding_disclosure_accept">Entendido</string>
+    <string name="onboarding_disclosure_accept">Acepto</string>
+    <string name="onboarding_disclosure_decline">No, gracias</string>
+    <string name="onboarding_disclosure_consent">Al aceptar, das tu permiso para que TouchGrass use el servicio de accesibilidad solo para esto. Puedes quitarlo cuando quieras en los ajustes de Accesibilidad.</string>
+    <string name="privacy_open">Política de privacidad</string>
+    <string name="onboarding_notify_title">¿Te *avisamos*?</string>
+    <string name="onboarding_notify_body">Una vez al mes, cuando esté listo tu resumen, te llegará un aviso. Nada más: sin recordatorios ni publicidad.</string>
+    <string name="onboarding_notify_allow">Permitir avisos</string>
+    <string name="onboarding_notify_later">Ahora no</string>
     <string name="onboarding_limit_title">¿Cuántos *minutos* al día?</string>
     <string name="onboarding_limit_body">Es tu límite para este mes: los minutos que podrás desbloquear cada día.</string>
     <string name="onboarding_limit_note">Podrás bajarlo cuando quieras. Para subirlo tendrás que esperar al mes siguiente.</string>
@@ -226,6 +233,10 @@
     <string name="onboarding_activate_title">Activa la *protección*</string>
     <string name="onboarding_activate_body">Busca TouchGrass en la lista de Accesibilidad y actívalo. Después vuelve aquí.</string>
     <string name="onboarding_restricted_hint">¿No te deja activarlo? En Android 13 o superior, abre los ajustes de la app, pulsa ⋮ y elige «Permitir ajustes restringidos».</string>
+    <string name="onboarding_activate_open">Abrir Accesibilidad</string>
+    <string name="onboarding_done_title">¡Todo *listo*!</string>
+    <string name="onboarding_done_on">El scroll ya está bloqueado y cada día a las 8:00 tendrás tus minutos. A tocar hierba.</string>
+    <string name="onboarding_done_off">Sin la protección no se bloquea nada. Actívala cuando quieras desde Inicio.</string>
     <string name="onboarding_finish">Ir a TouchGrass</string>
     <string name="onboarding_finish_later">Lo haré más tarde</string>
 
@@ -306,4 +317,18 @@
     <string name="notification_channel_monthly">Resumen del mes</string>
     <string name="notification_monthly_title">Ya tienes tus estadísticas de %1$s</string>
     <string name="notification_monthly_body">Mira cuánto tiempo pediste y compáralo con otros meses.</string>
+
+    <!-- Política de privacidad (la misma que docs/PRIVACIDAD.md). -->
+    <string name="privacy_updated">Última actualización: 16 de octubre de 2026</string>
+    <string name="privacy_intro">TouchGrass es una app para usar menos el scroll de otras apps. Funciona entera en tu móvil: no tiene cuentas, ni anuncios, ni permiso de Internet.</string>
+    <string name="privacy_service_title">Servicio de accesibilidad</string>
+    <string name="privacy_service_body">Con tu permiso, TouchGrass usa el servicio de accesibilidad de Android solo para saber cuándo entras en el scroll de las apps que bloquea (ahora, Instagram y TikTok) y taparlo con una pausa. Mira los identificadores de los botones de esas apps, el nombre de algunas pestañas (como «Para ti») y si has vuelto a la pantalla de inicio. Nunca lee tus mensajes, publicaciones, nombres, contraseñas ni nada de otras apps, y no guarda lo que hay en tu pantalla.</string>
+    <string name="privacy_data_title">Qué se guarda</string>
+    <string name="privacy_data_body">En tu móvil se guardan tu nombre (si lo das), tu límite diario, los minutos que pides con su motivo y cuántas veces salta la pausa en cada app, para enseñarte tus estadísticas.</string>
+    <string name="privacy_share_title">Con quién se comparte</string>
+    <string name="privacy_share_body">Con nadie. La app no tiene permiso de Internet, así que ningún dato sale del móvil: no hay servidores, analítica ni copias en la nube.</string>
+    <string name="privacy_delete_title">Cómo borrarlo</string>
+    <string name="privacy_delete_body">Puedes desactivar el servicio en los ajustes de Accesibilidad cuando quieras. Para borrar todos los datos, desinstala la app o borra sus datos desde los ajustes de Android.</string>
+    <string name="privacy_contact_title">Contacto</string>
+    <string name="privacy_contact_body">Si tienes dudas, abre una incidencia en el repositorio de TouchGrass en GitHub (Russian03/TouchGrass).</string>
 </resources>

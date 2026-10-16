@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.catch
 
 /**
  * Perfil guardado en el dispositivo. Solo lo usa la app (el servicio no lo lee), así que basta un
- * DataStore normal. Si no se puede guardar, Inicio saluda sin nombre.
+ * DataStore normal. Si no se puede guardar, Inicio saluda sin nombre y el aviso del servicio se
+ * vuelve a enseñar.
  */
 @Singleton
 class ProfileRepository internal constructor(private val store: DataStore<Profile>) {
@@ -30,6 +31,14 @@ class ProfileRepository internal constructor(private val store: DataStore<Profil
     /** Guarda el nombre (limpio); vacío lo borra. Devuelve `false` si no se ha podido guardar. */
     suspend fun setName(raw: String): Boolean = try {
         store.updateData { it.copy(name = Profile.cleanName(raw)) }
+        true
+    } catch (_: IOException) {
+        false
+    }
+
+    /** Guarda que ha aceptado el aviso del servicio de accesibilidad. `false` si no se ha podido. */
+    suspend fun acceptAccessibility(): Boolean = try {
+        store.updateData { it.copy(accessibilityConsent = true) }
         true
     } catch (_: IOException) {
         false
