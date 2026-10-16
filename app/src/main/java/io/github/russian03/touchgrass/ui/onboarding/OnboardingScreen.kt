@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
@@ -71,8 +72,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.service.ProtectionState
-import io.github.russian03.touchgrass.ui.common.DarkChunky
-import io.github.russian03.touchgrass.ui.common.DarkChunkyEdge
 import io.github.russian03.touchgrass.ui.common.DisclosurePoints
 import io.github.russian03.touchgrass.ui.common.LIMIT_RANGE
 import io.github.russian03.touchgrass.ui.common.LimitPicker
@@ -89,9 +88,11 @@ import io.github.russian03.touchgrass.ui.design.SproutGeometry
 import io.github.russian03.touchgrass.ui.design.SproutMood
 import io.github.russian03.touchgrass.ui.design.StatusRow
 import io.github.russian03.touchgrass.ui.design.staggerIn
-import io.github.russian03.touchgrass.ui.theme.Cream
+import io.github.russian03.touchgrass.ui.theme.ChunkyNeutral
+import io.github.russian03.touchgrass.ui.theme.ChunkyNeutralEdge
 import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.Lime
+import io.github.russian03.touchgrass.ui.theme.LimeDeep
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -194,8 +195,8 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
 }
 
 /**
- * Primeros pasos con el estilo de la referencia: fondo lima entero, el gráfico arriba y, abajo, una
- * tarjeta oscura con el título, el texto y los botones con relieve. Debajo, un punto por paso.
+ * Primeros pasos con la paleta de la app: fondo crema y una tarjeta centrada con el personaje en un
+ * bulto, el título, el texto y los botones con relieve. Debajo, un punto por paso.
  */
 @Composable
 private fun OnboardingContent(
@@ -222,7 +223,7 @@ private fun OnboardingContent(
     }
     BackHandler(enabled = pager.currentPage > 0) { back() }
 
-    Surface(color = Lime, contentColor = Ink, modifier = Modifier.fillMaxSize()) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Box(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp)) {
                 if (pager.currentPage > 0 && current != Step.Done) {
@@ -445,8 +446,7 @@ private class SproutState(
 )
 
 /**
- * Esqueleto de cada paso: una tarjeta oscura (con el tema noche, para que todo lo de dentro tenga
- * buen contraste) centrada en el lima, con un bulto arriba donde se asoma el personaje; la ramita
+ * Esqueleto de cada paso: una tarjeta blanca centrada en el crema de la app, con un bulto arriba donde se asoma el personaje; la ramita
  * sale por encima del bulto. Si el contenido no cabe, se desliza dentro y los botones se quedan
  * siempre a la vista.
  */
@@ -464,79 +464,76 @@ private fun SetupPage(
 ) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val cardMax = maxHeight
-        TouchGrassTheme(darkTheme = true) {
-            val cardColor = MaterialTheme.colorScheme.background
-            Box(
-                Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth()
-                    .heightIn(max = cardMax)
-                    .staggerIn(index = 0, visible = visible, offsetY = 32.dp, fromScale = 1f),
+        val cardColor = MaterialTheme.colorScheme.surfaceContainer
+        Box(
+            Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .heightIn(max = cardMax)
+                .staggerIn(index = 0, visible = visible, offsetY = 32.dp, fromScale = 1f),
+        ) {
+            Surface(
+                color = cardColor,
+                shape = BumpCardShape(bump = BumpRadius, rise = BumpRise),
+                modifier = Modifier.padding(top = TwigRoom).fillMaxWidth(),
             ) {
-                Surface(
-                    color = cardColor,
-                    shape = BumpCardShape(bump = BumpRadius, rise = BumpRise),
-                    modifier = Modifier.padding(top = TwigRoom).fillMaxWidth(),
-                ) {
-                    Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = ContentTop)) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
-                        ) {
-                            MixedTitle(
-                                text = title,
-                                style = MaterialTheme.typography.headlineSmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            if (body != null) {
-                                Text(
-                                    text = body,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                )
-                            }
-                            content()
-                        }
-                        if (error) {
-                            Text(
-                                text = stringResource(R.string.error_saving),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                            )
-                        }
-                        ChunkyPillButton(
-                            text = primary.first,
-                            onClick = { if (!busy) primary.second() },
-                            modifier = Modifier.padding(top = 20.dp),
+                Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = ContentTop)) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    ) {
+                        MixedTitle(
+                            text = title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
                         )
-                        if (secondary != null) {
-                            ChunkyPillButton(
-                                text = secondary.first,
-                                onClick = { if (!busy) secondary.second() },
-                                containerColor = DarkChunky,
-                                edgeColor = DarkChunkyEdge,
-                                contentColor = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(top = 12.dp),
+                        if (body != null) {
+                            Text(
+                                text = body,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                             )
                         }
+                        content()
+                    }
+                    if (error) {
+                        Text(
+                            text = stringResource(R.string.error_saving),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        )
+                    }
+                    ChunkyPillButton(
+                        text = primary.first,
+                        onClick = { if (!busy) primary.second() },
+                        modifier = Modifier.padding(top = 20.dp),
+                    )
+                    if (secondary != null) {
+                        ChunkyPillButton(
+                            text = secondary.first,
+                            onClick = { if (!busy) secondary.second() },
+                            containerColor = ChunkyNeutral,
+                            edgeColor = ChunkyNeutralEdge,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
                     }
                 }
-                if (sprout.sparkle) {
-                    Sparkles(Modifier.align(Alignment.TopCenter).size(240.dp, 130.dp), color = Cream, boost = 1.3f)
-                }
-                Sprout(
-                    mood = sprout.mood,
-                    look = sprout.look,
-                    bounce = sprout.bounce,
-                    faceColor = cardColor,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = SproutTop).width(SproutWidth),
-                )
             }
+            if (sprout.sparkle) {
+                Sparkles(Modifier.align(Alignment.TopCenter).size(240.dp, 130.dp), color = LimeDeep, boost = 1.3f)
+            }
+            Sprout(
+                mood = sprout.mood,
+                look = sprout.look,
+                bounce = sprout.bounce,
+                faceColor = cardColor,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = SproutTop).width(SproutWidth),
+            )
         }
     }
 }
@@ -560,6 +557,7 @@ private fun PageDots(count: Int, current: Int, label: String) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().height(48.dp).semantics { contentDescription = label },
     ) {
+        val dotColor = MaterialTheme.colorScheme.onBackground
         repeat(count) { i ->
             val width by animateDpAsState(
                 targetValue = if (i == current) 24.dp else 8.dp,
@@ -570,7 +568,7 @@ private fun PageDots(count: Int, current: Int, label: String) {
                 Modifier
                     .height(8.dp)
                     .width(width)
-                    .background(Ink.copy(alpha = if (i == current) 1f else 0.3f), CircleShape),
+                    .background(dotColor.copy(alpha = if (i == current) 1f else 0.3f), CircleShape),
             )
         }
     }
@@ -656,7 +654,7 @@ private fun Point(
 ) {
     val background by animateColorAsState(
         targetValue =
-        if (highlighted) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background,
+        if (highlighted) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
         animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "pointBackground",
     )

@@ -12,6 +12,10 @@ val InkSoft = Color(0xFF4A4A45)
 val InkMuted = Color(0xFF8A8A80)
 val Alert = Color(0xFFE5533D)
 
+/** Botón con relieve secundario («Volver», «Ahora no»): crema oscuro con su canto. */
+val ChunkyNeutral = Color(0xFFECE8DB)
+val ChunkyNeutralEdge = Color(0xFFCDC8B8)
+
 /** Gris apagado de los días malos en «Mi semana», en lugar del lima. */
 val Dull = Color(0xFFC4C2B8)
 

@@ -24,7 +24,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +43,8 @@ import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.MixedTitle
 import io.github.russian03.touchgrass.ui.design.StatusRow
 import io.github.russian03.touchgrass.ui.design.staggerIn
+import io.github.russian03.touchgrass.ui.theme.ChunkyNeutral
+import io.github.russian03.touchgrass.ui.theme.ChunkyNeutralEdge
 import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
@@ -53,10 +54,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-/** Botón secundario sobre fondo oscuro: gris noche con su canto, como «Volver» en el pop-up del día. */
-val DarkChunky = Color(0xFF2E302B)
-val DarkChunkyEdge = Color(0xFF0B0C0A)
 
 /**
  * Aviso destacado que exige Google Play antes de pedir el servicio de accesibilidad: qué mira, qué
@@ -114,7 +111,7 @@ fun ConsentDialog(onAccept: () -> Unit, onDecline: () -> Unit) {
         onDismissRequest = onDecline,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
-        TouchGrassTheme(darkTheme = true) { ConsentContent(onAccept, onDecline) }
+        TouchGrassTheme { ConsentContent(onAccept, onDecline) }
     }
 }
 
@@ -139,9 +136,8 @@ private fun ConsentContent(onAccept: () -> Unit, onDecline: () -> Unit) {
             ChunkyPillButton(
                 text = stringResource(R.string.onboarding_disclosure_decline),
                 onClick = onDecline,
-                containerColor = DarkChunky,
-                edgeColor = DarkChunkyEdge,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                containerColor = ChunkyNeutral,
+                edgeColor = ChunkyNeutralEdge,
                 modifier = Modifier.padding(top = 16.dp),
             )
             ChunkyPillButton(
@@ -204,5 +200,5 @@ fun rememberActivateProtection(protection: ProtectionState): () -> Unit {
 @Preview(showSystemUi = true)
 @Composable
 private fun ConsentPreview() {
-    TouchGrassTheme(darkTheme = true) { ConsentContent({}, {}) }
+    TouchGrassTheme { ConsentContent({}, {}) }
 }
