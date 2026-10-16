@@ -156,8 +156,16 @@ object StatsPolicy {
     /** Días de una semana. */
     const val WEEK_DAYS = 7
 
-    /** Fila de [day], vacía si ese día no tiene nada apuntado. */
-    private fun rowAt(state: StatsState, day: LocalDate) = DayRow(day, state.days[day.toString()] ?: DayStats())
+    /**
+     * Fila de [day], vacía si ese día no tiene nada apuntado. Si la protección sigue sin funcionar
+     * desde [StatsState.protectionOffSince], esos días ya cuentan como sin protección.
+     */
+    private fun rowAt(state: StatsState, day: LocalDate): DayRow {
+        val stats = state.days[day.toString()] ?: DayStats()
+        val offSince = state.protectionOffSince?.let(LocalDate::parse)
+        val off = stats.protectionOff || (offSince != null && day >= offSince)
+        return DayRow(day, if (off == stats.protectionOff) stats else stats.copy(protectionOff = true))
+    }
 
     /**
      * Días seguidos de poco uso que terminan en [day] (incluido), sin contar los anteriores a
@@ -201,6 +209,49 @@ object StatsPolicy {
                 WeekDay(day, faceAt(state, day), streakAt(state, day), row.unlockedMinutes, row.stats.limitMinutes)
             }
         }
+    }
+
+    /**
+     * Días que aún no se han reclamado al abrir la app: desde el siguiente al último reclamado
+     * hasta ayer, sin salir de «Mi semana» ni de los días con estadísticas. Si nunca se ha
+     * reclamado nada, solo ayer.
+     */
+    fun unclaimedDays(state: StatsState, today: LocalDate): List<LocalDate> {
+        val since = state.since?.let(LocalDate::parse) ?: return emptyList()
+        val yesterday = today.minusDays(1)
+        val firstShown =
+            today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(WEEKS_SHOWN - 1L)
+        val afterClaimed = state.lastDayClaimed?.let(LocalDate::parse)?.plusDays(1) ?: yesterday
+        val from = maxOf(afterClaimed, since, firstShown)
+        return generateSequence(from) { it.plusDays(1) }.takeWhile { it <= yesterday }.toList()
+    }
+
+    /** Guarda que ya se han enseñado las caras hasta [day]. */
+    fun markClaimed(state: StatsState, day: LocalDate): StatsState =
+        if (state.lastDayClaimed?.let(LocalDate::parse)?.let { it >= day } == true) {
+            state
+        } else {
+            state.copy(lastDayClaimed = day.toString())
+        }
+
+    /**
+     * La protección ha dejado de funcionar [today]: lo marca y apunta desde cuándo. Si aún no se
+     * había empezado a contar (nunca ha funcionado), no hay nada que marcar.
+     */
+    fun markProtectionOff(state: StatsState, today: LocalDate): StatsState {
+        if (state.since == null) return state
+        val marked = updateDay(state, today) { it.copy(protectionOff = true) }
+        return if (state.protectionOffSince != null) marked else marked.copy(protectionOffSince = today.toString())
+    }
+
+    /** La protección vuelve a funcionar [today]: marca todos los días que estuvo quitada. */
+    fun markProtectionOn(state: StatsState, today: LocalDate): StatsState {
+        val offSince = state.protectionOffSince?.let(LocalDate::parse) ?: return state
+        val marked =
+            generateSequence(minOf(offSince, today)) { it.plusDays(1) }
+                .takeWhile { it <= today }
+                .fold(state) { acc, day -> updateDay(acc, day) { it.copy(protectionOff = true) } }
+        return marked.copy(protectionOffSince = null)
     }
 
     private fun updateDay(state: StatsState, day: LocalDate, change: (DayStats) -> DayStats): StatsState {

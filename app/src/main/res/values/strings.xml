@@ -106,6 +106,91 @@
     <string name="week_day_unlocked">%1$s: %2$d min desbloqueados</string>
     <string name="week_day_exhausted">%1$s: saldo agotado</string>
     <string name="week_day_untracked">%1$s: sin datos</string>
+    <string name="week_day_disabled">%1$s: protección quitada</string>
+    <string name="week_day_pending">%1$s: por descubrir</string>
+
+    <!--
+        Primer acceso del día: «Mi semana» enseña las caras de los días que faltaban y, debajo, una
+        frase según cómo fue ayer. Sale una distinta cada día. Marcadores: %1$d minutos usados,
+        %2$d límite del día, %3$d días de racha. Lo que va entre asteriscos, en negrita.
+    -->
+    <string-array name="claim_mythic">
+        <item>*%3$d días* seguidos con el scroll a raya. Esto ya es un hábito.</item>
+        <item>*%3$d días* seguidos y sigues sumando. El mundo real te lo agradece.</item>
+        <item>Llevas *%3$d días* casi sin scroll. Pocas personas llegan hasta aquí.</item>
+        <item>*%3$d días* seguidos eligiendo bien. Ya ni te acuerdas de los Reels.</item>
+        <item>Racha de *%3$d días*. Tu yo de hace un mes no se lo creería.</item>
+    </string-array>
+    <string-array name="claim_legend">
+        <item>*%3$d días* seguidos usando muy poco el scroll.</item>
+        <item>*%3$d días* con el control en tus manos. Sigue así.</item>
+        <item>Ya van *%3$d días*. Lo difícil ya lo has hecho.</item>
+        <item>*%3$d días* seguidos tocando más hierba que pantalla.</item>
+        <item>Racha de *%3$d días*. Esto empieza a ser costumbre.</item>
+    </string-array>
+    <string-array name="claim_cool">
+        <item>*%3$d días* seguidos con poco scroll. Sigue así.</item>
+        <item>*%3$d días* seguidos. A la semana, racha de leyenda.</item>
+        <item>Ya llevas *%3$d días* con el scroll a raya. Mantén el ritmo.</item>
+        <item>Racha de *%3$d días*. Cada día cuesta un poco menos.</item>
+        <item>*%3$d días* seguidos eligiendo el mundo real.</item>
+    </string-array>
+    <string-array name="claim_free">
+        <item>Ayer no pediste *ni un minuto* de scroll.</item>
+        <item>*Ni un minuto* de scroll. Ayer ganó el mundo real.</item>
+        <item>Ayer el scroll *no tuvo ninguna oportunidad*.</item>
+        <item>Un día entero *sin pedir tiempo*. Repítelo hoy y empieza una racha.</item>
+        <item>*Cero minutos* de scroll. Así se toca hierba.</item>
+    </string-array>
+    <string-array name="claim_happy">
+        <item>Ayer solo usaste *%1$d de %2$d min*.</item>
+        <item>*%1$d de %2$d min*. Te sobró casi todo el saldo.</item>
+        <item>Solo *%1$d min* de scroll. Lo justo y nada más.</item>
+        <item>Usaste *%1$d de %2$d min*. Otro día así y empiezas una racha.</item>
+        <item>*%1$d min* y a otra cosa. Así se hace.</item>
+    </string-array>
+    <string-array name="claim_calm">
+        <item>Usaste *%1$d de %2$d min*. Vas por buen camino.</item>
+        <item>*%1$d de %2$d min*: menos de la mitad. Hoy puedes hacerlo aún mejor.</item>
+        <item>Te quedaste en *%1$d de %2$d min*. Un pasito más y es un gran día.</item>
+        <item>*%1$d min* de scroll. Te sobró más de la mitad del saldo.</item>
+        <item>Usaste *%1$d de %2$d min*. Bien llevado.</item>
+    </string-array>
+    <string-array name="claim_neutral">
+        <item>Usaste *%1$d de %2$d min*. Hoy puedes bajar un poco.</item>
+        <item>*%1$d de %2$d min*. Hoy, prueba a pedir un poco menos.</item>
+        <item>Ayer fueron *%1$d min* de scroll. Hoy tienes otra oportunidad.</item>
+        <item>*%1$d de %2$d min*. Nada grave, pero hoy puede ser mejor.</item>
+        <item>Usaste *%1$d de %2$d min*. ¿Y si hoy lo dejas en la mitad?</item>
+    </string-array>
+    <string-array name="claim_tight">
+        <item>*%1$d de %2$d min*. Hoy, a por menos.</item>
+        <item>Te quedaste a nada del límite: *%1$d de %2$d min*. Hoy, con más margen.</item>
+        <item>*%1$d de %2$d min*. Bien por no agotarlo, pero hoy puedes más.</item>
+        <item>Usaste *%1$d de %2$d min*. Hoy, intenta dejar algo de saldo.</item>
+        <item>*%1$d min de %2$d*. Lo salvaste por poco: hoy, más tranquilo.</item>
+    </string-array>
+    <string-array name="claim_sad">
+        <item>Hoy es un nuevo día: *¡a por todas!*</item>
+        <item>Todos tenemos días así. Hoy empiezas de cero con *el saldo lleno*.</item>
+        <item>Lo importante es *lo que hagas hoy*. ¡Tú puedes!</item>
+        <item>Un mal día no borra lo que has conseguido. *Hoy, a recuperar.*</item>
+        <item>Respira: hoy el saldo está lleno y *la decisión es tuya*.</item>
+    </string-array>
+    <!-- Ayer se quitó la protección. -->
+    <string-array name="claim_disabled">
+        <item>No intentes hacer trampa *quitando los permisos*: el scroll sigue ahí y tú también.</item>
+        <item>Ayer quitaste la protección. *Sin trampas*, que te conocemos.</item>
+        <item>Quitar los permisos *no cuenta como día bueno*. Hoy, con la protección puesta.</item>
+    </string-array>
+    <!-- Otro de los días que faltaban se quitó la protección: %1$s es ese día («el martes»). -->
+    <string-array name="claim_disabled_before">
+        <item>Veo que %1$s *quitaste los permisos*. Sin trampas: así no cuenta.</item>
+        <item>Veo que %1$s *quitaste la protección*. Que no se repita.</item>
+        <item>Veo que %1$s hiciste trampa *quitando los permisos*. Hoy, con la protección puesta.</item>
+    </string-array>
+    <string name="claim_back">Volver</string>
+    <string name="claim_enable">Activar protección</string>
     <string name="onboarding_protection_on">¡Listo! El scroll ya está bloqueado.</string>
 
     <!-- Primeros pasos -->

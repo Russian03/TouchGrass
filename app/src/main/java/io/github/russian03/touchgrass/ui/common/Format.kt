@@ -17,6 +17,7 @@ private val MONTH = DateTimeFormatter.ofPattern("LLLL", SPANISH)
 private val MONTH_YEAR = DateTimeFormatter.ofPattern("LLLL 'de' yyyy", SPANISH)
 private val MONTH_SHORT = DateTimeFormatter.ofPattern("LLL", SPANISH)
 private val WEEKDAY_DAY = DateTimeFormatter.ofPattern("EEEE d", SPANISH)
+private val ON_WEEKDAY = DateTimeFormatter.ofPattern("'el' EEEE d", SPANISH)
 private val WEEKDAY_SHORT = DateTimeFormatter.ofPattern("EEE", SPANISH)
 private val FULL_DAY = DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", SPANISH)
 
@@ -31,6 +32,9 @@ fun monthShort(month: YearMonth): String = month.format(MONTH_SHORT).removeSuffi
 
 /** "Lunes 12". */
 fun weekdayDay(day: LocalDate): String = day.format(WEEKDAY_DAY).replaceFirstChar { it.titlecase(SPANISH) }
+
+/** "el martes 7". */
+fun onWeekday(day: LocalDate): String = day.format(ON_WEEKDAY)
 
 /** "mié". */
 fun weekdayShort(day: LocalDate): String = day.format(WEEKDAY_SHORT).removeSuffix(".")

@@ -16,10 +16,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
@@ -70,8 +76,14 @@ fun HomeScreen(
     val pendingSummary by viewModel.pendingSummary.collectAsStateWithLifecycle()
     val week by viewModel.week.collectAsStateWithLifecycle()
     val name by viewModel.name.collectAsStateWithLifecycle()
+    val claim by viewModel.claim.collectAsStateWithLifecycle()
+    val protection = rememberProtectionState()
+    // Si la protección no funciona, hoy cuenta como día sin protección.
+    LaunchedEffect(protection) {
+        if (protection != ProtectionState.Running) viewModel.protectionOff()
+    }
     HomeContent(
-        protection = rememberProtectionState(),
+        protection = protection,
         budget = budget,
         name = name,
         quoteSeed = viewModel.quoteSeed,
@@ -81,6 +93,7 @@ fun HomeScreen(
         unlockActions = UnlockActions(appNames = appNames, onOpen = onOpenUnlock, onEnd = viewModel::endUnlock),
         showXiaomiTip = SystemSettings.isXiaomi,
         summary = SummaryActions(pendingSummary, onOpenStats),
+        claim = ClaimActions(claim, viewModel::claim),
         onOpenSettings = onOpenSettings,
         onOpenAccessibilitySettings = { SystemSettings.openAccessibility(context) },
         onOpenAppSettings = { SystemSettings.openAppDetails(context) },
@@ -90,6 +103,9 @@ fun HomeScreen(
 
 /** Resumen del mes listo para ver ([month]) y cómo abrir las estadísticas. */
 private class SummaryActions(val month: YearMonth?, val onOpen: (YearMonth?) -> Unit)
+
+/** Días por enseñar en el primer acceso del día ([state]) y cómo guardar que ya se han visto. */
+private class ClaimActions(val state: ClaimState?, val onClaimed: () -> Unit)
 
 private class UnlockActions(val appNames: Map<String, String>, val onOpen: () -> Unit, val onEnd: () -> Unit)
 
@@ -109,12 +125,20 @@ private fun HomeContent(
     unlockActions: UnlockActions,
     showXiaomiTip: Boolean,
     summary: SummaryActions,
+    claim: ClaimActions,
     onOpenSettings: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenDateSettings: () -> Unit,
 ) {
     val openStats = { summary.onOpen(null) }
+    // Primer acceso del día: los días por enseñar, si la tira ya ha saltado al pop-up y si ya ha
+    // vuelto. Se recuerda para qué días, así que al día siguiente vuelve a salir.
+    val claimDays = claim.state?.days.orEmpty()
+    var startedFor by remember { mutableStateOf<List<LocalDate>?>(null) }
+    var finishedFor by remember { mutableStateOf<List<LocalDate>?>(null) }
+    var stripTop by remember { mutableStateOf<Float?>(null) }
+    val claiming = claimDays.isNotEmpty() && finishedFor != claimDays
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()) {
             // La cabecera baja desde arriba; el resto entra en cascada detrás.
@@ -176,7 +200,13 @@ private fun HomeContent(
                     WeekStrip(
                         week = week,
                         today = today,
-                        modifier = Modifier.staggerIn(order++),
+                        pending = if (claiming) claimDays.toSet() else emptySet(),
+                        modifier =
+                        Modifier
+                            .staggerIn(order++)
+                            .onGloballyPositioned { stripTop = it.positionInRoot().y }
+                            // Mientras está en el pop-up, aquí no se ve.
+                            .graphicsLayer { alpha = if (claiming && startedFor == claimDays) 0f else 1f },
                     )
                 }
                 SectionTitle(stringResource(R.string.home_my_protection), Modifier.staggerIn(order++))
@@ -209,6 +239,22 @@ private fun HomeContent(
                     modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 32.dp).staggerIn(order),
                 )
             }
+        }
+        val claimState = claim.state
+        if (claiming && claimState != null && week.isNotEmpty()) {
+            DayClaim(
+                claim = claimState,
+                week = week,
+                today = today,
+                fromTop = stripTop,
+                protectionOff = protection != ProtectionState.Running,
+                onEnableProtection = onOpenAccessibilitySettings,
+                onStart = { startedFor = claimDays },
+                onDone = {
+                    finishedFor = claimDays
+                    claim.onClaimed()
+                },
+            )
         }
     }
 }
@@ -307,6 +353,8 @@ private val noActions = UnlockActions(emptyMap(), {}, {})
 
 private val noSummary = SummaryActions(null) {}
 
+private val noClaim = ClaimActions(null) {}
+
 @Preview(showBackground = true, heightDp = 1400)
 @Composable
 private fun HomeOnPreview() {
@@ -322,6 +370,7 @@ private fun HomeOnPreview() {
             noActions,
             true,
             noSummary,
+            noClaim,
             {},
             {},
             {},
@@ -345,6 +394,7 @@ private fun HomeStoppedPreview() {
             noActions,
             false,
             SummaryActions(YearMonth.of(2026, 9)) {},
+            noClaim,
             {},
             {},
             {},

@@ -1,13 +1,19 @@
 package io.github.russian03.touchgrass.ui.design
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -19,12 +25,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.russian03.touchgrass.ui.theme.Ink
+import io.github.russian03.touchgrass.ui.theme.Lime
+import io.github.russian03.touchgrass.ui.theme.LimeDeep
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 /** Al pulsar, las píldoras encogen al 96 % y sus esquinas pasan de redondas a 16 dp. */
@@ -97,6 +111,66 @@ fun OutlinePillButton(
     }
 }
 
+/** Alto del canto de [ChunkyPillButton] y su esquina, como el botón de la referencia. */
+private val ChunkyEdge = 4.dp
+private val ChunkyShape = RoundedCornerShape(16.dp)
+
+/**
+ * Botón con relieve, como «Share my progress»: ancho, con el texto en mayúsculas y un canto más
+ * oscuro debajo. Al pulsarlo baja y tapa el canto, como una tecla.
+ */
+@Composable
+fun ChunkyPillButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color = Lime,
+    edgeColor: Color = LimeDeep,
+    contentColor: Color = Ink,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val drop by animateDpAsState(
+        targetValue = if (pressed) ChunkyEdge else 0.dp,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "chunkyDrop",
+    )
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(ChunkyHeight + ChunkyEdge)
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick),
+    ) {
+        // Canto: asoma por debajo del botón.
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(ChunkyHeight)
+                .background(edgeColor, ChunkyShape),
+        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier =
+            Modifier
+                .offset { IntOffset(0, drop.roundToPx()) }
+                .fillMaxWidth()
+                .height(ChunkyHeight)
+                .background(containerColor, ChunkyShape),
+        ) {
+            Text(
+                text = text.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.5.sp,
+                color = contentColor,
+            )
+        }
+    }
+}
+
+private val ChunkyHeight = 52.dp
+
 /** Encoge un poco mientras se pulsa, con el muelle rápido del tema. */
 @Composable
 fun Modifier.pressScale(interaction: MutableInteractionSource, pressedScale: Float = PRESSED_SCALE): Modifier {
@@ -122,6 +196,7 @@ private fun PillsPreview() {
         Column {
             InkPillButton("Continuar", {})
             OutlinePillButton("Ver estadísticas", {})
+            ChunkyPillButton("Volver", {})
         }
     }
 }

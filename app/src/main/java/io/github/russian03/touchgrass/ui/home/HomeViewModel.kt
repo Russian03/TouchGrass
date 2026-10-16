@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
+import io.github.russian03.touchgrass.core.stats.DayFace
 import io.github.russian03.touchgrass.core.stats.StatsPolicy
 import io.github.russian03.touchgrass.core.stats.WeekDay
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
@@ -33,6 +34,13 @@ data class UnlockUiState(
     /** Por qué no se ha podido hacer lo último que se pidió. */
     val error: Denial? = null,
 )
+
+/**
+ * Días que aún no se han enseñado al abrir la app, del más antiguo a ayer ([days], vacío si no
+ * queda ninguno), y cómo fue ayer, para la frase. [disabledDay] es el último de esos días en que se
+ * quitó la protección, o `null`.
+ */
+data class ClaimState(val days: List<LocalDate>, val yesterday: WeekDay?, val disabledDay: LocalDate?)
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -72,6 +80,31 @@ class HomeViewModel @Inject constructor(
         stats.state
             .map { StatsPolicy.weeks(it, stats.today()) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+    /** Días por enseñar en el primer acceso del día, o `null` mientras se carga. */
+    val claim: StateFlow<ClaimState?> =
+        stats.state
+            .map { state ->
+                val today = stats.today()
+                val days = StatsPolicy.unclaimedDays(state, today)
+                val faces = days.associateWith { StatsPolicy.faceAt(state, it) }
+                ClaimState(
+                    days = days,
+                    yesterday = StatsPolicy.weeks(state, today).firstOrNull { it.day == today.minusDays(1) },
+                    disabledDay = days.lastOrNull { faces[it] == DayFace.Disabled },
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** Ya se han enseñado los días que faltaban. */
+    fun claim() {
+        viewModelScope.launch { stats.markClaimed() }
+    }
+
+    /** La protección no funciona: hoy cuenta como día sin protección. */
+    fun protectionOff() {
+        viewModelScope.launch { stats.markProtectionOff() }
+    }
 
     private val _unlock = MutableStateFlow(UnlockUiState())
     val unlock: StateFlow<UnlockUiState> = _unlock.asStateFlow()

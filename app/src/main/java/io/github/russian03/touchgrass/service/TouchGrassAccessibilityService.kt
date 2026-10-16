@@ -32,6 +32,8 @@ import javax.inject.Inject
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 
 @AndroidEntryPoint
 class TouchGrassAccessibilityService : AccessibilityService() {
@@ -80,7 +82,11 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         )
         // El servicio está siempre en marcha (también tras reiniciar): desde aquí empiezan las
         // estadísticas y se programa el aviso del resumen mensual.
-        scope.launch { stats.start() }
+        scope.launch {
+            stats.start()
+            // Si se había quitado, los días sin protección quedan marcados.
+            stats.markProtectionOn()
+        }
         MonthlyReport.schedule(this)
         // Los desbloqueos se piden desde la app, en otro proceso: llegan por el DataStore.
         scope.launch {
@@ -152,6 +158,15 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() = Unit
+
+    /**
+     * Android lo llama al desactivar TouchGrass en Accesibilidad: se apunta que hoy la protección
+     * se ha quitado. Se espera a que quede guardado (con tope), porque el proceso puede acabar ya.
+     */
+    override fun onUnbind(intent: Intent?): Boolean {
+        runBlocking { withTimeoutOrNull(UNBIND_SAVE_TIMEOUT_MS) { stats.markProtectionOff() } }
+        return super.onUnbind(intent)
+    }
 
     override fun onDestroy() {
         scope.cancel()
@@ -280,5 +295,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val OVERLAY_POLL_MS = 200L
         const val EXPIRY_MARGIN_MS = 100L
         const val MAX_CLICK_ANCESTORS = 4
+        const val UNBIND_SAVE_TIMEOUT_MS = 1_000L
     }
 }
