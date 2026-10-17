@@ -1,7 +1,6 @@
 package io.github.russian03.touchgrass.ui.home
 
 import android.content.res.Configuration
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,11 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.russian03.touchgrass.BuildConfig
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.stats.WeekDay
@@ -136,21 +131,6 @@ private fun HomeContent(
     var finishedFor by rememberSaveable { mutableStateOf<String?>(null) }
     var stripTop by remember { mutableStateOf<Float?>(null) }
     val claiming = claimDays.isNotEmpty() && finishedFor != claimKey
-    // En la app debug se repite cada vez que se vuelve a la app desde fuera, para ver cómo queda.
-    // Solo tras haberse ido de verdad (ON_STOP con Inicio en pantalla): al volver de Ajustes, no.
-    if (BuildConfig.DEBUG) {
-        LocalActivity.current?.let { activity ->
-            var stopped by remember { mutableStateOf(false) }
-            LifecycleEventEffect(Lifecycle.Event.ON_STOP, activity as LifecycleOwner) { stopped = true }
-            LifecycleEventEffect(Lifecycle.Event.ON_START, activity) {
-                if (stopped) {
-                    startedFor = null
-                    finishedFor = null
-                }
-                stopped = false
-            }
-        }
-    }
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()) {
             // La cabecera baja desde arriba; el resto entra en cascada detrás. Si llega desde Ajustes, ya

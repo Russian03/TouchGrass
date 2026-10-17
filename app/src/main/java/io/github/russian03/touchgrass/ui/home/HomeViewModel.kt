@@ -3,11 +3,9 @@ package io.github.russian03.touchgrass.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.russian03.touchgrass.BuildConfig
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.stats.DayFace
-import io.github.russian03.touchgrass.core.stats.DemoWeek
 import io.github.russian03.touchgrass.core.stats.StatsPolicy
 import io.github.russian03.touchgrass.core.stats.WeekDay
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
@@ -77,30 +75,18 @@ class HomeViewModel @Inject constructor(
     /** Día lógico de hoy (de 8:00 a 8:00), para saber qué días de la semana ya han pasado. */
     fun today(): LocalDate = stats.today()
 
-    /**
-     * Estadísticas que se enseñan en «Mi semana» y en el primer acceso del día. En la app debug,
-     * con la semana de muestra: caras variadas y ayer sin protección.
-     */
-    private val shownStats = stats.state.map { if (BuildConfig.DEBUG) DemoWeek.fill(it, stats.today()) else it }
-
     /** La semana anterior y la actual, de lunes a domingo, para «Mi semana». */
     val week: StateFlow<List<WeekDay>> =
-        shownStats
+        stats.state
             .map { StatsPolicy.weeks(it, stats.today()) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
     /** Días por enseñar en el primer acceso del día, o `null` mientras se carga. */
     val claim: StateFlow<ClaimState?> =
-        shownStats
+        stats.state
             .map { state ->
                 val today = stats.today()
-                val days =
-                    StatsPolicy.unclaimedDays(state, today).ifEmpty {
-                        // En la app debug, ayer se vuelve a enseñar siempre, para ver la animación.
-                        val yesterday = today.minusDays(1)
-                        val since = state.since?.let(LocalDate::parse)
-                        if (BuildConfig.DEBUG && since != null && since <= yesterday) listOf(yesterday) else emptyList()
-                    }
+                val days = StatsPolicy.unclaimedDays(state, today)
                 val faces = days.associateWith { StatsPolicy.faceAt(state, it) }
                 ClaimState(
                     days = days,
@@ -110,16 +96,12 @@ class HomeViewModel @Inject constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
-    /**
-     * Ya se han enseñado los días que faltaban. En la app debug no se guarda, para que la animación
-     * salga igual cada vez que se vuelve a la app.
-     */
+    /** Ya se han enseñado los días que faltaban. */
     fun claim() {
-        if (BuildConfig.DEBUG) return
         viewModelScope.launch { stats.markClaimed() }
     }
 
-    /** La protección no funciona: hoy cuenta como día sin protección. */
+    /** Se ha quitado la protección en Accesibilidad: hoy cuenta como día sin protección. */
     fun protectionOff() {
         viewModelScope.launch { stats.markProtectionOff() }
     }

@@ -326,12 +326,12 @@
     <string name="notification_monthly_body">Mira cuánto tiempo pediste y compáralo con otros meses.</string>
 
     <!-- Política de privacidad (la misma que docs/PRIVACIDAD.md). -->
-    <string name="privacy_updated">Última actualización: 16 de octubre de 2026</string>
+    <string name="privacy_updated">Última actualización: 17 de octubre de 2026</string>
     <string name="privacy_intro">TouchGrass es una app para usar menos el scroll de otras apps. Funciona entera en tu móvil: no tiene cuentas, ni anuncios, ni permiso de Internet.</string>
     <string name="privacy_service_title">Servicio de accesibilidad</string>
     <string name="privacy_service_body">Con tu permiso, TouchGrass usa el servicio de accesibilidad de Android solo para saber cuándo entras en el scroll de las apps que bloquea (ahora, Instagram y TikTok) y taparlo con una pausa. Mira los identificadores de los botones de esas apps, el nombre de algunas pestañas (como «Para ti») y si has vuelto a la pantalla de inicio. Nunca lee tus mensajes, publicaciones, nombres, contraseñas ni nada de otras apps, y no guarda lo que hay en tu pantalla.</string>
     <string name="privacy_data_title">Qué se guarda</string>
-    <string name="privacy_data_body">En tu móvil se guardan tu nombre (si lo das), tu límite diario, los minutos que pides con su motivo y cuántas veces salta la pausa en cada app, para enseñarte tus estadísticas.</string>
+    <string name="privacy_data_body">En tu móvil se guardan tu nombre (si lo das), tu límite diario, los minutos que pides con su motivo, cuántas veces salta la pausa en cada app y los días en que se quitó la protección, para enseñarte tus estadísticas.</string>
     <string name="privacy_share_title">Con quién se comparte</string>
     <string name="privacy_share_body">Con nadie. La app no tiene permiso de Internet, así que ningún dato sale del móvil: no hay servidores, analítica ni copias en la nube.</string>
     <string name="privacy_delete_title">Cómo borrarlo</string>
