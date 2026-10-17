@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.ui.common
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -21,10 +22,10 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.service.AccessibilityStatus
 import io.github.russian03.touchgrass.service.ProtectionState
-import io.github.russian03.touchgrass.ui.design.InkPillButton
-import io.github.russian03.touchgrass.ui.design.OutlinePillButton
+import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.PulsingDot
 import io.github.russian03.touchgrass.ui.design.StatusRow
+import io.github.russian03.touchgrass.ui.theme.CardBeigeEdge
 import io.github.russian03.touchgrass.ui.theme.LimeDeep
 
 /** Estado real de la protección, que se vuelve a comprobar al volver de los ajustes del sistema. */
@@ -60,11 +61,23 @@ private fun ProtectionState.texts() = when (this) {
 private fun ProtectionState.color(): Color =
     if (this == ProtectionState.Running) LimeDeep else MaterialTheme.colorScheme.error
 
-/** Tarjeta con el estado de la protección y el botón para ir a Accesibilidad. */
+/**
+ * Tarjeta beige de Ajustes con el estado de la protección y el botón para ir a Accesibilidad (lima
+ * si hay que arreglarla). Debajo, si hacen falta, el aviso de la hora manual ([manualTime]) y el
+ * consejo de Xiaomi ([showXiaomiTip], solo con el servicio activado). [color] permite resaltarla.
+ */
 @Composable
-fun ProtectionCard(state: ProtectionState, onOpenAccessibilitySettings: () -> Unit, modifier: Modifier = Modifier) {
+fun ProtectionCard(
+    state: ProtectionState,
+    manualTime: Boolean,
+    showXiaomiTip: Boolean,
+    actions: ProtectionActions,
+    modifier: Modifier = Modifier,
+    color: Color = beigeCardColor(),
+) {
     val texts = state.texts()
-    Card(modifier = modifier) {
+    val xiaomi = showXiaomiTip && state != ProtectionState.Off
+    BeigeCard(modifier = modifier, color = color) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             PulsingDot(state.color())
             Text(
@@ -80,20 +93,47 @@ fun ProtectionCard(state: ProtectionState, onOpenAccessibilitySettings: () -> Un
             modifier = Modifier.padding(top = 6.dp),
         )
         if (state == ProtectionState.Running) {
-            OutlinePillButton(
+            ChunkyPillButton(
                 text = stringResource(texts.action),
-                onClick = onOpenAccessibilitySettings,
-                modifier = Modifier.padding(top = 16.dp),
+                onClick = actions.onOpenAccessibilitySettings,
+                containerColor = MaterialTheme.colorScheme.background,
+                edgeColor = CardBeigeEdge,
+                modifier = Modifier.padding(top = 20.dp),
             )
         } else {
-            InkPillButton(
+            ChunkyPillButton(
                 text = stringResource(texts.action),
-                onClick = onOpenAccessibilitySettings,
-                modifier = Modifier.padding(top = 16.dp),
+                onClick = actions.onOpenAccessibilitySettings,
+                modifier = Modifier.padding(top = 20.dp),
             )
+        }
+        if (manualTime || xiaomi) {
+            Column(Modifier.padding(top = 12.dp)) {
+                if (manualTime) {
+                    StatusRow(
+                        title = stringResource(R.string.manual_time_title),
+                        detail = stringResource(R.string.manual_time_body),
+                        divider = xiaomi,
+                        leading = { PulsingDot(MaterialTheme.colorScheme.error) },
+                        trailing = {
+                            TextButton(onClick = actions.onOpenDateSettings) {
+                                Text(stringResource(R.string.home_service_enable_short))
+                            }
+                        },
+                    )
+                }
+                if (xiaomi) XiaomiTipRow(onOpenAppSettings = actions.onOpenAppSettings, divider = false)
+            }
         }
     }
 }
+
+/** A dónde llevan los botones de la tarjeta de la protección. */
+class ProtectionActions(
+    val onOpenAccessibilitySettings: () -> Unit,
+    val onOpenAppSettings: () -> Unit,
+    val onOpenDateSettings: () -> Unit,
+)
 
 /** La protección como fila de lista: punto que late, estado y, si no protege, la acción para arreglarlo. */
 @Composable

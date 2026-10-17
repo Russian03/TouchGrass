@@ -1,5 +1,13 @@
 package io.github.russian03.touchgrass.ui.design
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -13,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
@@ -25,6 +34,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.Lime
+
+private const val SHARED_HEADER_KEY = "lime-header"
 
 /** Radio de las dos esquinas de abajo del banner. */
 private val CornerRadius = 40.dp
@@ -56,14 +67,50 @@ class OppositeCornersShape(private val radius: Dp = CornerRadius) : Shape {
     }
 }
 
-/** Bloque lima que llega hasta arriba (bajo la barra de estado), con las esquinas de abajo en sentidos opuestos. */
+/** Lo que necesita el banner lima para pasar de una pantalla a otra: la transición compartida y la de su pantalla. */
+@OptIn(ExperimentalSharedTransitionApi::class)
+class LimeHeaderScope(val shared: SharedTransitionScope, val screen: AnimatedVisibilityScope) {
+    /** Si la pantalla está entrando o saliendo ahora mismo. */
+    val navigating: Boolean
+        get() = screen.transition.currentState != screen.transition.targetState
+}
+
+/** Ámbito del banner de la pantalla actual; sin él (vistas previas), el banner no se comparte. */
+val LocalLimeHeaderScope = staticCompositionLocalOf<LimeHeaderScope?> { null }
+
+/** Duración del paso del banner de una pantalla a otra. */
+private const val SHARE_MS = 450
+
+/**
+ * Bloque lima que llega hasta arriba (bajo la barra de estado), con las esquinas de abajo en
+ * sentidos opuestos. Entre pantallas que lo tienen (Inicio y Ajustes) es el mismo banner: cambia
+ * de tamaño y los textos de la pantalla nueva aparecen mientras se van los de la vieja. La vieja
+ * se mantiene opaca hasta que la nueva casi ha entrado, para que el lima no se transparente.
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun LimeHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val scope = LocalLimeHeaderScope.current
+    val shared =
+        if (scope == null) {
+            Modifier
+        } else {
+            with(scope.shared) {
+                Modifier.sharedBounds(
+                    sharedContentState = rememberSharedContentState(SHARED_HEADER_KEY),
+                    animatedVisibilityScope = scope.screen,
+                    enter = fadeIn(tween(SHARE_MS * 3 / 5, easing = LinearEasing)),
+                    exit = fadeOut(tween(SHARE_MS * 3 / 5, delayMillis = SHARE_MS * 2 / 5, easing = LinearEasing)),
+                    boundsTransform = { _, _ -> tween(SHARE_MS, easing = FastOutSlowInEasing) },
+                    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                )
+            }
+        }
     Surface(
         color = Lime,
         contentColor = Ink,
         shape = OppositeCornersShape(),
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.then(shared).fillMaxWidth(),
     ) {
         Column(
             Modifier

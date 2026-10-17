@@ -1,19 +1,29 @@
 package io.github.russian03.touchgrass.ui.home
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,39 +45,40 @@ import io.github.russian03.touchgrass.ui.common.Card
 import io.github.russian03.touchgrass.ui.common.firstDayOf
 import io.github.russian03.touchgrass.ui.common.isTomorrow
 import io.github.russian03.touchgrass.ui.common.timeOf
+import io.github.russian03.touchgrass.ui.design.InkPillButton
+import io.github.russian03.touchgrass.ui.design.Sprout
+import io.github.russian03.touchgrass.ui.design.SproutMood
+import io.github.russian03.touchgrass.ui.theme.NightSproutDull
+import io.github.russian03.touchgrass.ui.theme.SproutDull
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 /** Por debajo de esta fracción del saldo, la onda del anillo se aplana: queda poco. */
 private const val CALM_BELOW = 0.2f
 
-/** «Mi día»: un anillo ondulado con lo que queda y cuándo se renueva. */
+/**
+ * «Mi día»: un anillo ondulado con lo que queda y cuándo se renueva. Si la protección no funciona
+ * ([protected] en falso), el anillo se apaga, el personaje sale apagado con los ojos en cruz en lugar
+ * de los minutos y a la derecha se avisa, con el botón para arreglarlo en Ajustes ([onFixProtection]).
+ */
 @Composable
-fun TodayCard(budget: BudgetSummary, modifier: Modifier = Modifier) {
+fun TodayCard(budget: BudgetSummary, protected: Boolean, onFixProtection: () -> Unit, modifier: Modifier = Modifier) {
     val remainingLabel = pluralStringResource(R.plurals.minutes_left, budget.remainingMinutes, budget.remainingMinutes)
-    val reset = timeOf(budget.nextResetMs)
+    val offLabel = stringResource(R.string.today_protection_off_title)
     Card(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BudgetRing(
                 remaining = budget.remainingMinutes,
                 limit = budget.limitMinutes,
-                modifier = Modifier.semantics { contentDescription = remainingLabel },
+                protected = protected,
+                modifier = Modifier.semantics { contentDescription = if (protected) remainingLabel else offLabel },
             )
-            Column(Modifier.padding(start = 20.dp)) {
-                Text(
-                    text = stringResource(R.string.today_of_limit, budget.limitMinutes),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text =
-                    if (isTomorrow(budget.nextResetMs)) {
-                        stringResource(R.string.today_resets_tomorrow, reset)
-                    } else {
-                        stringResource(R.string.today_resets_at, reset)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+            AnimatedContent(
+                targetState = protected,
+                transitionSpec = { fadeIn(tween(FADE_MS)) togetherWith fadeOut(tween(FADE_MS)) },
+                label = "todayText",
+                modifier = Modifier.padding(start = 20.dp),
+            ) { on ->
+                if (on) ResetText(budget) else ProtectionOffText(onFixProtection)
             }
         }
         val pending = budget.pendingLimitMinutes
@@ -83,13 +94,62 @@ fun TodayCard(budget: BudgetSummary, modifier: Modifier = Modifier) {
     }
 }
 
+private const val FADE_MS = 300
+
+/** De cuánto es el límite y cuándo se renueva. */
+@Composable
+private fun ResetText(budget: BudgetSummary) {
+    val reset = timeOf(budget.nextResetMs)
+    Column {
+        Text(
+            text = stringResource(R.string.today_of_limit, budget.limitMinutes),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text =
+            if (isTomorrow(budget.nextResetMs)) {
+                stringResource(R.string.today_resets_tomorrow, reset)
+            } else {
+                stringResource(R.string.today_resets_at, reset)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
+/** Aviso de que la protección no funciona y el botón que lleva a su apartado de Ajustes. */
+@Composable
+private fun ProtectionOffText(onFixProtection: () -> Unit) {
+    Column {
+        Text(
+            text = stringResource(R.string.today_protection_off_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = stringResource(R.string.today_protection_off_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        InkPillButton(
+            text = stringResource(R.string.today_protection_off_action),
+            onClick = onFixProtection,
+            compact = true,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+}
+
 /**
  * Anillo ondulado que se llena desde 0 al entrar y sigue al saldo con un muelle lento (unos
- * 800 ms). Cuando queda menos del 20 %, la onda se aplana.
+ * 800 ms). Cuando queda menos del 20 %, la onda se aplana. Sin protección, se apaga en gris y en
+ * el centro sale el personaje apagado.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun BudgetRing(remaining: Int, limit: Int, modifier: Modifier = Modifier) {
+private fun BudgetRing(remaining: Int, limit: Int, protected: Boolean, modifier: Modifier = Modifier) {
     val target = if (limit > 0) remaining.toFloat() / limit else 0f
     val fill = remember { Animatable(0f) }
     val inspection = LocalInspectionMode.current
@@ -103,24 +163,54 @@ private fun BudgetRing(remaining: Int, limit: Int, modifier: Modifier = Modifier
             )
         }
     }
+    val dark = isSystemInDarkTheme()
+    val dull = if (dark) NightSproutDull else SproutDull
+    val color by animateColorAsState(
+        targetValue = if (protected) MaterialTheme.colorScheme.secondary else dull,
+        animationSpec = tween(FADE_MS),
+        label = "ringColor",
+    )
     val stroke = with(LocalDensity.current) { Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round) }
     Box(modifier.size(124.dp), contentAlignment = Alignment.Center) {
         CircularWavyProgressIndicator(
             progress = { fill.value.coerceIn(0f, 1f) },
-            color = MaterialTheme.colorScheme.secondary,
+            color = color,
             trackColor = MaterialTheme.colorScheme.outlineVariant,
             stroke = stroke,
             trackStroke = stroke,
-            amplitude = { progress -> if (progress < CALM_BELOW) 0f else 1f },
+            amplitude = { progress -> if (!protected || progress < CALM_BELOW) 0f else 1f },
             modifier = Modifier.size(124.dp),
         )
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clearAndSetSemantics { }) {
-            Text(remaining.toString(), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-            Text(
-                stringResource(R.string.minutes_unit),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        AnimatedContent(
+            targetState = protected,
+            transitionSpec = {
+                (fadeIn(tween(FADE_MS)) + scaleIn(tween(FADE_MS), initialScale = 0.8f)) togetherWith
+                    fadeOut(tween(FADE_MS))
+            },
+            label = "ringCentre",
+            modifier = Modifier.clearAndSetSemantics { },
+        ) { on ->
+            if (on) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        remaining.toString(),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        stringResource(R.string.minutes_unit),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                Sprout(
+                    mood = SproutMood.Off,
+                    bodyColor = dull,
+                    faceColor = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.width(62.dp),
+                )
+            }
         }
     }
 }
@@ -128,5 +218,11 @@ private fun BudgetRing(remaining: Int, limit: Int, modifier: Modifier = Modifier
 @Preview(showBackground = true, backgroundColor = 0xFFFBF8EF)
 @Composable
 private fun TodayCardPreview() {
-    TouchGrassTheme { TodayCard(previewBudget(), Modifier.padding(16.dp)) }
+    TouchGrassTheme { TodayCard(previewBudget(), protected = true, onFixProtection = {}, Modifier.padding(16.dp)) }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFBF8EF)
+@Composable
+private fun TodayCardOffPreview() {
+    TouchGrassTheme { TodayCard(previewBudget(), protected = false, onFixProtection = {}, Modifier.padding(16.dp)) }
 }
