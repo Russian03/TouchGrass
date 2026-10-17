@@ -1,6 +1,6 @@
 # Política de privacidad de TouchGrass
 
-Última actualización: 16 de octubre de 2026
+Última actualización: 17 de octubre de 2026
 
 TouchGrass es una app para usar menos el scroll de otras apps. Funciona entera en tu móvil: no
 tiene cuentas, ni anuncios, ni permiso de Internet.
@@ -15,8 +15,9 @@ contraseñas ni nada de otras apps, y no guarda lo que hay en tu pantalla.
 
 ## Qué se guarda
 
-En tu móvil se guardan tu nombre (si lo das), tu límite diario, los minutos que pides con su motivo
-y cuántas veces salta la pausa en cada app, para enseñarte tus estadísticas.
+En tu móvil se guardan tu nombre (si lo das), tu límite diario, los minutos que pides con su motivo,
+cuántas veces salta la pausa en cada app y los días en que se quitó la protección, para enseñarte
+tus estadísticas.
 
 ## Con quién se comparte
 

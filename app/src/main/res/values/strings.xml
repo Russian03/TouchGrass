@@ -15,7 +15,9 @@
     <string name="home_service_enable">Activar en Accesibilidad</string>
     <string name="home_service_settings">Ajustes de accesibilidad</string>
     <string name="home_service_stopped">Protección detenida</string>
-    <string name="home_service_stopped_detail">El sistema ha cerrado TouchGrass y el scroll ya no se bloquea. Desactívala y vuelve a activarla en Accesibilidad para recuperarla.</string>
+    <string name="home_service_stopped_detail">El sistema ha cerrado TouchGrass. Suele volver solo en unos segundos; si no, activa el autoinicio o desactívala y vuelve a activarla en Accesibilidad.</string>
+    <string name="home_service_reconnecting">Reconectando…</string>
+    <string name="home_service_reconnecting_detail">El sistema ha cerrado TouchGrass por un instante. Vuelve solo en unos segundos; tu día no se ve afectado.</string>
     <string name="home_service_restart">Reactivar en Accesibilidad</string>
     <string name="home_xiaomi_tip">En Xiaomi, activa «Autoinicio» en los ajustes de la app: así el sistema vuelve a poner en marcha la protección si la cierra.</string>
     <string name="home_xiaomi_tip_open">Abrir ajustes de la app</string>
@@ -44,6 +46,11 @@
     <string name="today_of_limit">de %1$d min disponibles</string>
     <string name="today_resets_at">Se renueva a las %1$s</string>
     <string name="today_resets_tomorrow">Se renueva mañana a las %1$s</string>
+    <string name="today_protection_off_title">A TouchGrass le faltan permisos</string>
+    <string name="today_protection_off_body">Sin ellos, el scroll no se bloquea.</string>
+    <string name="today_protection_off_action">Ir a Ajustes</string>
+    <string name="today_protection_stopped_title">TouchGrass se ha detenido</string>
+    <string name="today_protection_stopped_body">Suele volver solo. Si tarda, revisa el autoinicio.</string>
     <string name="manual_time_title">Hora manual</string>
     <string name="manual_time_body">Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva ni se puede desbloquear nada. Así nadie puede adelantar el reloj para saltarse el límite.</string>
 
@@ -96,7 +103,6 @@
     </string-array>
     <string name="home_my_day">Mi *día*</string>
     <string name="home_my_week">Mi *semana*</string>
-    <string name="home_my_protection">Mi *protección*</string>
     <string name="home_open_stats">Ver estadísticas</string>
     <string name="home_service_enable_short">Activar</string>
     <string name="home_open_short">Abrir</string>
@@ -242,11 +248,12 @@
 
     <!-- Ajustes -->
     <string name="settings_title">Ajustes</string>
-    <string name="settings_name_section">Tu nombre</string>
+    <string name="settings_header">*Ajustes*</string>
+    <string name="settings_name_section">Tu *nombre*</string>
     <string name="settings_name_note">Con él te saludamos en Inicio. Déjalo vacío para no usar ninguno.</string>
     <string name="settings_name_save">Guardar nombre</string>
     <string name="settings_name_saved">Nombre guardado.</string>
-    <string name="settings_limit_section">Límite diario</string>
+    <string name="settings_limit_section">Límite *diario*</string>
     <string name="settings_limit_current">Ahora: %1$d min al día</string>
     <string name="settings_limit_rule">Bajarlo se aplica al momento. Subirlo, a partir del mes siguiente.</string>
     <string name="settings_limit_applies_now">Se aplicará ahora mismo.</string>
@@ -260,8 +267,8 @@
     <string name="settings_lower_title">¿Bajar a %1$d min al día?</string>
     <string name="settings_lower_body">Se aplica ahora mismo. Si luego quieres volver a subirlo, tendrás que esperar al mes siguiente.</string>
     <string name="settings_lower_confirm">Bajar límite</string>
-    <string name="settings_protection_section">Protección</string>
-    <string name="settings_privacy_section">Privacidad</string>
+    <string name="settings_protection_section">*Protección*</string>
+    <string name="settings_privacy_section">*Privacidad*</string>
     <string name="settings_privacy_body">TouchGrass no tiene permiso de Internet y no envía nada fuera del móvil. Solo mira los identificadores de los botones de las apps que bloquea (ahora, Instagram y TikTok) y el nombre de algunas pestañas, nunca tus mensajes ni publicaciones. Tu nombre, tu límite, tu uso y tus estadísticas (incluidos los motivos) se guardan en este dispositivo y no se copian a la nube.</string>
     <string name="settings_version">Versión %1$s</string>
 
@@ -319,12 +326,12 @@
     <string name="notification_monthly_body">Mira cuánto tiempo pediste y compáralo con otros meses.</string>
 
     <!-- Política de privacidad (la misma que docs/PRIVACIDAD.md). -->
-    <string name="privacy_updated">Última actualización: 16 de octubre de 2026</string>
+    <string name="privacy_updated">Última actualización: 17 de octubre de 2026</string>
     <string name="privacy_intro">TouchGrass es una app para usar menos el scroll de otras apps. Funciona entera en tu móvil: no tiene cuentas, ni anuncios, ni permiso de Internet.</string>
     <string name="privacy_service_title">Servicio de accesibilidad</string>
     <string name="privacy_service_body">Con tu permiso, TouchGrass usa el servicio de accesibilidad de Android solo para saber cuándo entras en el scroll de las apps que bloquea (ahora, Instagram y TikTok) y taparlo con una pausa. Mira los identificadores de los botones de esas apps, el nombre de algunas pestañas (como «Para ti») y si has vuelto a la pantalla de inicio. Nunca lee tus mensajes, publicaciones, nombres, contraseñas ni nada de otras apps, y no guarda lo que hay en tu pantalla.</string>
     <string name="privacy_data_title">Qué se guarda</string>
-    <string name="privacy_data_body">En tu móvil se guardan tu nombre (si lo das), tu límite diario, los minutos que pides con su motivo y cuántas veces salta la pausa en cada app, para enseñarte tus estadísticas.</string>
+    <string name="privacy_data_body">En tu móvil se guardan tu nombre (si lo das), tu límite diario, los minutos que pides con su motivo, cuántas veces salta la pausa en cada app y los días en que se quitó la protección, para enseñarte tus estadísticas.</string>
     <string name="privacy_share_title">Con quién se comparte</string>
     <string name="privacy_share_body">Con nadie. La app no tiene permiso de Internet, así que ningún dato sale del móvil: no hay servidores, analítica ni copias en la nube.</string>
     <string name="privacy_delete_title">Cómo borrarlo</string>

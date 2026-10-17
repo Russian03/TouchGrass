@@ -48,7 +48,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Cómo está el personaje: cambia la boca y los ojos. */
-enum class SproutMood { Calm, Curious, Happy, Joy, Worried, Sad }
+enum class SproutMood { Calm, Curious, Happy, Joy, Worried, Sad, Off }
 
 // Medidas en el espacio del dibujo `sprout_body` (360 × 390), sacadas de los huecos del logo.
 private const val BODY_W = 360f
@@ -70,8 +70,11 @@ private const val MOUTH_W = 84f
 /** Cuánto se mueven los ojos y la nariz al mirar a un lado (en el espacio del dibujo). */
 private val LookReach = Offset(14f, 10f)
 
-/** Forma de la cara para cada estado: sonrisa (−1 triste … 1), apertura de la boca, ojos felices y tamaño de ojos. */
-private data class Face(val smile: Float, val open: Float, val happy: Float, val eyes: Float)
+/**
+ * Forma de la cara para cada estado: sonrisa (−1 triste … 1), apertura de la boca, ojos felices,
+ * tamaño de ojos y ojos en cruz ([cross], de apagado).
+ */
+private data class Face(val smile: Float, val open: Float, val happy: Float, val eyes: Float, val cross: Float = 0f)
 
 private fun SproutMood.face(): Face = when (this) {
     SproutMood.Calm -> Face(smile = 0.4f, open = 0f, happy = 0f, eyes = 1f)
@@ -80,6 +83,7 @@ private fun SproutMood.face(): Face = when (this) {
     SproutMood.Joy -> Face(smile = 1f, open = 1f, happy = 1f, eyes = 1f)
     SproutMood.Worried -> Face(smile = -0.5f, open = 0f, happy = 0f, eyes = 1.12f)
     SproutMood.Sad -> Face(smile = -1f, open = 0.25f, happy = 0f, eyes = 0.9f)
+    SproutMood.Off -> Face(smile = -0.8f, open = 0f, happy = 0f, eyes = 1f, cross = 1f)
 }
 
 /**
@@ -106,6 +110,7 @@ fun Sprout(
     val open = remember { Animatable(target.open) }
     val happy = remember { Animatable(target.happy) }
     val eyes = remember { Animatable(target.eyes) }
+    val cross = remember { Animatable(target.cross) }
     LaunchedEffect(mood) {
         val face = mood.face()
         val springy = spring<Float>(dampingRatio = 0.55f, stiffness = 300f)
@@ -113,6 +118,7 @@ fun Sprout(
         launch { open.animateTo(face.open, springy) }
         launch { happy.animateTo(face.happy, tween(220)) }
         launch { eyes.animateTo(face.eyes, springy) }
+        launch { cross.animateTo(face.cross, tween(220)) }
     }
 
     // Parpadeo: cada 2,5–5 s, y a veces dos seguidos.
@@ -201,6 +207,7 @@ fun Sprout(
                 open = open.value.coerceAtLeast(0f),
                 happy = happy.value.coerceIn(0f, 1f),
                 eyeScale = eyes.value,
+                cross = cross.value.coerceIn(0f, 1f),
             )
         }
     }
@@ -214,15 +221,18 @@ private fun DrawScope.drawFace(
     open: Float,
     happy: Float,
     eyeScale: Float,
+    cross: Float,
 ) {
-    // Ojos: óvalos que se cierran al parpadear; con ojos felices, arcos «^».
+    // Ojos: óvalos que se cierran al parpadear; con ojos felices, arcos «^»; apagado, cruces «✕».
     listOf(LeftEye, RightEye).forEach { centre ->
         val c = centre + look
         val rx = EYE_RX * eyeScale
-        val ry = EYE_RY * eyeScale * blink.coerceAtLeast(0.08f)
-        if (happy < 1f) {
+        // Con los ojos en cruz no parpadea.
+        val ry = EYE_RY * eyeScale * (blink + (1f - blink) * cross).coerceAtLeast(0.08f)
+        val oval = (1f - happy) * (1f - cross)
+        if (oval > 0f) {
             drawOval(
-                faceColor.copy(alpha = 1f - happy),
+                faceColor.copy(alpha = oval),
                 topLeft = Offset(c.x - rx, c.y - ry),
                 size = Size(rx * 2, ry * 2),
             )
@@ -234,6 +244,12 @@ private fun DrawScope.drawFace(
                     quadraticTo(c.x, c.y - ry * 1.6f, c.x + rx, c.y + 4f)
                 }
             drawPath(arc, faceColor.copy(alpha = happy), style = Stroke(width = 8f, cap = StrokeCap.Round))
+        }
+        if (cross > 0f) {
+            val arm = rx * 1.05f
+            val color = faceColor.copy(alpha = cross)
+            drawLine(color, Offset(c.x - arm, c.y - arm), Offset(c.x + arm, c.y + arm), 9f, StrokeCap.Round)
+            drawLine(color, Offset(c.x - arm, c.y + arm), Offset(c.x + arm, c.y - arm), 9f, StrokeCap.Round)
         }
     }
     // Nariz: el triángulo redondeado del logo, que sigue un poco la mirada.

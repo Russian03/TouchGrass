@@ -20,11 +20,18 @@ val ChunkyNeutralEdge = Color(0xFFCDC8B8)
 val CardBeige = Color(0xFFEDE6D3)
 val CardBeigeEdge = Color(0xFFD3CBB4)
 
+/** Resaltado opaco sobre la tarjeta beige (un apartado que toca), de día y de noche. */
+val PointShade = Color(0xFFDDD6C0)
+val NightPointShade = Color(0xFF2B2D28)
+
 /** Verde del personaje: algo más intenso que el lima, para que su cara se distinga sobre el beige. */
 val SproutGreen = Color(0xFF96C73A)
 
 /** Gris apagado de los días malos en «Mi semana», en lugar del lima. */
 val Dull = Color(0xFFC4C2B8)
+
+/** Canto de un botón con relieve apagado. */
+val DullEdge = Color(0xFFA9A79C)
 
 internal val Night = Color(0xFF141513)
 internal val NightSurface = Color(0xFF1F211D)

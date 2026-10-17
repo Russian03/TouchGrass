@@ -1,5 +1,6 @@
 package io.github.russian03.touchgrass.ui.design
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -36,7 +37,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.russian03.touchgrass.ui.theme.Dull
+import io.github.russian03.touchgrass.ui.theme.DullEdge
 import io.github.russian03.touchgrass.ui.theme.Ink
+import io.github.russian03.touchgrass.ui.theme.InkMuted
 import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.LimeDeep
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
@@ -117,7 +121,8 @@ private val ChunkyShape = RoundedCornerShape(16.dp)
 
 /**
  * Botón con relieve, como «Share my progress»: ancho, con el texto en mayúsculas y un canto más
- * oscuro debajo. Al pulsarlo baja y tapa el canto, como una tecla.
+ * oscuro debajo. Al pulsarlo baja y tapa el canto, como una tecla. Sin [enabled] sale gris y
+ * no se puede pulsar.
  */
 @Composable
 fun ChunkyPillButton(
@@ -127,8 +132,11 @@ fun ChunkyPillButton(
     containerColor: Color = Lime,
     edgeColor: Color = LimeDeep,
     contentColor: Color = Ink,
+    enabled: Boolean = true,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val container by animateColorAsState(if (enabled) containerColor else Dull, label = "chunkyColor")
+    val edge by animateColorAsState(if (enabled) edgeColor else DullEdge, label = "chunkyEdge")
     val pressed by interaction.collectIsPressedAsState()
     val drop by animateDpAsState(
         targetValue = if (pressed) ChunkyEdge else 0.dp,
@@ -139,7 +147,13 @@ fun ChunkyPillButton(
         modifier
             .fillMaxWidth()
             .height(ChunkyHeight + ChunkyEdge)
-            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick),
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            ),
     ) {
         // Canto: asoma por debajo del botón.
         Box(
@@ -147,7 +161,7 @@ fun ChunkyPillButton(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(ChunkyHeight)
-                .background(edgeColor, ChunkyShape),
+                .background(edge, ChunkyShape),
         )
         Box(
             contentAlignment = Alignment.Center,
@@ -156,14 +170,14 @@ fun ChunkyPillButton(
                 .offset { IntOffset(0, drop.roundToPx()) }
                 .fillMaxWidth()
                 .height(ChunkyHeight)
-                .background(containerColor, ChunkyShape),
+                .background(container, ChunkyShape),
         ) {
             Text(
                 text = text.uppercase(),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.5.sp,
-                color = contentColor,
+                color = if (enabled) contentColor else InkMuted,
             )
         }
     }

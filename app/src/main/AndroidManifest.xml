@@ -26,7 +26,9 @@
         android:theme="@style/Theme.TouchGrass">
 
         <!-- Fuera de Recientes: si no hay tarjeta que deslizar, HyperOS/MIUI no mata el
-             proceso del servicio al limpiar Recientes (y Android no lo volvería a arrancar). -->
+             proceso del servicio al limpiar Recientes. Si aun así lo cierra, Android lo vuelve a
+             vincular en unos segundos si el sistema le deja arrancar (en Xiaomi, con el
+             «Autoinicio»), y ese corte no cuenta como quitar la protección. -->
         <activity
             android:name=".MainActivity"
             android:excludeFromRecents="true"

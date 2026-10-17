@@ -1,5 +1,6 @@
 package io.github.russian03.touchgrass.ui.common
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -16,12 +17,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.ui.design.InkPillButton
+import io.github.russian03.touchgrass.ui.theme.CardBeige
 
 /** Tarjeta blanca (o gris noche) con esquinas de 28 dp y sin sombra, la base de todas las pantallas. */
 @Composable
@@ -31,6 +34,22 @@ fun Card(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> U
         shape = MaterialTheme.shapes.large,
         modifier = modifier.fillMaxWidth(),
     ) {
+        Column(Modifier.padding(24.dp), content = content)
+    }
+}
+
+/** Beige de las tarjetas de las pantallas nuevas (primeros pasos, Ajustes); de noche, el gris de siempre. */
+@Composable
+fun beigeCardColor(): Color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceContainer else CardBeige
+
+/** Tarjeta beige de las pantallas nuevas, con esquinas de 28 dp; [color] permite resaltarla. */
+@Composable
+fun BeigeCard(
+    modifier: Modifier = Modifier,
+    color: Color = beigeCardColor(),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(color = color, shape = MaterialTheme.shapes.large, modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(24.dp), content = content)
     }
 }

@@ -1,7 +1,6 @@
 package io.github.russian03.touchgrass.ui.home
 
 import android.content.res.Configuration
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,7 +14,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -37,29 +34,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.russian03.touchgrass.BuildConfig
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.stats.WeekDay
 import io.github.russian03.touchgrass.service.ProtectionState
-import io.github.russian03.touchgrass.ui.common.ProtectionRow
-import io.github.russian03.touchgrass.ui.common.SystemSettings
-import io.github.russian03.touchgrass.ui.common.XiaomiTipRow
 import io.github.russian03.touchgrass.ui.common.fullDay
 import io.github.russian03.touchgrass.ui.common.monthName
-import io.github.russian03.touchgrass.ui.common.rememberActivateProtection
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
+import io.github.russian03.touchgrass.ui.common.rememberShownProtection
 import io.github.russian03.touchgrass.ui.design.InkPillButton
 import io.github.russian03.touchgrass.ui.design.LimeHeader
+import io.github.russian03.touchgrass.ui.design.LocalLimeHeaderScope
 import io.github.russian03.touchgrass.ui.design.MixedTitle
 import io.github.russian03.touchgrass.ui.design.OutlinePillButton
-import io.github.russian03.touchgrass.ui.design.PulsingDot
 import io.github.russian03.touchgrass.ui.design.SectionTitle
-import io.github.russian03.touchgrass.ui.design.StatusRow
 import io.github.russian03.touchgrass.ui.design.mixedWeights
 import io.github.russian03.touchgrass.ui.design.staggerIn
 import io.github.russian03.touchgrass.ui.theme.Cream
@@ -77,7 +66,6 @@ fun HomeScreen(
     onOpenProtection: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
     val budget by viewModel.budget.collectAsStateWithLifecycle()
     val unlock by viewModel.unlock.collectAsStateWithLifecycle()
     val appNames by viewModel.appNames.collectAsStateWithLifecycle()
@@ -86,9 +74,10 @@ fun HomeScreen(
     val name by viewModel.name.collectAsStateWithLifecycle()
     val claim by viewModel.claim.collectAsStateWithLifecycle()
     val protection = rememberProtectionState()
-    // Si la protección no funciona, hoy cuenta como día sin protección.
+    // Solo quitarla en Accesibilidad cuenta como día sin protección: un corte del sistema (al cerrar
+    // la app, al reiniciar…) no estropea el día.
     LaunchedEffect(protection) {
-        if (protection != ProtectionState.Running) viewModel.protectionOff()
+        if (protection == ProtectionState.Off) viewModel.protectionOff()
     }
     HomeContent(
         protection = protection,
@@ -99,14 +88,9 @@ fun HomeScreen(
         today = viewModel.today(),
         unlock = unlock,
         unlockActions = UnlockActions(appNames = appNames, onOpen = onOpenUnlock, onEnd = viewModel::endUnlock),
-        showXiaomiTip = SystemSettings.isXiaomi,
         summary = SummaryActions(pendingSummary, onOpenStats),
         claim = ClaimActions(claim, viewModel::claim, onOpenProtection),
         onOpenSettings = onOpenSettings,
-        // Pasa antes por el aviso del servicio si aún no se ha aceptado.
-        onOpenAccessibilitySettings = rememberActivateProtection(protection),
-        onOpenAppSettings = { SystemSettings.openAppDetails(context) },
-        onOpenDateSettings = { SystemSettings.openDateTime(context) },
     )
 }
 
@@ -120,7 +104,8 @@ private class UnlockActions(val appNames: Map<String, String>, val onOpen: () ->
 
 /**
  * Inicio. Arriba, la cabecera lima (fecha, título, pedir tiempo o la cuenta atrás); debajo, en
- * cascada: el resumen del mes si está listo, «Mi día», «Mi semana» y «Mi protección».
+ * cascada: el resumen del mes si está listo, «Mi día» (que avisa si la protección no funciona) y
+ * «Mi semana».
  */
 @Composable
 private fun HomeContent(
@@ -132,13 +117,9 @@ private fun HomeContent(
     today: LocalDate,
     unlock: UnlockUiState,
     unlockActions: UnlockActions,
-    showXiaomiTip: Boolean,
     summary: SummaryActions,
     claim: ClaimActions,
     onOpenSettings: () -> Unit,
-    onOpenAccessibilitySettings: () -> Unit,
-    onOpenAppSettings: () -> Unit,
-    onOpenDateSettings: () -> Unit,
 ) {
     val openStats = { summary.onOpen(null) }
     // Primer acceso del día: los días por enseñar, si la tira ya ha saltado al pop-up y si ya ha
@@ -150,25 +131,13 @@ private fun HomeContent(
     var finishedFor by rememberSaveable { mutableStateOf<String?>(null) }
     var stripTop by remember { mutableStateOf<Float?>(null) }
     val claiming = claimDays.isNotEmpty() && finishedFor != claimKey
-    // En la app debug se repite cada vez que se vuelve a la app desde fuera, para ver cómo queda.
-    // Solo tras haberse ido de verdad (ON_STOP con Inicio en pantalla): al volver de Ajustes, no.
-    if (BuildConfig.DEBUG) {
-        LocalActivity.current?.let { activity ->
-            var stopped by remember { mutableStateOf(false) }
-            LifecycleEventEffect(Lifecycle.Event.ON_STOP, activity as LifecycleOwner) { stopped = true }
-            LifecycleEventEffect(Lifecycle.Event.ON_START, activity) {
-                if (stopped) {
-                    startedFor = null
-                    finishedFor = null
-                }
-                stopped = false
-            }
-        }
-    }
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()) {
-            // La cabecera baja desde arriba; el resto entra en cascada detrás.
-            LimeHeader(Modifier.staggerIn(index = 0, offsetY = (-24).dp, fromScale = 1f)) {
+            // La cabecera baja desde arriba; el resto entra en cascada detrás. Si llega desde Ajustes, ya
+            // es su banner que crece: no baja.
+            val headerScope = LocalLimeHeaderScope.current
+            val headerShared = remember { headerScope?.navigating == true }
+            LimeHeader(Modifier.staggerIn(index = 0, offsetY = (-24).dp, fromScale = 1f, enabled = !headerShared)) {
                 HeaderTop(onOpenStats = openStats, onOpenSettings = onOpenSettings)
                 MixedTitle(
                     text =
@@ -219,7 +188,12 @@ private fun HomeContent(
                         Modifier.staggerIn(order++),
                         top = if (summary.month == null) 4.dp else 32.dp,
                     )
-                    TodayCard(budget = budget, modifier = Modifier.staggerIn(order++))
+                    TodayCard(
+                        budget = budget,
+                        protection = rememberShownProtection(protection),
+                        onFixProtection = claim.onOpenProtection,
+                        modifier = Modifier.staggerIn(order++),
+                    )
                 }
                 if (week.isNotEmpty()) {
                     SectionTitle(stringResource(R.string.home_my_week), Modifier.staggerIn(order++))
@@ -235,30 +209,6 @@ private fun HomeContent(
                             .graphicsLayer { alpha = if (claiming && startedFor == claimKey) 0f else 1f },
                     )
                 }
-                SectionTitle(stringResource(R.string.home_my_protection), Modifier.staggerIn(order++))
-                Column(Modifier.staggerIn(order++)) {
-                    val manualTime = budget?.autoTime == false
-                    val xiaomi = showXiaomiTip && protection != ProtectionState.Off
-                    ProtectionRow(
-                        state = protection,
-                        onOpenAccessibilitySettings = onOpenAccessibilitySettings,
-                        divider = manualTime || xiaomi,
-                    )
-                    if (manualTime) {
-                        StatusRow(
-                            title = stringResource(R.string.manual_time_title),
-                            detail = stringResource(R.string.manual_time_body),
-                            divider = xiaomi,
-                            leading = { PulsingDot(MaterialTheme.colorScheme.error) },
-                            trailing = {
-                                TextButton(onClick = onOpenDateSettings) {
-                                    Text(stringResource(R.string.home_service_enable_short))
-                                }
-                            },
-                        )
-                    }
-                    if (xiaomi) XiaomiTipRow(onOpenAppSettings = onOpenAppSettings, divider = false)
-                }
                 OutlinePillButton(
                     text = stringResource(R.string.home_open_stats),
                     onClick = openStats,
@@ -273,7 +223,9 @@ private fun HomeContent(
                 week = week,
                 today = today,
                 fromTop = stripTop,
-                protectionOff = protection != ProtectionState.Running,
+                // Solo si se ha quitado: con un corte no sale el botón (se arregla solo y, si tarda,
+                // ya avisa «Mi día»).
+                protectionOff = protection == ProtectionState.Off,
                 // Cuenta como visto y lleva al apartado de la protección de Ajustes.
                 onEnableProtection = {
                     finishedFor = claimKey
@@ -399,12 +351,8 @@ private fun HomeOnPreview() {
             LocalDate.of(2026, 10, 14),
             UnlockUiState(),
             noActions,
-            true,
             noSummary,
             noClaim,
-            {},
-            {},
-            {},
             {},
         )
     }
@@ -423,12 +371,8 @@ private fun HomeStoppedPreview() {
             LocalDate.of(2026, 10, 14),
             UnlockUiState(),
             noActions,
-            false,
             SummaryActions(YearMonth.of(2026, 9)) {},
             noClaim,
-            {},
-            {},
-            {},
             {},
         )
     }

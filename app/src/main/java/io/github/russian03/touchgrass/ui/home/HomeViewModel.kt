@@ -3,7 +3,6 @@ package io.github.russian03.touchgrass.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.russian03.touchgrass.BuildConfig
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.stats.DayFace
@@ -87,13 +86,7 @@ class HomeViewModel @Inject constructor(
         stats.state
             .map { state ->
                 val today = stats.today()
-                val days =
-                    StatsPolicy.unclaimedDays(state, today).ifEmpty {
-                        // En la app debug, ayer se vuelve a enseñar siempre, para ver la animación.
-                        val yesterday = today.minusDays(1)
-                        val since = state.since?.let(LocalDate::parse)
-                        if (BuildConfig.DEBUG && since != null && since <= yesterday) listOf(yesterday) else emptyList()
-                    }
+                val days = StatsPolicy.unclaimedDays(state, today)
                 val faces = days.associateWith { StatsPolicy.faceAt(state, it) }
                 ClaimState(
                     days = days,
@@ -103,16 +96,12 @@ class HomeViewModel @Inject constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
-    /**
-     * Ya se han enseñado los días que faltaban. En la app debug no se guarda, para que la animación
-     * salga igual cada vez que se vuelve a la app.
-     */
+    /** Ya se han enseñado los días que faltaban. */
     fun claim() {
-        if (BuildConfig.DEBUG) return
         viewModelScope.launch { stats.markClaimed() }
     }
 
-    /** La protección no funciona: hoy cuenta como día sin protección. */
+    /** Se ha quitado la protección en Accesibilidad: hoy cuenta como día sin protección. */
     fun protectionOff() {
         viewModelScope.launch { stats.markProtectionOff() }
     }

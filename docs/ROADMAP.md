@@ -21,6 +21,7 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 14     | `bloque-14/logo-final`        | Logo definitivo y pantalla de carga con círculos que lo rellenan | —      |
 | 15     | `bloque-15/reclamar-dia`      | Primer acceso del día: las caras de los días que faltaban, días sin protección | —      |
 | 16     | `bloque-16/primeros-pasos`    | Primeros pasos nuevos, consentimiento de accesibilidad y política de privacidad | —      |
+| 17     | `bloque-17/ajustes`           | Ajustes rediseñados, aviso de protección en «Mi día», los cortes del servicio no cuentan como trampa | —      |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
 | —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
 | —      | después                       | Reglas para YouTube                                                       | —      |

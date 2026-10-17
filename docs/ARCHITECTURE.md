@@ -50,8 +50,9 @@ condición puede pedir también un **texto** (`"text": ["Para ti", "For You"]`),
 nombra alguna regla, y solo si es uno de los que busca; cualquier otro texto se descarta.
 Los identificadores de Android (`android:id/…`) se guardan con su prefijo; los de la app, sin él.
 
-El build de debug incluye una pantalla que vuelca los viewIds visibles, para descubrir los
-nuevos cuando una actualización de Instagram rompa una regla.
+En el build de debug, el servicio vuelca a logcat los viewIds visibles cada vez que cambian
+(`DUMP pkg=… ids=…`), para descubrir los nuevos cuando una actualización de Instagram o TikTok
+rompa una regla. En release no existe: R8 quita esos logs.
 
 ## Estadísticas
 
@@ -71,6 +72,69 @@ afecte nunca al bloqueo.
   hay datos del mes anterior y aún no se ha avisado. Las alarmas se pierden al reiniciar, así que
   el servicio, que vuelve a arrancar con el móvil, la reprograma y comprueba si hay un aviso
   pendiente. En Inicio sale una tarjeta hasta que se abre ese resumen.
+
+### Caras de los días
+
+Cada día pasado tiene una cara (`core/stats/DayFace`) según la parte del límite gastada y la racha
+de días de poco uso (hasta el 25 % del límite, sin agotarlo):
+
+| Cara | Cuándo |
+|------|--------|
+| `Mythic`, `Legend`, `Cool` | Poco uso con racha de 14, 7 o 3 días o más |
+| `Free` | Sin pedir tiempo |
+| `Happy`, `Calm`, `Neutral`, `Tight` | Hasta el 25 %, 50 %, 75 % o más sin agotarlo |
+| `Sad` | Saldo agotado |
+| `Disabled` | Se quitó la protección ese día: no cuenta lo usado y rompe la racha |
+
+«Mi semana» enseña la semana anterior y la actual con esas caras.
+
+### Primer acceso del día
+
+La primera vez que se abre la app cada día salen, en un pop-up, las caras de los días que aún no
+se han enseñado (desde el último enseñado hasta ayer, sin salir de «Mi semana»;
+`StatsPolicy.unclaimedDays`). Debajo va una frase según la cara de ayer, o una de «sin trampas» si
+alguno de esos días se quitó la protección (si son varios, se nombra el último). Al cerrarlo se
+guarda `lastDayClaimed`. Si la protección sigue quitada, además de «Volver» sale «Activar
+protección», que lleva al apartado de la protección de Ajustes.
+
+## Estado de la protección
+
+`service/AccessibilityStatus` distingue tres estados (`ProtectionState`):
+
+- **`Running`**: activada en Accesibilidad y el sistema tiene el servicio vinculado.
+- **`Off`**: el usuario la ha desactivado en Accesibilidad. Es lo único que cuenta como trampa.
+- **`Stopped`**: sigue activada en el ajuste, pero el servicio no está vinculado. Pasa al cerrar
+  el sistema el proceso `:blocker` (HyperOS al limpiar memoria), al reiniciar el móvil o al
+  actualizar la app. Android lo vuelve a vincular solo en unos segundos si el sistema le deja
+  arrancar (en un Xiaomi con «Autoinicio», medido: unos 4 s tras matar el proceso, sin abrir la
+  app). **Nunca** cuenta como trampa.
+
+Cómo se apunta un día sin protección (`DayStats.protectionOff`):
+
+- Al desactivarla, Android llama a `onUnbind` del servicio. Solo se apunta si ya no está activada
+  en el ajuste; si lo sigue estando, es un corte y no se apunta nada.
+- Al abrir Inicio con el estado `Off` (por si `onUnbind` no llegó a guardarse).
+- Mientras sigue quitada, cuentan todos los días desde `protectionOffSince`; al volver a
+  activarla, el servicio los marca (`StatsPolicy.markProtectionOn`).
+
+En la interfaz (`ui/common/ProtectionCard.kt`):
+
+- `rememberProtectionState()` se actualiza solo: al volver a la app, al cambiar el ajuste de
+  Accesibilidad (un `ContentObserver`), al vincularse o desvincularse el servicio (Android 13+) y,
+  mientras no funciona, cada 2 s. Al volver la conexión todo se arregla sin salir de la pantalla.
+- `rememberShownProtection()` aplica un margen de 60 s (`service/ProtectionGrace`): un corte
+  recién empezado se enseña como si funcionara («Reconectando…» en Ajustes). Si dura más, «Mi día»
+  sale con el personaje preocupado; con `Off`, con los ojos en cruz y en tinta.
+- El pop-up del primer acceso solo ofrece activar la protección con `Off`.
+
+## Consentimiento del servicio
+
+Google Play exige un aviso destacado antes de pedir el servicio de accesibilidad. En los primeros
+pasos, y en cualquier «Activar» de la app si aún no se ha aceptado, sale el aviso
+(`ui/common/ProtectionConsent.kt`): qué mira, qué nunca lee y que nada sale del móvil, con
+«Acepto» y «No, gracias». Se guarda `Profile.accessibilityConsent`; quien ya tenía la protección
+funcionando de una versión anterior lo da por aceptado. La política de privacidad va dentro de la
+app (`PrivacyPolicyDialog`) y es la misma que [`PRIVACIDAD.md`](PRIVACIDAD.md).
 
 ## Saldo diario y desbloqueos
 
@@ -113,6 +177,29 @@ estado se comparte con un **DataStore multiproceso** (`MultiProcessDataStoreFact
 el nombre opcional con el que Inicio saluda. Se pide en los primeros pasos y se cambia en Ajustes;
 se limpia antes de guardarlo (sin asteriscos, máximo 20 caracteres) y no influye en el bloqueo.
 
+## Interfaz
+
+Compose con Material 3 Expressive y la paleta de siempre: crema de fondo, tinta y lima
+(`ui/theme/Color.kt`). Las piezas comunes están en `ui/design` y `ui/common`:
+
+- **`LimeHeader`**: el banner lima de arriba, con las dos esquinas de abajo en sentidos opuestos.
+  Inicio y Ajustes lo comparten (`SharedTransitionLayout` en `AppNavHost` y
+  `LocalLimeHeaderScope`): al ir de una a otra cambia de tamaño y los textos se funden.
+- **`SectionTitle` / `MixedTitle`**: títulos con el grosor mezclado («Mi \*día\*»).
+- **`BeigeCard`**: las tarjetas beige de Inicio, Ajustes y los primeros pasos.
+- **`ChunkyPillButton`**: los botones con relieve (lima el principal, crema el secundario, gris
+  apagado).
+- **`Sprout`**: el logo como personaje, con caras (`SproutMood`), parpadeo, respiración y saltito.
+  Lo usan los primeros pasos y «Mi día» sin protección.
+- **`staggerIn`**: la entrada en cascada de cada pantalla. **`fadingEdges`**: difuminado de los
+  textos que se deslizan.
+
+Ajustes tiene los apartados Tu nombre, Límite diario, Protección (estado, hora manual y consejo
+de Xiaomi) y Privacidad. Al llegar desde «Ir a Ajustes» (en «Mi día» o en el pop-up del día),
+baja hasta la protección y su tarjeta parpadea despacio mientras no funcione. «Volver» solo
+navega con la pantalla activa (`dropUnlessResumed`), para que pulsar varias veces no deje la
+navegación vacía.
+
 ## Privacidad y seguridad
 
 - No se pide permiso `INTERNET`. El único permiso que se pide en tiempo de ejecución es
@@ -122,6 +209,8 @@ se limpia antes de guardarlo (sin asteriscos, máximo 20 caracteres) y no influy
   identificadores estructurales y, de las vistas que nombran las reglas, los textos que buscan
   (las pestañas de TikTok).
 - `allowBackup=false` y las reglas de extracción excluyen todos los datos.
+- Lo que se guarda (nombre, límite, desbloqueos con motivo, bloqueos y días sin protección) está
+  en `filesDir/datastore`, privado de la app. La política de privacidad lo explica.
 - Además de las apps objetivo, el servicio escucha al launcher, pero solo para saber que el
   usuario ha salido a Inicio o a Recientes. De su pantalla no se lee nada.
 - Solo se exporta `MainActivity`, porque la necesita el lanzador. Sus extras solo abren Inicio

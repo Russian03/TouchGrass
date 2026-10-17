@@ -19,8 +19,9 @@ El bloqueo usa el servicio de accesibilidad estándar de Android y las reglas de
 apps de Instagram y TikTok, no del modelo de móvil.
 
 Algunas capas de fabricante cierran apps en segundo plano de forma agresiva y pueden
-detener la protección. La app lo detecta y lo avisa en la pantalla de inicio
-(*Protección detenida*). Más abajo se explica qué hacer en cada caso.
+detener la protección un momento. Android la vuelve a poner en marcha sola en unos segundos y
+esos cortes no cuentan como haberla quitado. Si un corte dura, la app lo avisa en *Mi día*.
+Más abajo se explica qué hacer en cada caso.
 
 ## Instalación
 
@@ -36,15 +37,17 @@ TouchGrass no está en ninguna tienda: se instala desde las
    *Ajustes → Aplicaciones → TouchGrass → ⋮ → Permitir ajustes restringidos*.
    Si no aparece la opción, intenta activar primero la protección (paso 4); al rechazarlo,
    la opción se desbloquea.
-3. **Primeros pasos.** La primera vez que abres TouchGrass te explica cómo funciona, qué
-   lee el servicio de accesibilidad y te pide tu límite de minutos al día.
+3. **Primeros pasos.** La primera vez que abres TouchGrass te pide tu nombre (opcional), te
+   explica cómo funciona y te pide tu límite de minutos al día. Antes de activar la protección
+   te enseña qué lee el servicio de accesibilidad y qué no, y te pide que lo aceptes.
 4. **Activar la protección.** En el último paso, pulsa *Activar en Accesibilidad* y activa
    TouchGrass en la lista de servicios. Vuelve a la app: debe mostrar *Protección activada*.
 
 ### Xiaomi, Redmi y POCO (HyperOS / MIUI)
 
 HyperOS y MIUI matan el proceso de la app con mucha facilidad, por ejemplo al limpiar
-Recientes, y Android no vuelve a arrancar el servicio por sí solo. Para evitarlo:
+memoria. Android vuelve a arrancar el servicio en unos segundos solo si el sistema le deja.
+Para que le deje:
 
 - En *Ajustes → Aplicaciones → TouchGrass*:
   - Activa **Autoinicio**.
@@ -82,15 +85,26 @@ Todas las versiones van firmadas con la misma clave. La huella SHA-256 del certi
 Se puede comprobar con `apksigner verify --print-certs touchgrass-vX.Y.Z.apk` (viene con el
 Android SDK).
 
-### Si aparece «Protección detenida»
+### Si aparece «TouchGrass se ha detenido»
 
-El sistema ha cerrado el servicio aunque el ajuste siga activado. Pulsa
-*Reactivar en Accesibilidad*, **desactiva** TouchGrass y **vuelve a activarlo**.
+El sistema ha cerrado el servicio aunque el ajuste siga activado y no ha vuelto en un minuto.
+Tu día no se ve afectado: solo cuenta como trampa desactivarlo tú en Accesibilidad. Comprueba
+el *Autoinicio* y el ahorro de batería (ver arriba). Si sigue sin volver, en *Ajustes →
+Protección* pulsa *Reactivar en Accesibilidad*, **desactiva** TouchGrass y **vuelve a
+activarlo**.
 
 ## Uso
 
-- **Inicio** muestra el saldo de hoy (minutos usados y los que quedan), cuándo se renueva
-  (a las 8:00) y el estado de la protección.
+- **Inicio** te saluda por tu nombre y muestra:
+  - **Mi día:** los minutos que quedan hoy y cuándo se renueva el saldo (a las 8:00). Si la
+    protección está quitada, el personaje sale con los ojos en cruz y un botón te lleva a
+    arreglarlo en Ajustes.
+  - **Mi semana:** la semana anterior y la actual, con una cara por día según lo que usaste. Las
+    rachas de días con poco uso dan caras especiales; los días en que agotaste el saldo o
+    quitaste la protección salen tristes y en gris.
+- **Primer acceso del día.** La primera vez que abres la app cada día, salen las caras de los
+  días que aún no habías visto y una frase sobre ayer. Si quitaste la protección, te lo
+  recuerda y, si sigue quitada, te ofrece activarla.
 - **Pedir tiempo**, en Inicio, abre una pantalla en la que eliges la app y después los minutos
   (atajos de 5 a 60 o − / +), nunca más de los que quedan hoy. El saldo es el mismo para
   todas las apps y solo hay un desbloqueo a la vez. Los minutos se restan al pedirlos y corren
@@ -111,8 +125,9 @@ El sistema ha cerrado el servicio aunque el ajuste siga activado. Pulsa
   comparación con los meses anteriores y el detalle de cada día.
 - **Resumen del mes.** El día 1 a las 8:00 llega un aviso (si permites las notificaciones) y en
   Inicio sale una tarjeta con el resumen del mes anterior hasta que lo abres.
-- **Ajustes** (icono de la rueda) permite cambiar el límite diario. Bajarlo se aplica al
-  momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede cancelar.
+- **Ajustes** (icono de la rueda) permite cambiar tu nombre y el límite diario. Bajarlo se
+  aplica al momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede
+  cancelar. También muestra el estado de la protección y la política de privacidad.
 - Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa
   para activar la hora automática.
 
@@ -221,4 +236,5 @@ Cada push y PR a `main` pasa por CI (GitHub Actions): ktlint, lint, tests y buil
 
 - [Arquitectura](docs/ARCHITECTURE.md)
 - [Roadmap por bloques](docs/ROADMAP.md)
+- [Política de privacidad](docs/PRIVACIDAD.md)
 - [Decisiones de arquitectura (ADR)](docs/adr/)

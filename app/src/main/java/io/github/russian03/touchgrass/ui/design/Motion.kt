@@ -43,6 +43,7 @@ const val STAGGER_STEP_MS = 60L
  * Entrada en cascada: el elemento número [index] aparece [stepMs] ms después del anterior, con
  * fundido, subiendo [offsetY] y creciendo de 0,96 a 1 con el muelle del tema. Mientras
  * [visible] es `false` se queda escondido (p. ej. una página del asistente que aún no se ve).
+ * Con [enabled] en falso (al entrar ya pintado) no anima.
  */
 @Composable
 fun Modifier.staggerIn(
@@ -51,10 +52,11 @@ fun Modifier.staggerIn(
     stepMs: Long = STAGGER_STEP_MS,
     offsetY: Dp = 16.dp,
     fromScale: Float = 0.96f,
+    enabled: Boolean = true,
 ): Modifier {
-    // En las vistas previas no corre el tiempo: se pinta ya colocado.
+    // En las vistas previas no corre el tiempo: se pinta ya colocado. Sin [enabled], también.
     val inspection = LocalInspectionMode.current
-    val progress = remember { Animatable(if (inspection) 1f else 0f) }
+    val progress = remember { Animatable(if (inspection || !enabled) 1f else 0f) }
     val spec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
     LaunchedEffect(visible) {
         if (visible) {

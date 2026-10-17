@@ -64,7 +64,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
@@ -104,6 +103,8 @@ import io.github.russian03.touchgrass.ui.theme.CardBeigeEdge
 import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.LimeDeep
+import io.github.russian03.touchgrass.ui.theme.NightPointShade
+import io.github.russian03.touchgrass.ui.theme.PointShade
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -113,10 +114,6 @@ import kotlinx.coroutines.launch
  * pide Google Play; si se rechaza, se salta la activación y se va al final.
  */
 private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Disclosure, Activate, Done }
-
-/** Resaltado del apartado de «Cómo funciona» que toca, en claro y en modo noche. */
-private val PointShade = Color(0xFFDDD6C0)
-private val NightPointShade = Color(0xFF2B2D28)
 
 /** Fundido del resaltado entre apartados de «Cómo funciona». */
 private const val POINT_FADE_MS = 320
