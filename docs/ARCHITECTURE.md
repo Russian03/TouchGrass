@@ -97,7 +97,8 @@ La primera vez que se abre la app cada día salen, en un pop-up, las caras de lo
 se han enseñado (desde el último enseñado hasta ayer, sin salir de «Mi semana»;
 `StatsPolicy.unclaimedDays`). Debajo va una frase según la cara de ayer, o una de «sin trampas» si
 alguno de esos días se quitó la protección (si son varios, se nombra el último). Al cerrarlo se
-guarda `lastDayClaimed`. Si la protección sigue quitada, además de «Volver» sale «Activar
+guarda `lastDayClaimed`. Los días anteriores a `since` (los del guion) nunca se enseñan: el primer
+pop-up sale el día después de activar la protección por primera vez, con ese primer día. Si la protección sigue quitada, además de «Volver» sale «Activar
 protección», que lleva al apartado de la protección de Ajustes.
 
 ## Estado de la protección
