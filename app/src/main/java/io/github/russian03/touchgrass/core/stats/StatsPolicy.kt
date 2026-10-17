@@ -128,17 +128,16 @@ object StatsPolicy {
             days = days,
             calendar = calendar,
             limits = days.mapNotNull { it.stats.limitMinutes }.distinct().sorted(),
-            faces = calendar.filterValues { it != null && it != DayFace.Untracked }
-                .filterKeys { it < today }
+            faces = calendar.filterKeys { it < today }
                 .values
                 .filterNotNull()
+                .filter { it != DayFace.Untracked }
                 .groupingBy { it }
                 .eachCount(),
             blocksByDay =
-            generateSequence(month.atDay(1)) { it.plusDays(1) }
-                .takeWhile { it <= minOf(month.atEndOfMonth(), today) }
-                .map { day -> state.days[day.toString()]?.blocks?.values?.sum() ?: 0 }
-                .toList(),
+            calendar.keys
+                .filter { it <= today }
+                .map { day -> state.days[day.toString()]?.blocks?.values?.sum() ?: 0 },
         )
     }
 

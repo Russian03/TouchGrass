@@ -7,6 +7,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
@@ -30,7 +31,7 @@ fun FitText(
     textAlign: TextAlign = TextAlign.Unspecified,
 ) {
     val max: TextUnit = if (style.fontSize.isSpecified) style.fontSize else LocalTextStyle.current.fontSize
-    val tint = if (color != Color.Unspecified) color else style.color.takeOrElse { LocalContentColor.current }
+    val tint = color.takeOrElse { style.color.takeOrElse { LocalContentColor.current } }
     BasicText(
         text = text,
         style = style.copy(color = tint, textAlign = textAlign, lineHeight = TextUnit.Unspecified),
@@ -40,5 +41,3 @@ fun FitText(
         modifier = modifier,
     )
 }
-
-private inline fun Color.takeOrElse(block: () -> Color): Color = if (this != Color.Unspecified) this else block()
