@@ -10,7 +10,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,8 +48,6 @@ import io.github.russian03.touchgrass.ui.common.timeOf
 import io.github.russian03.touchgrass.ui.design.InkPillButton
 import io.github.russian03.touchgrass.ui.design.Sprout
 import io.github.russian03.touchgrass.ui.design.SproutMood
-import io.github.russian03.touchgrass.ui.theme.NightSproutDull
-import io.github.russian03.touchgrass.ui.theme.SproutDull
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 /** Por debajo de esta fracción del saldo, la onda del anillo se aplana: queda poco. */
@@ -58,8 +55,9 @@ private const val CALM_BELOW = 0.2f
 
 /**
  * «Mi día»: un anillo ondulado con lo que queda y cuándo se renueva. Si la protección no funciona
- * ([protected] en falso), el anillo se apaga, el personaje sale apagado con los ojos en cruz en lugar
- * de los minutos y a la derecha se avisa, con el botón para arreglarlo en Ajustes ([onFixProtection]).
+ * ([protected] en falso), el anillo pasa a tinta y sin onda, en lugar de los minutos sale el
+ * personaje en tinta con los ojos en cruz y a la derecha se avisa, con el botón para arreglarlo en
+ * Ajustes ([onFixProtection]).
  */
 @Composable
 fun TodayCard(budget: BudgetSummary, protected: Boolean, onFixProtection: () -> Unit, modifier: Modifier = Modifier) {
@@ -145,8 +143,8 @@ private fun ProtectionOffText(onFixProtection: () -> Unit) {
 
 /**
  * Anillo ondulado que se llena desde 0 al entrar y sigue al saldo con un muelle lento (unos
- * 800 ms). Cuando queda menos del 20 %, la onda se aplana. Sin protección, se apaga en gris y en
- * el centro sale el personaje apagado.
+ * 800 ms). Cuando queda menos del 20 %, la onda se aplana. Sin protección, pasa a tinta y sin onda,
+ * y en el centro sale el personaje en tinta con los ojos en cruz.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -164,10 +162,10 @@ private fun BudgetRing(remaining: Int, limit: Int, protected: Boolean, modifier:
             )
         }
     }
-    val dark = isSystemInDarkTheme()
-    val dull = if (dark) NightSproutDull else SproutDull
+    // Sin protección, el anillo y el personaje van en tinta.
+    val off = MaterialTheme.colorScheme.onSurface
     val color by animateColorAsState(
-        targetValue = if (protected) MaterialTheme.colorScheme.secondary else dull,
+        targetValue = if (protected) MaterialTheme.colorScheme.secondary else off,
         animationSpec = tween(FADE_MS),
         label = "ringColor",
     )
@@ -207,7 +205,7 @@ private fun BudgetRing(remaining: Int, limit: Int, protected: Boolean, modifier:
             } else {
                 Sprout(
                     mood = SproutMood.Off,
-                    bodyColor = dull,
+                    bodyColor = off,
                     faceColor = beigeCardColor(),
                     modifier = Modifier.width(62.dp),
                 )

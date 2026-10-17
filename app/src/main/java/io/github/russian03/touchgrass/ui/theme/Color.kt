@@ -33,10 +33,6 @@ val Dull = Color(0xFFC4C2B8)
 /** Canto de un botón con relieve apagado. */
 val DullEdge = Color(0xFFA9A79C)
 
-/** Personaje apagado (sin protección): el verde casi gris, de día y de noche. */
-val SproutDull = Color(0xFFB4B8A4)
-val NightSproutDull = Color(0xFF5C6055)
-
 internal val Night = Color(0xFF141513)
 internal val NightSurface = Color(0xFF1F211D)
 internal val NightInk = Color(0xFFF2F1EA)
