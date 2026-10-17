@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -76,7 +77,12 @@ fun AppNavHost(
                 }
             }
             composable<StatsRoute> { entry ->
-                StatsScreen(initialMonth = entry.toRoute<StatsRoute>().month, onBack = { nav.popBackStack() })
+                StatsScreen(
+                    initialMonth = entry.toRoute<StatsRoute>().month,
+                    onBack = dropUnlessResumed {
+                        nav.popBackStack()
+                    },
+                )
             }
             composable<SettingsRoute> { entry ->
                 CompositionLocalProvider(
@@ -84,14 +90,14 @@ fun AppNavHost(
                 ) {
                     SettingsScreen(
                         focusProtection = entry.toRoute<SettingsRoute>().protection,
-                        onBack = { nav.popBackStack() },
+                        onBack = dropUnlessResumed { nav.popBackStack() },
                     )
                 }
             }
             composable<UnlockRoute> {
                 UnlockScreen(
-                    onBack = { nav.popBackStack() },
-                    onDone = { nav.popBackStack() },
+                    onBack = dropUnlessResumed { nav.popBackStack() },
+                    onDone = dropUnlessResumed { nav.popBackStack() },
                 )
             }
         }

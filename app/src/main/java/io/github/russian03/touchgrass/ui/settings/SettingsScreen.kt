@@ -173,24 +173,31 @@ private fun SettingsContent(
                     .padding(bottom = 32.dp),
             ) {
                 var order = 1
+                // La cascada espera a tener los datos: si no, la tarjeta del límite aparecería de golpe
+                // a media transición y la lista daría un salto.
+                val loaded = state.budget != null
                 // Justo bajo el banner, el título empieza donde acaba su curva de la izquierda.
-                SectionTitle(stringResource(R.string.settings_name_section), Modifier.staggerIn(order++), top = 4.dp)
-                NameCard(state, onNameChange, onSaveName, Modifier.staggerIn(order++))
+                SectionTitle(
+                    stringResource(R.string.settings_name_section),
+                    Modifier.staggerIn(order++, loaded),
+                    top = 4.dp,
+                )
+                NameCard(state, onNameChange, onSaveName, Modifier.staggerIn(order++, loaded))
 
-                SectionTitle(stringResource(R.string.settings_limit_section), Modifier.staggerIn(order++))
+                SectionTitle(stringResource(R.string.settings_limit_section), Modifier.staggerIn(order++, loaded))
                 LimitCard(
                     state = state,
                     onDraftChange = onDraftChange,
                     onSave = { if (state.lowers) confirmLower = true else onSave() },
                     onCancelPending = onCancelPending,
-                    modifier = Modifier.staggerIn(order++),
+                    modifier = Modifier.staggerIn(order++, loaded),
                 )
 
                 SectionTitle(
                     stringResource(R.string.settings_protection_section),
                     Modifier
                         .onPlaced { protectionTop = it.positionInParent().y.toInt() }
-                        .staggerIn(order++),
+                        .staggerIn(order++, loaded),
                 )
                 ProtectionCard(
                     state = protection,
@@ -198,11 +205,11 @@ private fun SettingsContent(
                     showXiaomiTip = showXiaomiTip,
                     actions = protectionActions,
                     color = protectionColor,
-                    modifier = Modifier.staggerIn(order++),
+                    modifier = Modifier.staggerIn(order++, loaded),
                 )
 
-                SectionTitle(stringResource(R.string.settings_privacy_section), Modifier.staggerIn(order++))
-                BeigeCard(Modifier.staggerIn(order++)) {
+                SectionTitle(stringResource(R.string.settings_privacy_section), Modifier.staggerIn(order++, loaded))
+                BeigeCard(Modifier.staggerIn(order++, loaded)) {
                     Text(
                         text = stringResource(R.string.settings_privacy_body),
                         style = MaterialTheme.typography.bodyMedium,
@@ -222,7 +229,7 @@ private fun SettingsContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 32.dp).staggerIn(order),
+                    modifier = Modifier.fillMaxWidth().padding(top = 32.dp).staggerIn(order, loaded),
                 )
             }
         }
