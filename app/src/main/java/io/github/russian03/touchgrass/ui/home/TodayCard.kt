@@ -41,7 +41,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
-import io.github.russian03.touchgrass.ui.common.Card
+import io.github.russian03.touchgrass.ui.common.BeigeCard
+import io.github.russian03.touchgrass.ui.common.beigeCardColor
 import io.github.russian03.touchgrass.ui.common.firstDayOf
 import io.github.russian03.touchgrass.ui.common.isTomorrow
 import io.github.russian03.touchgrass.ui.common.timeOf
@@ -64,7 +65,7 @@ private const val CALM_BELOW = 0.2f
 fun TodayCard(budget: BudgetSummary, protected: Boolean, onFixProtection: () -> Unit, modifier: Modifier = Modifier) {
     val remainingLabel = pluralStringResource(R.plurals.minutes_left, budget.remainingMinutes, budget.remainingMinutes)
     val offLabel = stringResource(R.string.today_protection_off_title)
-    Card(modifier = modifier) {
+    BeigeCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BudgetRing(
                 remaining = budget.remainingMinutes,
@@ -207,7 +208,7 @@ private fun BudgetRing(remaining: Int, limit: Int, protected: Boolean, modifier:
                 Sprout(
                     mood = SproutMood.Off,
                     bodyColor = dull,
-                    faceColor = MaterialTheme.colorScheme.surfaceContainer,
+                    faceColor = beigeCardColor(),
                     modifier = Modifier.width(62.dp),
                 )
             }
