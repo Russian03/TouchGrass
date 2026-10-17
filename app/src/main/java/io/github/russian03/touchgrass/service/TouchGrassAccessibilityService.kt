@@ -1,8 +1,12 @@
 package io.github.russian03.touchgrass.service
 
 import android.accessibilityservice.AccessibilityService
+import android.app.AlarmManager
 import android.app.KeyguardManager
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -26,7 +30,6 @@ import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleRepository
 import io.github.russian03.touchgrass.data.stats.StatsRepository
-import io.github.russian03.touchgrass.notification.MonthlyReport
 import io.github.russian03.touchgrass.overlay.BlockOverlay
 import javax.inject.Inject
 import kotlinx.coroutines.MainScope
@@ -87,7 +90,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             // Si se había quitado, los días sin protección quedan marcados.
             stats.markProtectionOn()
         }
-        MonthlyReport.schedule(this)
+        forgetMonthlyReport()
         // Los desbloqueos se piden desde la app, en otro proceso: llegan por el DataStore.
         scope.launch {
             budget.state.collect {
@@ -155,6 +158,25 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private fun scheduleEvaluation(delayMs: Long) {
         handler.removeCallbacks(evaluateRunnable)
         handler.postDelayed(evaluateRunnable, delayMs)
+    }
+
+    /**
+     * Las versiones anteriores avisaban del resumen del mes con una alarma y un canal de avisos.
+     * Ya no existen: se cancela la alarma que pudiera quedar y se borra el canal. Si no hay nada,
+     * no hace nada.
+     */
+    private fun forgetMonthlyReport() {
+        val receiver = Intent().setComponent(ComponentName(this, LEGACY_REPORT_RECEIVER))
+        PendingIntent.getBroadcast(
+            this,
+            LEGACY_REPORT_REQUEST,
+            receiver,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )?.let { alarm ->
+            getSystemService(AlarmManager::class.java).cancel(alarm)
+            alarm.cancel()
+        }
+        getSystemService(NotificationManager::class.java).deleteNotificationChannel(LEGACY_REPORT_CHANNEL)
     }
 
     override fun onInterrupt() = Unit
@@ -300,5 +322,10 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val EXPIRY_MARGIN_MS = 100L
         const val MAX_CLICK_ANCESTORS = 4
         const val UNBIND_SAVE_TIMEOUT_MS = 1_000L
+
+        // Lo que usaba el aviso del resumen del mes de versiones anteriores, para borrarlo.
+        const val LEGACY_REPORT_RECEIVER = "io.github.russian03.touchgrass.notification.MonthlyReportReceiver"
+        const val LEGACY_REPORT_REQUEST = 1
+        const val LEGACY_REPORT_CHANNEL = "monthly_report"
     }
 }

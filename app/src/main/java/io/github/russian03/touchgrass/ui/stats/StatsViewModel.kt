@@ -29,6 +29,10 @@ data class StatsUiState(
     val comparison: List<MonthStats>,
     /** Nombre de cada app por paquete. */
     val appNames: Map<String, String>,
+    /** Racha de días de poco uso que llega hasta hoy (no depende del mes que se mira). */
+    val currentStreak: Int = 0,
+    /** La racha más larga desde que hay estadísticas. */
+    val bestStreak: Int = 0,
 ) {
     val previous: YearMonth? get() = months.lastOrNull { it < month.month }
     val next: YearMonth? get() = months.firstOrNull { it > month.month }
@@ -54,6 +58,8 @@ class StatsViewModel @Inject constructor(private val stats: StatsRepository, rul
                 month = StatsPolicy.month(state, month, today),
                 comparison = StatsPolicy.comparison(state, month, today),
                 appNames = names,
+                currentStreak = StatsPolicy.currentStreak(state, today),
+                bestStreak = StatsPolicy.bestStreak(state, today),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
@@ -61,10 +67,9 @@ class StatsViewModel @Inject constructor(private val stats: StatsRepository, rul
         viewModelScope.launch { stats.start() }
     }
 
-    /** Muestra [month]. Un mes ya terminado cuenta como resumen visto. */
+    /** Muestra [month]. */
     fun show(month: YearMonth) {
         selected.value = month
-        if (month < YearMonth.from(stats.today())) viewModelScope.launch { stats.markSeen(month) }
     }
 
     private companion object {

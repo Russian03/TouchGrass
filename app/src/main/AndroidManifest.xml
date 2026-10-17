@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Sin permiso INTERNET a propósito: ningún dato sale del dispositivo. -->
-
-    <!-- Solo para avisar de que está el resumen del mes. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Sin permiso INTERNET a propósito: ningún dato sale del dispositivo. Tampoco se pide
+         ningún otro permiso: solo el servicio de accesibilidad, que el usuario activa a mano. -->
 
     <!-- Para saber cuál es el launcher y quitar la pantalla de bloqueo al salir a Inicio. -->
     <queries>
@@ -55,11 +53,6 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-
-        <!-- Alarma del día 1 para avisar del resumen del mes. -->
-        <receiver
-            android:name=".notification.MonthlyReportReceiver"
-            android:exported="false" />
 
     </application>
 

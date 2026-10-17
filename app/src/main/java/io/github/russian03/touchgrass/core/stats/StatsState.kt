@@ -15,10 +15,6 @@ data class StatsState(
     val since: String? = null,
     /** Estadísticas de cada día con algo que contar. Un día que no está es un día sin nada. */
     val days: Map<String, DayStats> = emptyMap(),
-    /** Último mes cuyo resumen se ha abierto: hasta entonces se avisa en Inicio. */
-    val lastMonthSeen: String? = null,
-    /** Último mes del que se ha enviado la notificación del resumen. */
-    val lastMonthNotified: String? = null,
     /** Último día cuya cara ya se ha enseñado al abrir la app («reclamado»). */
     val lastDayClaimed: String? = null,
     /**

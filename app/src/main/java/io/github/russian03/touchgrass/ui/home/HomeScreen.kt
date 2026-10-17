@@ -40,14 +40,12 @@ import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.stats.WeekDay
 import io.github.russian03.touchgrass.service.ProtectionState
 import io.github.russian03.touchgrass.ui.common.fullDay
-import io.github.russian03.touchgrass.ui.common.monthName
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
 import io.github.russian03.touchgrass.ui.common.rememberShownProtection
 import io.github.russian03.touchgrass.ui.design.InkPillButton
 import io.github.russian03.touchgrass.ui.design.LimeHeader
 import io.github.russian03.touchgrass.ui.design.LocalLimeHeaderScope
 import io.github.russian03.touchgrass.ui.design.MixedTitle
-import io.github.russian03.touchgrass.ui.design.OutlinePillButton
 import io.github.russian03.touchgrass.ui.design.SectionTitle
 import io.github.russian03.touchgrass.ui.design.mixedWeights
 import io.github.russian03.touchgrass.ui.design.staggerIn
@@ -56,12 +54,11 @@ import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.InkSoft
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.LocalDate
-import java.time.YearMonth
 
 @Composable
 fun HomeScreen(
     onOpenSettings: () -> Unit,
-    onOpenStats: (YearMonth?) -> Unit,
+    onOpenStats: () -> Unit,
     onOpenUnlock: () -> Unit,
     onOpenProtection: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -69,7 +66,7 @@ fun HomeScreen(
     val budget by viewModel.budget.collectAsStateWithLifecycle()
     val unlock by viewModel.unlock.collectAsStateWithLifecycle()
     val appNames by viewModel.appNames.collectAsStateWithLifecycle()
-    val pendingSummary by viewModel.pendingSummary.collectAsStateWithLifecycle()
+    val streak by viewModel.streak.collectAsStateWithLifecycle()
     val week by viewModel.week.collectAsStateWithLifecycle()
     val name by viewModel.name.collectAsStateWithLifecycle()
     val claim by viewModel.claim.collectAsStateWithLifecycle()
@@ -88,14 +85,14 @@ fun HomeScreen(
         today = viewModel.today(),
         unlock = unlock,
         unlockActions = UnlockActions(appNames = appNames, onOpen = onOpenUnlock, onEnd = viewModel::endUnlock),
-        summary = SummaryActions(pendingSummary, onOpenStats),
+        achievements = AchievementActions(streak, onOpenStats),
         claim = ClaimActions(claim, viewModel::claim, onOpenProtection),
         onOpenSettings = onOpenSettings,
     )
 }
 
-/** Resumen del mes listo para ver ([month]) y cómo abrir las estadísticas. */
-private class SummaryActions(val month: YearMonth?, val onOpen: (YearMonth?) -> Unit)
+/** Racha actual de «Mis logros» y cómo abrir las estadísticas. */
+private class AchievementActions(val streak: Int, val onOpenStats: () -> Unit)
 
 /** Días por enseñar en el primer acceso del día ([state]) y cómo guardar que ya se han visto. */
 private class ClaimActions(val state: ClaimState?, val onClaimed: () -> Unit, val onOpenProtection: () -> Unit)
@@ -104,8 +101,8 @@ private class UnlockActions(val appNames: Map<String, String>, val onOpen: () ->
 
 /**
  * Inicio. Arriba, la cabecera lima (fecha, título, pedir tiempo o la cuenta atrás); debajo, en
- * cascada: el resumen del mes si está listo, «Mi día» (que avisa si la protección no funciona) y
- * «Mi semana».
+ * cascada: «Mi día» (que avisa si la protección no funciona), «Mi semana» y «Mis logros» (que
+ * lleva a las estadísticas).
  */
 @Composable
 private fun HomeContent(
@@ -117,11 +114,10 @@ private fun HomeContent(
     today: LocalDate,
     unlock: UnlockUiState,
     unlockActions: UnlockActions,
-    summary: SummaryActions,
+    achievements: AchievementActions,
     claim: ClaimActions,
     onOpenSettings: () -> Unit,
 ) {
-    val openStats = { summary.onOpen(null) }
     // Primer acceso del día: los días por enseñar, si la tira ya ha saltado al pop-up y si ya ha
     // vuelto. Se recuerda para qué días (como texto, para que sobreviva al ir a Ajustes y volver),
     // así que al día siguiente vuelve a salir.
@@ -138,7 +134,7 @@ private fun HomeContent(
             val headerScope = LocalLimeHeaderScope.current
             val headerShared = remember { headerScope?.navigating == true }
             LimeHeader(Modifier.staggerIn(index = 0, offsetY = (-24).dp, fromScale = 1f, enabled = !headerShared)) {
-                HeaderTop(onOpenStats = openStats, onOpenSettings = onOpenSettings)
+                HeaderTop(onOpenSettings = onOpenSettings)
                 MixedTitle(
                     text =
                     if (name != null) {
@@ -174,19 +170,12 @@ private fun HomeContent(
 
             Column(Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
                 var order = 1
-                summary.month?.let { month ->
-                    SummaryReadyCard(
-                        month,
-                        onOpen = { summary.onOpen(month) },
-                        modifier = Modifier.padding(top = 24.dp).staggerIn(order++),
-                    )
-                }
                 if (budget != null) {
                     // Justo bajo el banner, el título empieza donde acaba su curva de la izquierda.
                     SectionTitle(
                         stringResource(R.string.home_my_day),
                         Modifier.staggerIn(order++),
-                        top = if (summary.month == null) 4.dp else 32.dp,
+                        top = 4.dp,
                     )
                     TodayCard(
                         budget = budget,
@@ -209,10 +198,11 @@ private fun HomeContent(
                             .graphicsLayer { alpha = if (claiming && startedFor == claimKey) 0f else 1f },
                     )
                 }
-                OutlinePillButton(
-                    text = stringResource(R.string.home_open_stats),
-                    onClick = openStats,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 32.dp).staggerIn(order),
+                SectionTitle(stringResource(R.string.home_my_achievements), Modifier.staggerIn(order++))
+                Achievements(
+                    streak = achievements.streak,
+                    onOpenStats = achievements.onOpenStats,
+                    modifier = Modifier.staggerIn(order),
                 )
             }
         }
@@ -242,9 +232,9 @@ private fun HomeContent(
     }
 }
 
-/** Fecha de hoy a la izquierda; estadísticas y ajustes a la derecha. */
+/** Fecha de hoy a la izquierda; ajustes a la derecha. Las estadísticas se abren desde «Mis logros». */
 @Composable
-private fun HeaderTop(onOpenStats: () -> Unit, onOpenSettings: () -> Unit) {
+private fun HeaderTop(onOpenSettings: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Text(
             text = fullDay(LocalDate.now()),
@@ -252,9 +242,6 @@ private fun HeaderTop(onOpenStats: () -> Unit, onOpenSettings: () -> Unit) {
             color = InkSoft,
             modifier = Modifier.weight(1f),
         )
-        IconButton(onClick = onOpenStats) {
-            Icon(painterResource(R.drawable.ic_stats), contentDescription = stringResource(R.string.stats_title))
-        }
         IconButton(onClick = onOpenSettings) {
             Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))
         }
@@ -290,34 +277,6 @@ private fun QuoteRow(budget: BudgetSummary?, onOpenUnlock: () -> Unit, modifier:
     }
 }
 
-/** El resumen del mes anterior está listo: se queda en Inicio hasta que se abre. */
-@Composable
-private fun SummaryReadyCard(month: YearMonth, onOpen: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = MaterialTheme.shapes.large,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(24.dp)) {
-            MixedTitle(
-                text = stringResource(R.string.home_summary_title, "*${monthName(month)}*"),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Normal),
-            )
-            Text(
-                text = stringResource(R.string.home_summary_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            InkPillButton(
-                text = stringResource(R.string.home_summary_open),
-                onClick = onOpen,
-                modifier = Modifier.padding(top = 16.dp),
-            )
-        }
-    }
-}
-
 internal fun previewBudget(used: Int = 10, autoTime: Boolean = true) = BudgetSummary(
     limitMinutes = 30,
     usedMinutes = used,
@@ -334,7 +293,7 @@ internal fun previewBudget(used: Int = 10, autoTime: Boolean = true) = BudgetSum
 
 private val noActions = UnlockActions(emptyMap(), {}, {})
 
-private val noSummary = SummaryActions(null) {}
+private val previewAchievements = AchievementActions(5) {}
 
 private val noClaim = ClaimActions(null, {}, {})
 
@@ -351,7 +310,7 @@ private fun HomeOnPreview() {
             LocalDate.of(2026, 10, 14),
             UnlockUiState(),
             noActions,
-            noSummary,
+            previewAchievements,
             noClaim,
             {},
         )
@@ -371,7 +330,7 @@ private fun HomeStoppedPreview() {
             LocalDate.of(2026, 10, 14),
             UnlockUiState(),
             noActions,
-            SummaryActions(YearMonth.of(2026, 9)) {},
+            AchievementActions(0) {},
             noClaim,
             {},
         )

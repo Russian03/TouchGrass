@@ -51,14 +51,11 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalSplashGone provides splashGone) {
                     val start by viewModel.start.collectAsStateWithLifecycle()
                     val homeRequest by viewModel.homeRequest.collectAsStateWithLifecycle()
-                    val statsRequest by viewModel.statsRequest.collectAsStateWithLifecycle()
                     start?.let {
                         AppNavHost(
                             start = it,
                             homeRequest = homeRequest,
                             onHomeRequestHandled = viewModel::onHomeRequestHandled,
-                            statsRequest = statsRequest,
-                            onStatsRequestHandled = viewModel::onStatsRequestHandled,
                         )
                     }
                 }
@@ -74,7 +71,6 @@ class MainActivity : ComponentActivity() {
 
     private fun handle(intent: Intent) {
         if (intent.getBooleanExtra(EXTRA_OPEN_HOME, false)) viewModel.requestHome()
-        viewModel.openStats(intent.getStringExtra(EXTRA_OPEN_STATS))
     }
 
     companion object {
@@ -83,8 +79,5 @@ class MainActivity : ComponentActivity() {
 
         /** Desde la pantalla de bloqueo: abre Inicio, sea cual sea la pantalla en la que se quedó la app. */
         const val EXTRA_OPEN_HOME = "io.github.russian03.touchgrass.extra.OPEN_HOME"
-
-        /** Mes (`2026-09`) cuyas estadísticas se abren, desde la notificación del resumen. */
-        const val EXTRA_OPEN_STATS = "io.github.russian03.touchgrass.extra.OPEN_STATS"
     }
 }

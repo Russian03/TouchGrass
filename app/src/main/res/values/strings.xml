@@ -103,7 +103,12 @@
     </string-array>
     <string name="home_my_day">Mi *día*</string>
     <string name="home_my_week">Mi *semana*</string>
-    <string name="home_open_stats">Ver estadísticas</string>
+    <string name="home_my_achievements">Mis *logros*</string>
+    <string name="achievements_stats">Estadísticas</string>
+    <plurals name="achievements_streak_days">
+        <item quantity="one">día de racha</item>
+        <item quantity="other">días de racha</item>
+    </plurals>
     <string name="home_service_enable_short">Activar</string>
     <string name="home_open_short">Abrir</string>
     <string name="home_xiaomi_tip_title">Autoinicio en Xiaomi</string>
@@ -228,10 +233,6 @@
     <string name="onboarding_disclosure_decline">No, gracias</string>
     <string name="onboarding_disclosure_consent">Al aceptar, das tu permiso para que TouchGrass use el servicio de accesibilidad solo para esto. Puedes quitarlo cuando quieras en los ajustes de Accesibilidad.</string>
     <string name="privacy_open">Política de privacidad</string>
-    <string name="onboarding_notify_title">¿Te *avisamos*?</string>
-    <string name="onboarding_notify_body">Una vez al mes, cuando esté listo tu resumen, te llegará un aviso. Nada más: sin recordatorios ni publicidad.</string>
-    <string name="onboarding_notify_allow">Permitir avisos</string>
-    <string name="onboarding_notify_later">Ahora no</string>
     <string name="onboarding_limit_title">¿Cuántos *minutos* al día?</string>
     <string name="onboarding_limit_body">Es tu límite para este mes: los minutos que podrás desbloquear cada día.</string>
     <string name="onboarding_limit_note">Podrás bajarlo cuando quieras. Para subirlo tendrás que esperar al mes siguiente.</string>
@@ -273,12 +274,30 @@
     <string name="settings_version">Versión %1$s</string>
 
     <!-- Estadísticas -->
-    <string name="stats_title">Estadísticas</string>
+    <string name="stats_header">Mis *estadísticas*</string>
+    <string name="stats_month_section">Tu *mes*</string>
+    <string name="stats_numbers_section">En *números*</string>
+    <string name="stats_more_section">Más *detalles*</string>
+    <string name="stats_calendar_day">%1$s: %2$s</string>
+    <string name="stats_calendar_today">%1$s: hoy</string>
+    <string name="stats_tile_average">Minutos al día</string>
+    <string name="stats_tile_average_unit">de media este mes</string>
+    <string name="stats_tile_best">Mejor racha</string>
+    <string name="stats_tile_streak">Racha actual</string>
+    <string name="stats_tile_streak_how">Suma los días seguidos en que usas como mucho el 25 % de tu límite, sin agotarlo ni quitar la protección. Hoy cuenta mientras sigas dentro. Las rachas son desde que empezaste, no solo de este mes.</string>
+    <plurals name="stats_days">
+        <item quantity="one">día</item>
+        <item quantity="other">días</item>
+    </plurals>
+    <string name="face_great">genial</string>
+    <string name="face_good">bien</string>
+    <string name="face_serious">regular</string>
+    <string name="face_soso">medio mal</string>
+    <string name="face_bad">saldo agotado</string>
+    <string name="face_off">protección quitada</string>
     <string name="stats_previous_month">Mes anterior</string>
     <string name="stats_next_month">Mes siguiente</string>
-    <string name="stats_empty">Aún no hay datos de este mes.</string>
     <string name="stats_unlocked_minutes">min desbloqueados</string>
-    <string name="stats_average">%1$s min al día de media</string>
     <string name="stats_unlock_count">Veces que pediste tiempo</string>
     <string name="stats_block_count">Veces que saltó el bloqueo</string>
     <string name="stats_leave_count">Veces que volviste atrás</string>
@@ -314,16 +333,6 @@
         <item quantity="one">%d devuelto</item>
         <item quantity="other">%d devueltos</item>
     </plurals>
-    <string name="stats_notifications_title">Aviso del resumen del mes</string>
-    <string name="stats_notifications_body">El día 1 te avisamos de que ya tienes las estadísticas del mes anterior.</string>
-    <string name="stats_notifications_off">Los avisos de TouchGrass están desactivados. Actívalos en los ajustes del móvil para saber cuándo está el resumen del mes.</string>
-    <string name="stats_notifications_enable">Activar el aviso</string>
-    <string name="home_summary_title">Ya tienes tu resumen de %1$s</string>
-    <string name="home_summary_body">Mira cuánto tiempo pediste y compáralo con otros meses.</string>
-    <string name="home_summary_open">Ver el resumen</string>
-    <string name="notification_channel_monthly">Resumen del mes</string>
-    <string name="notification_monthly_title">Ya tienes tus estadísticas de %1$s</string>
-    <string name="notification_monthly_body">Mira cuánto tiempo pediste y compáralo con otros meses.</string>
 
     <!-- Política de privacidad (la misma que docs/PRIVACIDAD.md). -->
     <string name="privacy_updated">Última actualización: 17 de octubre de 2026</string>

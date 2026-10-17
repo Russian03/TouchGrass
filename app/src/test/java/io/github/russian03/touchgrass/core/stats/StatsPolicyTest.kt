@@ -117,30 +117,57 @@ class StatsPolicyTest {
     }
 
     @Test
-    fun `el resumen del mes anterior queda pendiente hasta abrirlo`() {
-        val state = StatsPolicy.start(StatsState(), day("2026-09-10"))
-        // A finales de septiembre aún no hay resumen.
-        assertThat(StatsPolicy.pendingSummary(state, day("2026-09-30"))).isNull()
-        assertThat(StatsPolicy.pendingSummary(state, day("2026-10-01"))).isEqualTo(YearMonth.of(2026, 9))
-        val seen = StatsPolicy.markSeen(state, YearMonth.of(2026, 9))
-        assertThat(StatsPolicy.pendingSummary(seen, day("2026-10-20"))).isNull()
-        // Ver un mes anterior no hace olvidar que ya se vio uno posterior.
-        assertThat(StatsPolicy.markSeen(seen, YearMonth.of(2026, 8)).lastMonthSeen).isEqualTo("2026-09")
+    fun `la racha actual cuenta hoy mientras siga siendo de poco uso`() {
+        var state = StatsPolicy.start(StatsState(), day("2026-10-01"))
+        // Del 1 al 4 sin pedir tiempo; el 5, hoy, aún sin nada.
+        assertThat(StatsPolicy.currentStreak(state, day("2026-10-05"))).isEqualTo(5)
+        // Hoy se pasa del 25 %: la racha se rompe.
+        state = StatsPolicy.recordUnlock(state, day("2026-10-05"), unlock(minutes = 10), 30)
+        assertThat(StatsPolicy.currentStreak(state, day("2026-10-05"))).isEqualTo(0)
+        assertThat(StatsPolicy.currentStreak(state, day("2026-10-06"))).isEqualTo(1)
     }
 
     @Test
-    fun `sin datos del mes anterior no hay resumen ni aviso`() {
-        assertThat(StatsPolicy.pendingSummary(started, day("2026-10-20"))).isNull()
-        assertThat(StatsPolicy.pendingNotification(started, day("2026-10-20"))).isNull()
+    fun `la mejor racha es la más larga desde el primer día`() {
+        var state = StatsPolicy.start(StatsState(), day("2026-09-01"))
+        // Racha del 1 al 14, se corta el 15 (saldo agotado) y vuelve a empezar.
+        state = StatsPolicy.recordUnlock(state, day("2026-09-15"), unlock(minutes = 30), 30)
+        assertThat(StatsPolicy.bestStreak(state, day("2026-09-20"))).isEqualTo(14)
+        assertThat(StatsPolicy.currentStreak(state, day("2026-09-20"))).isEqualTo(5)
+        assertThat(StatsPolicy.bestStreak(StatsState(), day("2026-09-20"))).isEqualTo(0)
     }
 
     @Test
-    fun `el aviso del resumen se envía una vez por mes`() {
-        val state = StatsPolicy.start(StatsState(), day("2026-09-10"))
-        assertThat(StatsPolicy.pendingNotification(state, day("2026-10-01"))).isEqualTo(YearMonth.of(2026, 9))
-        val notified = StatsPolicy.markNotified(state, YearMonth.of(2026, 9))
-        assertThat(StatsPolicy.pendingNotification(notified, day("2026-10-02"))).isNull()
-        assertThat(StatsPolicy.pendingNotification(notified, day("2026-11-01"))).isEqualTo(oct)
+    fun `quitar la protección corta la racha`() {
+        var state = StatsPolicy.start(StatsState(), day("2026-10-01"))
+        state = state.copy(days = state.days + ("2026-10-03" to DayStats(protectionOff = true)))
+        assertThat(StatsPolicy.currentStreak(state, day("2026-10-04"))).isEqualTo(1)
+        assertThat(StatsPolicy.bestStreak(state, day("2026-10-04"))).isEqualTo(2)
+    }
+
+    @Test
+    fun `el calendario tiene la cara de cada día del mes y el recuento de los pasados`() {
+        var state = StatsPolicy.start(StatsState(), day("2026-10-03"))
+        state = StatsPolicy.recordUnlock(state, day("2026-10-03"), unlock(minutes = 30), 30)
+        state = StatsPolicy.recordUnlock(state, day("2026-10-04"), unlock(minutes = 5), 30)
+        val month = StatsPolicy.month(state, oct, day("2026-10-06"))
+        assertThat(month.calendar).hasSize(31)
+        assertThat(month.calendar[day("2026-10-01")]).isEqualTo(DayFace.Untracked)
+        assertThat(month.calendar[day("2026-10-03")]).isEqualTo(DayFace.Sad)
+        assertThat(month.calendar[day("2026-10-04")]).isEqualTo(DayFace.Happy)
+        assertThat(month.calendar[day("2026-10-07")]).isNull()
+        // Hoy (el 6) aún no cuenta; los días sin empezar, tampoco.
+        assertThat(month.faces).containsExactly(DayFace.Sad, 1, DayFace.Happy, 1, DayFace.Free, 1)
+    }
+
+    @Test
+    fun `los bloqueos se cuentan día a día hasta hoy`() {
+        var state = StatsPolicy.start(StatsState(), day("2026-10-01"))
+        state = StatsPolicy.recordBlock(state, day("2026-10-02"), IG)
+        state = StatsPolicy.recordBlock(state, day("2026-10-02"), TT)
+        state = StatsPolicy.recordBlock(state, day("2026-10-04"), IG)
+        val month = StatsPolicy.month(state, oct, day("2026-10-04"))
+        assertThat(month.blocksByDay).containsExactly(0, 2, 0, 1).inOrder()
     }
 
     @Test

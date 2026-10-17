@@ -23,6 +23,7 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 16     | `bloque-16/primeros-pasos`    | Primeros pasos nuevos, consentimiento de accesibilidad y política de privacidad | —      |
 | 17     | `bloque-17/ajustes`           | Ajustes rediseñados, aviso de protección en «Mi día», los cortes del servicio no cuentan como trampa | —      |
 | 18     | `bloque-18/cara-sin-proteccion` | En «Mi semana», los días sin protección con los ojos en cruz y en rojo, y los de antes de empezar en gris con un guion | —      |
+| 19     | `bloque-19/estadisticas`      | Estadísticas rediseñadas (calendario de caras, rachas, recuadros), «Mis logros» en Inicio; fuera el aviso del mes | —      |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
 | —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
 | —      | después                       | Reglas para YouTube                                                       | —      |
@@ -36,7 +37,7 @@ Lo que ya está en la app:
   «No, gracias». Cualquier «Activar» de la app vuelve a enseñarlo si no se ha aceptado.
 - Política de privacidad dentro de la app (Ajustes y el aviso); el texto está en
   [`PRIVACIDAD.md`](PRIVACIDAD.md).
-- Permiso de avisos pedido en su paso, con explicación (Android 13+).
+- Sin permisos en tiempo de ejecución: solo el servicio de accesibilidad.
 - `isAccessibilityTool="false"` y sin permiso de Internet.
 
 Lo que se hace en Play Console:

@@ -65,13 +65,15 @@ afecte nunca al bloqueo.
   atrás. Los desbloqueos los apunta la app; los bloqueos y las salidas, el servicio.
 - Los días cuentan desde `since`, el primer día con estadísticas (lo fija el servicio al
   arrancar). Un día sin datos es un día sin pedir tiempo. Se guardan 24 meses.
-- El resumen del mes y la comparación con los meses anteriores (media diaria, porque el primer
-  mes y el actual están a medias) se calculan al vuelo.
-- **Aviso del resumen** (`notification/MonthlyReport`): una alarma no exacta el día 1 a las 8:00
-  (`setAndAllowWhileIdle`, sin permisos especiales) lanza `MonthlyReportReceiver`, que notifica si
-  hay datos del mes anterior y aún no se ha avisado. Las alarmas se pierden al reiniciar, así que
-  el servicio, que vuelve a arrancar con el móvil, la reprograma y comprueba si hay un aviso
-  pendiente. En Inicio sale una tarjeta hasta que se abre ese resumen.
+- El resumen del mes (`StatsPolicy.month`) y la comparación con los meses anteriores (media
+  diaria, porque el primer mes y el actual están a medias) se calculan al vuelo. El resumen lleva
+  también la cara de cada día del mes (`calendar`), cuántos días pasados hubo de cada cara
+  (`faces`) y los bloqueos de cada día (`blocksByDay`), para el calendario y el gráfico de línea.
+- **Rachas:** `currentStreak` son los días seguidos de poco uso que llegan hasta hoy (hoy cuenta
+  mientras siga siendo de poco uso) y `bestStreak`, la más larga desde `since`. Se ven en «Mis
+  logros» de Inicio y en los recuadros de las estadísticas.
+- Ya no hay aviso del resumen del mes ni tarjeta en Inicio. Al arrancar, el servicio cancela la
+  alarma y borra el canal de avisos que dejaron las versiones anteriores.
 
 ### Caras de los días
 
@@ -150,8 +152,8 @@ en `core/budget/BudgetPolicy` (Kotlin puro) y el estado se guarda con `data/budg
 - Un desbloqueo se pide para una app y unos minutos, que se **restan enteros al pedirlo**. Dura
   esos minutos de reloj, aunque se salga de la app. Solo puede haber uno a la vez y el saldo es
   el mismo para todas las apps. La pantalla de pedir tiempo (`ui/unlock`) lista las apps con
-  reglas usando el `name` y `blocks` de cada fichero; desde la pantalla de bloqueo se abre con
-  la app ya elegida (extra `EXTRA_UNLOCK_PACKAGE` de `MainActivity`, que solo marca la app).
+  reglas usando el `name` y `blocks` de cada fichero. El enlace de la pantalla de bloqueo abre
+  Inicio (extra `EXTRA_OPEN_HOME` de `MainActivity`), desde donde se pide tiempo.
 - Un desbloqueo se puede **terminar antes de tiempo**. Se devuelve lo que le quedaba, redondeado
   hacia abajo a múltiplos de 5 (13 → 10, 4 → 0), y solo el mismo día lógico en que se pidió.
 - Mientras dura, el servicio sigue la navegación pero no pone la pantalla de bloqueo, y deja
@@ -187,7 +189,7 @@ Compose con Material 3 Expressive y la paleta de siempre: crema de fondo, tinta 
 (`ui/theme/Color.kt`). Las piezas comunes están en `ui/design` y `ui/common`:
 
 - **`LimeHeader`**: el banner lima de arriba, con las dos esquinas de abajo en sentidos opuestos.
-  Inicio y Ajustes lo comparten (`SharedTransitionLayout` en `AppNavHost` y
+  Inicio, Ajustes y Estadísticas lo comparten (`SharedTransitionLayout` en `AppNavHost` y
   `LocalLimeHeaderScope`): al ir de una a otra cambia de tamaño y los textos se funden.
 - **`SectionTitle` / `MixedTitle`**: títulos con el grosor mezclado («Mi \*día\*»).
 - **`BeigeCard`**: las tarjetas beige de Inicio, Ajustes y los primeros pasos.
@@ -195,6 +197,8 @@ Compose con Material 3 Expressive y la paleta de siempre: crema de fondo, tinta 
   apagado).
 - **`Sprout`**: el logo como personaje, con caras (`SproutMood`), parpadeo, respiración y saltito.
   Lo usan los primeros pasos y «Mi día» sin protección.
+- **`Tile`**: los recuadros de color de «Mis logros» y de las estadísticas.
+- **`AnimatedFlame`**: el fuego de la racha, dibujado en código, que parpadea.
 - **`staggerIn`**: la entrada en cascada de cada pantalla. **`fadingEdges`**: difuminado de los
   textos que se deslizan.
 
@@ -206,8 +210,8 @@ navegación vacía.
 
 ## Privacidad y seguridad
 
-- No se pide permiso `INTERNET`. El único permiso que se pide en tiempo de ejecución es
-  `POST_NOTIFICATIONS`, opcional, para el aviso del resumen mensual.
+- No se pide permiso `INTERNET` ni ningún permiso en tiempo de ejecución: solo el servicio de
+  accesibilidad, que el usuario activa a mano tras aceptar el aviso.
 - El servicio de accesibilidad se declara con `packageNames` restringido a las apps objetivo.
 - Los snapshots descartan el texto del contenido (mensajes, captions) y solo guardan
   identificadores estructurales y, de las vistas que nombran las reglas, los textos que buscan
@@ -217,8 +221,8 @@ navegación vacía.
   en `filesDir/datastore`, privado de la app. La política de privacidad lo explica.
 - Además de las apps objetivo, el servicio escucha al launcher, pero solo para saber que el
   usuario ha salido a Inicio o a Recientes. De su pantalla no se lee nada.
-- Solo se exporta `MainActivity`, porque la necesita el lanzador. Sus extras solo abren Inicio
-  (desde la pantalla de bloqueo) o las estadísticas de un mes (desde el aviso): no cambian nada. El servicio exige
+- Solo se exporta `MainActivity`, porque la necesita el lanzador. Su único extra solo abre
+  Inicio (desde la pantalla de bloqueo): no cambia nada. El servicio exige
   `BIND_ACCESSIBILITY_SERVICE`. Las librerías no añaden permisos, y el único receiver
   exportado (`ProfileInstallReceiver` de AndroidX) exige `DUMP`, que solo tiene adb.
 - En release: R8 con minify y shrinkResources, y sin logs `v`, `d` ni `i`, para que logcat no

@@ -13,7 +13,6 @@ import io.github.russian03.touchgrass.data.profile.ProfileRepository
 import io.github.russian03.touchgrass.data.rules.RuleSource
 import io.github.russian03.touchgrass.data.stats.StatsRepository
 import java.time.LocalDate
-import java.time.YearMonth
 import javax.inject.Inject
 import kotlin.random.Random
 import kotlinx.coroutines.Dispatchers
@@ -66,11 +65,11 @@ class HomeViewModel @Inject constructor(
         flow { emit(withContext(Dispatchers.IO) { rules.load() }.associate { it.packageName to it.name }) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    /** Mes cuyo resumen está listo y aún no se ha abierto, o `null`. */
-    val pendingSummary: StateFlow<YearMonth?> =
+    /** Racha actual de días de poco uso, para «Mis logros». */
+    val streak: StateFlow<Int> =
         stats.state
-            .map { StatsPolicy.pendingSummary(it, stats.today()) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+            .map { StatsPolicy.currentStreak(it, stats.today()) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), 0)
 
     /** Día lógico de hoy (de 8:00 a 8:00), para saber qué días de la semana ya han pasado. */
     fun today(): LocalDate = stats.today()

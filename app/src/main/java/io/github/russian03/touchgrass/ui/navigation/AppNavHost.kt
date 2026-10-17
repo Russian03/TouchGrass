@@ -27,22 +27,15 @@ import io.github.russian03.touchgrass.ui.unlock.UnlockScreen
 /**
  * Pantallas de la app. Con [homeRequest] (desde la pantalla de bloqueo) se vuelve a Inicio y se
  * avisa con [onHomeRequestHandled].
- * [statsRequest] es el mes cuyas estadísticas se han pedido desde la notificación del resumen.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun AppNavHost(
-    start: Any,
-    homeRequest: Boolean = false,
-    onHomeRequestHandled: () -> Unit = {},
-    statsRequest: String? = null,
-    onStatsRequestHandled: () -> Unit = {},
-) {
+fun AppNavHost(start: Any, homeRequest: Boolean = false, onHomeRequestHandled: () -> Unit = {}) {
     val nav = rememberNavController()
     // Las pantallas entran con fundido y creciendo un poco, y salen con fundido y encogiendo.
     val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
     val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
-    // Inicio y Ajustes comparten el banner lima: al ir de una a otra cambia de tamaño en lugar de fundirse.
+    // Inicio, Ajustes y Estadísticas comparten el banner lima: al ir de una a otra cambia de tamaño en lugar de fundirse.
     SharedTransitionLayout {
         NavHost(
             navController = nav,
@@ -69,20 +62,17 @@ fun AppNavHost(
                         onOpenProtection = {
                             nav.navigate(SettingsRoute(protection = true)) { launchSingleTop = true }
                         },
-                        onOpenStats = { month ->
-                            nav.navigate(StatsRoute(month?.toString())) { launchSingleTop = true }
-                        },
+                        onOpenStats = { nav.navigate(StatsRoute) { launchSingleTop = true } },
                         onOpenUnlock = { nav.navigate(UnlockRoute) { launchSingleTop = true } },
                     )
                 }
             }
-            composable<StatsRoute> { entry ->
-                StatsScreen(
-                    initialMonth = entry.toRoute<StatsRoute>().month,
-                    onBack = dropUnlessResumed {
-                        nav.popBackStack()
-                    },
-                )
+            composable<StatsRoute> {
+                CompositionLocalProvider(
+                    LocalLimeHeaderScope provides LimeHeaderScope(this@SharedTransitionLayout, this),
+                ) {
+                    StatsScreen(onBack = dropUnlessResumed { nav.popBackStack() })
+                }
             }
             composable<SettingsRoute> { entry ->
                 CompositionLocalProvider(
@@ -110,16 +100,6 @@ fun AppNavHost(
         if (nav.currentDestination?.hasRoute<Onboarding>() == true) return@LaunchedEffect
         nav.navigate(Home) {
             popUpTo<Home> { inclusive = true }
-            launchSingleTop = true
-        }
-    }
-
-    LaunchedEffect(statsRequest) {
-        val month = statsRequest ?: return@LaunchedEffect
-        onStatsRequestHandled()
-        if (nav.currentDestination?.hasRoute<Onboarding>() == true) return@LaunchedEffect
-        nav.navigate(StatsRoute(month)) {
-            popUpTo<Home>()
             launchSingleTop = true
         }
     }

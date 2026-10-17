@@ -1,12 +1,7 @@
 package io.github.russian03.touchgrass.ui.onboarding
 
-import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
@@ -77,7 +72,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.russian03.touchgrass.R
@@ -113,7 +107,7 @@ import kotlinx.coroutines.launch
  * Pasos de los primeros pasos, en orden. El aviso del servicio va justo antes de activarlo, como
  * pide Google Play; si se rechaza, se salta la activación y se va al final.
  */
-private enum class Step { Welcome, Name, HowItWorks, Limit, Notifications, Disclosure, Activate, Done }
+private enum class Step { Welcome, Name, HowItWorks, Limit, Disclosure, Activate, Done }
 
 /** Fundido del resaltado entre apartados de «Cómo funciona». */
 private const val POINT_FADE_MS = 320
@@ -153,20 +147,12 @@ private const val NAME_LOOK_CHARS = 14
 private const val SAD_MS = 700L
 private const val CELEBRATE_MS = 1_400L
 
-/** Los avisos se piden en su paso solo en Android 13+ y si aún no hay permiso. */
-private fun needsNotificationStep(context: Context): Boolean {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
-    val permission = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-    return permission != PackageManager.PERMISSION_GRANTED
-}
-
 /** Lo que hace cada botón de los primeros pasos (para no pasar una docena de parámetros sueltos). */
 private class SetupActions(
     val onNameChange: (String) -> Unit,
     val onSaveName: (onSaved: () -> Unit) -> Unit,
     val onLimitChange: (Int) -> Unit,
     val onSaveLimit: (onSaved: () -> Unit) -> Unit,
-    val onRequestNotifications: (onDone: () -> Unit) -> Unit,
     val onAccept: (onSaved: () -> Unit) -> Unit,
     val onDecline: () -> Unit,
     val onFinish: () -> Unit,
@@ -178,37 +164,17 @@ private class SetupActions(
 fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val steps =
-        remember {
-            Step.entries.filter { it != Step.Notifications || needsNotificationStep(context) }
-        }
-    // Se acepte o no el permiso de avisos, se sigue al paso siguiente.
-    var afterPermission by remember { mutableStateOf<(() -> Unit)?>(null) }
-    val launcher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-            afterPermission?.invoke()
-            afterPermission = null
-        }
     OnboardingContent(
         state = state,
         protection = rememberProtectionState(),
         showXiaomiTip = SystemSettings.isXiaomi,
-        steps = steps,
+        steps = Step.entries,
         actions =
         SetupActions(
             onNameChange = viewModel::onNameChange,
             onSaveName = viewModel::saveName,
             onLimitChange = viewModel::onLimitChange,
             onSaveLimit = viewModel::saveLimit,
-            onRequestNotifications = { onDone ->
-                // El paso solo sale en Android 13+, que es donde existe el permiso.
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    afterPermission = onDone
-                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    onDone()
-                }
-            },
             onAccept = viewModel::acceptAccessibility,
             onDecline = viewModel::declineAccessibility,
             onFinish = { viewModel.finish(onFinished) },
@@ -289,7 +255,6 @@ private fun OnboardingContent(
             // Pocos minutos le encantan; muchos le preocupan.
             Step.Limit ->
                 SproutState(limitMood(state.limitMinutes), look = Offset(0f, 1f), bounce = hops + state.limitMinutes)
-            Step.Notifications -> SproutState(SproutMood.Curious, look = Offset(0.3f, -1f), bounce = hops)
             Step.Disclosure -> SproutState(if (sad) SproutMood.Sad else SproutMood.Calm, bounce = hops)
             // Espera mirando a un lado; al activarse, salta de alegría.
             Step.Activate ->
@@ -443,13 +408,6 @@ private fun stepCard(
                 )
                 Note(stringResource(R.string.onboarding_limit_note))
             }
-        Step.Notifications ->
-            StepCard(
-                title = stringResource(R.string.onboarding_notify_title),
-                body = stringResource(R.string.onboarding_notify_body),
-                primary = stringResource(R.string.onboarding_notify_allow) to { actions.onRequestNotifications(next) },
-                secondary = stringResource(R.string.onboarding_notify_later) to next,
-            )
         Step.Disclosure ->
             StepCard(
                 title = stringResource(R.string.onboarding_disclosure_title),
@@ -765,7 +723,7 @@ private fun MarkCircle(mark: String, highlighted: Boolean) {
     }
 }
 
-private val noActions = SetupActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+private val noActions = SetupActions({}, {}, {}, {}, {}, {}, {}, {}, {})
 
 @Composable
 private fun PreviewStep(step: Step, protection: ProtectionState = ProtectionState.Off) {
@@ -796,10 +754,6 @@ private fun HowPreview() = PreviewStep(Step.HowItWorks)
 @Preview(showSystemUi = true)
 @Composable
 private fun LimitPreview() = PreviewStep(Step.Limit)
-
-@Preview(showSystemUi = true)
-@Composable
-private fun NotificationsPreview() = PreviewStep(Step.Notifications)
 
 @Preview(showSystemUi = true)
 @Composable
