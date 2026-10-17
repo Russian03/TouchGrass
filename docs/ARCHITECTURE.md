@@ -83,10 +83,13 @@ de días de poco uso (hasta el 25 % del límite, sin agotarlo):
 | `Mythic`, `Legend`, `Cool` | Poco uso con racha de 14, 7 o 3 días o más |
 | `Free` | Sin pedir tiempo |
 | `Happy`, `Calm`, `Neutral`, `Tight` | Hasta el 25 %, 50 %, 75 % o más sin agotarlo |
-| `Sad` | Saldo agotado |
-| `Disabled` | Se quitó la protección ese día: no cuenta lo usado y rompe la racha |
+| `Sad` | Saldo agotado (cara triste, en gris) |
+| `Disabled` | Se quitó la protección ese día: no cuenta lo usado y rompe la racha (ojos en cruz, en rojo) |
 
-«Mi semana» enseña la semana anterior y la actual con esas caras.
+«Mi semana» enseña la semana anterior y la actual con esas caras (`ui/design/DayPill`). Los días
+cuentan desde `since`, que fija el servicio la primera vez que se pone en marcha: antes de activar
+la protección por primera vez no hay días que contar, así que tardar en dar el permiso no deja
+ningún día con cara mala.
 
 ### Primer acceso del día
 

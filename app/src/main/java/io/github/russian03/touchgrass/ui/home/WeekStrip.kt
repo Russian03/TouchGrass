@@ -201,7 +201,7 @@ private fun describe(day: WeekDay, name: String, time: DayTime): String = when {
 
 /** Semanas de ejemplo: del lunes 5 al domingo 18, con hoy el miércoles 14 y caras variadas. */
 internal fun previewWeek(): List<WeekDay> {
-    val faces = listOf(DayFace.Free, DayFace.Happy, DayFace.Neutral, DayFace.Sad, DayFace.Cool)
+    val faces = listOf(DayFace.Free, DayFace.Happy, DayFace.Neutral, DayFace.Sad, DayFace.Disabled, DayFace.Cool)
     return (0 until 14).map { i ->
         val day = LocalDate.of(2026, 10, 5 + i)
         val face = if (day <= LocalDate.of(2026, 10, 14)) faces[i % faces.size] else DayFace.Untracked

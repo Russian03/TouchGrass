@@ -40,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.stats.DayFace
+import io.github.russian03.touchgrass.ui.theme.Alert
 import io.github.russian03.touchgrass.ui.theme.Cream
 import io.github.russian03.touchgrass.ui.theme.Dull
 import io.github.russian03.touchgrass.ui.theme.Ink
@@ -52,7 +53,7 @@ import kotlin.math.sin
 enum class DayTime { Past, Today, Future }
 
 /**
- * Las cinco caras de los días, de mejor a peor, con su dibujo. Para animarlas por partes también
+ * Las caras de los días, de mejor a peor, con su dibujo. Para animarlas por partes también
  * llevan los ojos y la boca por separado, con la altura de los ojos ([eyesY]) y el centro de la
  * boca ([mouthX], [mouthY]) en fracción del dibujo.
  */
@@ -83,8 +84,11 @@ enum class SimpleFace(
         0.632f,
     ),
 
-    /** Saldo agotado o protección quitada. */
+    /** Saldo agotado. */
     Bad(R.drawable.face_mal, R.drawable.face_mal_eyes, R.drawable.face_mal_mouth, 0.426f, 0.5f, 0.611f),
+
+    /** Se quitó la protección: ojos en cruz y la boca de [Bad]. */
+    Off(R.drawable.face_cruz, R.drawable.face_cruz_eyes, R.drawable.face_mal_mouth, 0.425f, 0.5f, 0.611f),
 }
 
 /** Cara de un día, o `null` si ese día no se contaba. */
@@ -93,7 +97,8 @@ fun DayFace.simple(): SimpleFace? = when (this) {
     DayFace.Happy -> SimpleFace.Good
     DayFace.Calm -> SimpleFace.Serious
     DayFace.Neutral, DayFace.Tight -> SimpleFace.SoSo
-    DayFace.Sad, DayFace.Disabled -> SimpleFace.Bad
+    DayFace.Sad -> SimpleFace.Bad
+    DayFace.Disabled -> SimpleFace.Off
     DayFace.Untracked -> null
 }
 
@@ -111,8 +116,9 @@ class DayReveal(eyes: Float = 0f, mouth: Float = 0f, green: Float = 0f) {
 
 /**
  * Píldora vertical de «Mi semana», como «My Week»: un círculo arriba con la cara del día, el
- * número y su abreviatura. Los días pasados van en lima (los malos, en gris apagado), hoy en tinta y los que vienen, solo con
- * borde y un punto en lugar del círculo.
+ * número y su abreviatura. Los días pasados van en lima (con el saldo agotado, en gris apagado;
+ * sin protección, en rojo), hoy en tinta y los que vienen, solo con borde y un punto en lugar del
+ * círculo.
  */
 @Composable
 fun DayPill(
@@ -209,8 +215,12 @@ private fun RevealPill(
     }
 }
 
-/** Relleno de un día pasado: lima, o gris apagado si fue un mal día. */
-private fun SimpleFace?.pastColor(): Color = if (this == SimpleFace.Bad) Dull else Lime
+/** Relleno de un día pasado: lima; gris apagado si se agotó el saldo; rojo si se quitó la protección. */
+private fun SimpleFace?.pastColor(): Color = when (this) {
+    SimpleFace.Bad -> Dull
+    SimpleFace.Off -> Alert
+    else -> Lime
+}
 
 /** Cuánto crece la píldora a mitad del paso a verde. */
 private const val REVEAL_BUMP = 0.08f
