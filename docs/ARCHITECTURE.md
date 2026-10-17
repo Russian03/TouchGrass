@@ -88,8 +88,8 @@ de días de poco uso (hasta el 25 % del límite, sin agotarlo):
 
 «Mi semana» enseña la semana anterior y la actual con esas caras (`ui/design/DayPill`). Los días
 cuentan desde `since`, que fija el servicio la primera vez que se pone en marcha: antes de activar
-la protección por primera vez no hay días que contar, así que tardar en dar el permiso no deja
-ningún día con cara mala.
+la protección por primera vez no hay días que contar (`Untracked`, en gris con un guion), así que
+tardar en dar el permiso no deja ningún día con cara mala.
 
 ### Primer acceso del día
 

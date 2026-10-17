@@ -101,7 +101,8 @@ activarlo**.
     arreglarlo en Ajustes.
   - **Mi semana:** la semana anterior y la actual, con una cara por día según lo que usaste. Las
     rachas de días con poco uso dan caras especiales. Si agotaste el saldo, el día sale triste y
-    en gris; si quitaste la protección, con los ojos en cruz y en rojo.
+    en gris; si quitaste la protección, con los ojos en cruz y en rojo. Los días de antes de
+    activar la protección por primera vez salen en gris con un guion: aún no contaban.
 - **Primer acceso del día.** La primera vez que abres la app cada día, salen las caras de los
   días que aún no habías visto y una frase sobre ayer. Si quitaste la protección, te lo
   recuerda y, si sigue quitada, te ofrece activarla.

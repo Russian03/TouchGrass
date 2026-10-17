@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -117,8 +118,8 @@ class DayReveal(eyes: Float = 0f, mouth: Float = 0f, green: Float = 0f) {
 /**
  * Píldora vertical de «Mi semana», como «My Week»: un círculo arriba con la cara del día, el
  * número y su abreviatura. Los días pasados van en lima (con el saldo agotado, en gris apagado;
- * sin protección, en rojo), hoy en tinta y los que vienen, solo con borde y un punto en lugar del
- * círculo.
+ * sin protección, en rojo; antes de empezar a usar la app, en gris con un guion en lugar de cara),
+ * hoy en tinta y los que vienen, solo con borde y un punto en lugar del círculo.
  */
 @Composable
 fun DayPill(
@@ -215,9 +216,12 @@ private fun RevealPill(
     }
 }
 
-/** Relleno de un día pasado: lima; gris apagado si se agotó el saldo; rojo si se quitó la protección. */
+/**
+ * Relleno de un día pasado: lima; gris apagado si se agotó el saldo o aún no se contaba (sin cara);
+ * rojo si se quitó la protección.
+ */
 private fun SimpleFace?.pastColor(): Color = when (this) {
-    SimpleFace.Bad -> Dull
+    SimpleFace.Bad, null -> Dull
     SimpleFace.Off -> Alert
     else -> Lime
 }
@@ -258,17 +262,25 @@ private fun RevealFace(face: SimpleFace, reveal: DayReveal, modifier: Modifier =
     }
 }
 
-/** Círculo de arriba: crema con la cara en días pasados y hoy; en los que vienen, solo un punto. */
+/**
+ * Círculo de arriba: crema con la cara en días pasados y hoy; un guion en los días pasados que aún
+ * no se contaban (antes de activar la protección por primera vez); en los que vienen, solo un punto.
+ */
 @Composable
 private fun DayCircle(time: DayTime, face: SimpleFace?, modifier: Modifier = Modifier) {
-    if (time == DayTime.Future) {
-        Box(modifier, contentAlignment = Alignment.Center) {
-            Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.onBackground, CircleShape))
-        }
-    } else {
-        Box(modifier.background(Cream, CircleShape)) {
-            if (face != null) FaceDrawing(face, Modifier.fillMaxSize())
-        }
+    when {
+        time == DayTime.Future ->
+            Box(modifier, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.onBackground, CircleShape))
+            }
+        time == DayTime.Past && face == null ->
+            Box(modifier.background(Cream, CircleShape), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth(0.36f).height(3.dp).background(Ink, CircleShape))
+            }
+        else ->
+            Box(modifier.background(Cream, CircleShape)) {
+                if (face != null) FaceDrawing(face, Modifier.fillMaxSize())
+            }
     }
 }
 

@@ -204,7 +204,8 @@ internal fun previewWeek(): List<WeekDay> {
     val faces = listOf(DayFace.Free, DayFace.Happy, DayFace.Neutral, DayFace.Sad, DayFace.Disabled, DayFace.Cool)
     return (0 until 14).map { i ->
         val day = LocalDate.of(2026, 10, 5 + i)
-        val face = if (day <= LocalDate.of(2026, 10, 14)) faces[i % faces.size] else DayFace.Untracked
+        // Los dos primeros, antes de empezar a usar la app.
+        val face = if (i >= 2 && day <= LocalDate.of(2026, 10, 14)) faces[i % faces.size] else DayFace.Untracked
         WeekDay(day, face, 0, 10, 30)
     }
 }
