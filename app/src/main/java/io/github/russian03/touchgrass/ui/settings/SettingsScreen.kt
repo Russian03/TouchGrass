@@ -1,8 +1,11 @@
 package io.github.russian03.touchgrass.ui.settings
 
 import android.content.res.Configuration
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
@@ -32,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
@@ -69,10 +73,10 @@ import io.github.russian03.touchgrass.ui.design.staggerIn
 import io.github.russian03.touchgrass.ui.home.previewBudget
 import io.github.russian03.touchgrass.ui.theme.CardBeigeEdge
 import io.github.russian03.touchgrass.ui.theme.NightPointShade
-import io.github.russian03.touchgrass.ui.theme.PointShade
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.YearMonth
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun SettingsScreen(
@@ -107,14 +111,17 @@ fun SettingsScreen(
     if (showPolicy) PrivacyPolicyDialog(onDismiss = { showPolicy = false })
 }
 
-/** Cuánto dura el resaltado de la protección al llegar a Ajustes para arreglarla. */
-private const val FOCUS_FLASH_MS = 900L
-private const val FLASH_FADE_MS = 350
+/** Espera a que acabe el paso del banner antes de bajar hasta la protección, para que se vea bajar. */
+private const val FOCUS_DELAY_MS = 450L
+private const val FOCUS_SCROLL_MS = 800
+
+/** Medio parpadeo de la tarjeta de la protección: muy lento, para que se vea que es lo que hay que tocar. */
+private const val PULSE_HALF_MS = 1_600
 
 /**
  * Ajustes, con el estilo de Inicio: el banner lima con el título (el mismo de Inicio, que encoge al
  * llegar) y debajo, en cascada, los apartados en tarjetas beige. Con [focusProtection] se baja
- * hasta la protección y su tarjeta se resalta un momento.
+ * hasta la protección y su tarjeta parpadea muy despacio hasta que vuelve a funcionar.
  */
 @Composable
 private fun SettingsContent(
@@ -133,26 +140,38 @@ private fun SettingsContent(
 ) {
     var confirmLower by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
+    // La lista espera a tener los datos: si no, la tarjeta del límite aparecería de golpe a media
+    // transición y la lista daría un salto (y la protección no estaría aún en su sitio).
+    val loaded = state.budget != null
     // Altura del apartado de la protección (lo que ocupa el banner más su sitio en la lista), para
     // bajar hasta ahí. Se hace una sola vez, aunque se gire la pantalla.
     var listTop by remember { mutableIntStateOf(-1) }
     var protectionTop by remember { mutableIntStateOf(-1) }
     var focused by rememberSaveable { mutableStateOf(false) }
-    var flash by remember { mutableStateOf(false) }
-    LaunchedEffect(focusProtection, listTop, protectionTop) {
-        if (!focusProtection || focused || listTop < 0 || protectionTop < 0) return@LaunchedEffect
+    LaunchedEffect(focusProtection, loaded) {
+        if (!focusProtection || focused || !loaded) return@LaunchedEffect
+        // Con los datos ya puestos, espera a que la lista tenga su altura de verdad.
+        val target =
+            snapshotFlow { Triple(listTop, protectionTop, scroll.maxValue) }
+                .first { (list, section, max) -> list >= 0 && section >= 0 && max > 0 }
+                .let { (list, section, max) -> (list + section).coerceAtMost(max) }
+        delay(FOCUS_DELAY_MS)
         focused = true
-        scroll.animateScrollTo(listTop + protectionTop)
-        flash = true
-        delay(FOCUS_FLASH_MS)
-        flash = false
+        scroll.animateScrollTo(target, tween(FOCUS_SCROLL_MS, easing = FastOutSlowInEasing))
     }
+    // Si se ha llegado para arreglar la protección, su tarjeta parpadea muy despacio hasta que funcione.
+    val pulsing = focusProtection && protection != ProtectionState.Running
     val dark = isSystemInDarkTheme()
-    val protectionColor by animateColorAsState(
-        targetValue = if (flash) (if (dark) NightPointShade else PointShade) else beigeCardColor(),
-        animationSpec = tween(FLASH_FADE_MS, easing = FastOutSlowInEasing),
-        label = "protectionFlash",
+    val beige = beigeCardColor()
+    val peak = if (dark) NightPointShade else CardBeigeEdge
+    val pulse = rememberInfiniteTransition(label = "protectionPulse")
+    val pulseColor by pulse.animateColor(
+        initialValue = beige,
+        targetValue = peak,
+        animationSpec = infiniteRepeatable(tween(PULSE_HALF_MS, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "protectionPulseColor",
     )
+    val protectionColor = if (pulsing) pulseColor else beige
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).navigationBarsPadding()) {
             LimeHeader {
@@ -173,9 +192,6 @@ private fun SettingsContent(
                     .padding(bottom = 32.dp),
             ) {
                 var order = 1
-                // La cascada espera a tener los datos: si no, la tarjeta del límite aparecería de golpe
-                // a media transición y la lista daría un salto.
-                val loaded = state.budget != null
                 // Justo bajo el banner, el título empieza donde acaba su curva de la izquierda.
                 SectionTitle(
                     stringResource(R.string.settings_name_section),
