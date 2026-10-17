@@ -50,39 +50,22 @@ object StatsPolicy {
         }
     }
 
+    /**
+     * Apunta el límite diario de [day] si aún no lo tenía, para saber el límite de cada mes aunque
+     * no se pida tiempo. Si ya lo tenía, no lo cambia: un cambio a media jornada cuenta desde el día
+     * siguiente. Antes de empezar a contar no apunta nada.
+     */
+    fun recordLimit(state: StatsState, day: LocalDate, limitMinutes: Int): StatsState {
+        val since = state.since?.let(LocalDate::parse) ?: return state
+        if (day < since || state.days[day.toString()]?.limitMinutes != null) return state
+        return updateDay(state, day) { it.copy(limitMinutes = limitMinutes) }
+    }
+
     fun recordBlock(state: StatsState, day: LocalDate, packageName: String): StatsState =
         updateDay(state, day) { it.copy(blocks = it.blocks.increment(packageName)) }
 
     fun recordLeave(state: StatsState, day: LocalDate, packageName: String): StatsState =
         updateDay(state, day) { it.copy(leaves = it.leaves.increment(packageName)) }
-
-    fun markSeen(state: StatsState, month: YearMonth): StatsState =
-        if (state.lastMonthSeen?.let(YearMonth::parse)?.let { it >= month } == true) {
-            state
-        } else {
-            state.copy(lastMonthSeen = month.toString())
-        }
-
-    fun markNotified(state: StatsState, month: YearMonth): StatsState = state.copy(lastMonthNotified = month.toString())
-
-    /**
-     * Mes cuyo resumen ya está listo y aún no se ha abierto: el anterior a [today], si hay datos
-     * de él. El día 1 a las 8:00 (cuando empieza el día lógico) el mes anterior ya está completo.
-     */
-    fun pendingSummary(state: StatsState, today: LocalDate): YearMonth? {
-        val previous = YearMonth.from(today).minusMonths(1)
-        val seen = state.lastMonthSeen?.let(YearMonth::parse)
-        if (seen != null && seen >= previous) return null
-        return previous.takeIf { trackedDays(state, it, today) > 0 }
-    }
-
-    /** Mes del que toca enviar la notificación del resumen, o `null` si no toca. */
-    fun pendingNotification(state: StatsState, today: LocalDate): YearMonth? {
-        val previous = YearMonth.from(today).minusMonths(1)
-        val notified = state.lastMonthNotified?.let(YearMonth::parse)
-        if (notified != null && notified >= previous) return null
-        return previous.takeIf { trackedDays(state, it, today) > 0 }
-    }
 
     /** Meses con estadísticas, del primero a [today]. */
     fun months(state: StatsState, today: LocalDate): List<YearMonth> {
@@ -115,6 +98,11 @@ object StatsPolicy {
                     .map { day -> DayRow(day, state.days[day.toString()] ?: DayStats()) }
                     .toList()
             }
+        // Cara de cada día del mes: hasta hoy, la que tenga (o sin contar); los que vienen, nada.
+        val calendar =
+            generateSequence(month.atDay(1)) { it.plusDays(1) }
+                .takeWhile { it <= month.atEndOfMonth() }
+                .associateWith { day -> if (day > today) null else faceAt(state, day) }
         val all = days.map { it.stats }
         val unlocks = all.flatMap { it.unlocks }
         val apps = (unlocks.map { it.packageName } + all.flatMap { it.blocks.keys + it.leaves.keys }).toSortedSet()
@@ -138,7 +126,38 @@ object StatsPolicy {
             }.sortedByDescending { it.unlockedMinutes },
             reasons = unlocks.groupingBy { it.reason }.eachCount(),
             days = days,
+            calendar = calendar,
+            limits = days.mapNotNull { it.stats.limitMinutes }.distinct().sorted(),
+            faces = calendar.filterValues { it != null && it != DayFace.Untracked }
+                .filterKeys { it < today }
+                .values
+                .filterNotNull()
+                .groupingBy { it }
+                .eachCount(),
+            blocksByDay =
+            generateSequence(month.atDay(1)) { it.plusDays(1) }
+                .takeWhile { it <= minOf(month.atEndOfMonth(), today) }
+                .map { day -> state.days[day.toString()]?.blocks?.values?.sum() ?: 0 }
+                .toList(),
         )
+    }
+
+    /**
+     * Racha actual: días seguidos de poco uso que acaban hoy. Hoy, con lo que lleva, cuenta
+     * mientras siga siendo de poco uso; si ya no lo es, la racha se ha roto y es 0.
+     */
+    fun currentStreak(state: StatsState, today: LocalDate): Int = streakAt(state, today)
+
+    /** La racha más larga desde [StatsState.since] hasta [today] (incluido). */
+    fun bestStreak(state: StatsState, today: LocalDate): Int {
+        val since = state.since?.let(LocalDate::parse) ?: return 0
+        var best = 0
+        var run = 0
+        generateSequence(since) { it.plusDays(1) }.takeWhile { it <= today }.forEach { day ->
+            run = if (DayFaces.isLow(rowAt(state, day))) run + 1 else 0
+            best = maxOf(best, run)
+        }
+        return best
     }
 
     /**
@@ -302,6 +321,14 @@ data class MonthStats(
     val reasons: Map<UnlockReason, Int>,
     /** Días del mes, del más reciente al más antiguo. */
     val days: List<DayRow>,
+    /** Límites diarios distintos que hubo en el mes, de menor a mayor (vacío si no se apuntó ninguno). */
+    val limits: List<Int> = emptyList(),
+    /** Cara de cada día del mes, del 1 al último; `null` en los que aún no han llegado. */
+    val calendar: Map<LocalDate, DayFace?> = emptyMap(),
+    /** Cuántos días pasados del mes (sin hoy) tuvieron cada cara. */
+    val faces: Map<DayFace, Int> = emptyMap(),
+    /** Veces que saltó el bloqueo cada día, del 1 a hoy (o al último del mes). */
+    val blocksByDay: List<Int> = emptyList(),
 ) {
     /** Días sin agotar el saldo. */
     val daysWithinLimit: Int get() = trackedDays - daysExhausted

@@ -12,9 +12,9 @@ data object Home
 @Serializable
 data class SettingsRoute(val protection: Boolean = false)
 
-/** Estadísticas; con [month] (`2026-09`) se abre ese mes en lugar del actual. */
+/** Estadísticas: se abren en el mes actual. */
 @Serializable
-data class StatsRoute(val month: String? = null)
+data object StatsRoute
 
 /** Pedir tiempo: se elige la app y los minutos. */
 @Serializable

@@ -30,6 +30,16 @@ val SproutGreen = Color(0xFF96C73A)
 /** Gris apagado de los días malos en «Mi semana», en lugar del lima. */
 val Dull = Color(0xFFC4C2B8)
 
+/** Colores del calendario de las estadísticas, uno por cara, de mejor a peor. */
+val FaceGreat = Lime
+val FaceGood = Color(0xFF8FD9B6)
+val FaceSerious = Color(0xFFF5D547)
+val FaceSoSo = Color(0xFFF4A259)
+
+/** El fuego de la racha: la llama de fuera y la de dentro. */
+val FlameOrange = Color(0xFFF26B3A)
+val FlameYellow = Color(0xFFFFC94D)
+
 /** Canto de un botón con relieve apagado. */
 val DullEdge = Color(0xFFA9A79C)
 

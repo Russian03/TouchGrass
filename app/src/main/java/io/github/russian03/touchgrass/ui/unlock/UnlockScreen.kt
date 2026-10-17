@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -40,6 +39,7 @@ import io.github.russian03.touchgrass.ui.common.Card
 import io.github.russian03.touchgrass.ui.common.MinutesPicker
 import io.github.russian03.touchgrass.ui.common.PrimaryButton
 import io.github.russian03.touchgrass.ui.common.TopBar
+import io.github.russian03.touchgrass.ui.common.duration
 import io.github.russian03.touchgrass.ui.common.reasonLabel
 import io.github.russian03.touchgrass.ui.common.timeOf
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
@@ -131,7 +131,7 @@ private fun ChooseApp(budget: BudgetSummary, apps: List<UnlockApp>, onChoose: (S
     Body(
         text =
         stringResource(R.string.unlock_choose_body) + " " +
-            pluralStringResource(R.plurals.minutes_left, budget.remainingMinutes, budget.remainingMinutes) + ".",
+            stringResource(R.string.time_left, duration(budget.remainingMinutes)) + ".",
         modifier = Modifier.padding(top = 6.dp, bottom = 8.dp),
     )
     apps.forEach { app ->
@@ -177,13 +177,13 @@ private fun ChooseMinutes(
             range = 1..budget.remainingMinutes,
             presets = UNLOCK_PRESETS,
             unit = stringResource(R.string.unlock_unit),
-            description = pluralStringResource(R.plurals.minutes, minutes, minutes),
+            description = duration(minutes),
             onChange = onDraftChange,
             modifier = Modifier.padding(top = 20.dp),
         )
         ReasonPicker(form, reasonActions, Modifier.padding(top = 24.dp))
         PrimaryButton(
-            text = stringResource(R.string.unlock_request, minutes),
+            text = stringResource(R.string.unlock_request, duration(minutes)),
             onClick = onRequest,
             enabled = !form.busy && form.reasonReady,
             modifier = Modifier.padding(top = 20.dp),

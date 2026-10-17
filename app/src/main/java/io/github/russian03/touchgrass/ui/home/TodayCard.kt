@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +32,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -44,9 +44,11 @@ import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.service.ProtectionState
 import io.github.russian03.touchgrass.ui.common.BeigeCard
 import io.github.russian03.touchgrass.ui.common.beigeCardColor
+import io.github.russian03.touchgrass.ui.common.duration
 import io.github.russian03.touchgrass.ui.common.firstDayOf
 import io.github.russian03.touchgrass.ui.common.isTomorrow
 import io.github.russian03.touchgrass.ui.common.timeOf
+import io.github.russian03.touchgrass.ui.design.FitText
 import io.github.russian03.touchgrass.ui.design.InkPillButton
 import io.github.russian03.touchgrass.ui.design.Sprout
 import io.github.russian03.touchgrass.ui.design.SproutMood
@@ -69,7 +71,7 @@ fun TodayCard(
     onFixProtection: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val remainingLabel = pluralStringResource(R.plurals.minutes_left, budget.remainingMinutes, budget.remainingMinutes)
+    val remainingLabel = stringResource(R.string.time_left, duration(budget.remainingMinutes))
     val offLabel = stringResource(protection.warningTitle())
     BeigeCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -95,7 +97,7 @@ fun TodayCard(
         val from = budget.pendingFrom
         if (pending != null && from != null) {
             Text(
-                text = stringResource(R.string.limit_pending, firstDayOf(from), pending),
+                text = stringResource(R.string.limit_pending, firstDayOf(from), duration(pending)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(top = 16.dp),
@@ -105,6 +107,9 @@ fun TodayCard(
 }
 
 private const val FADE_MS = 300
+
+/** Ancho del texto del centro del anillo, para que no toque el trazo. */
+private val RING_TEXT_WIDTH = 88.dp
 
 /** Título del aviso: le faltan permisos (quitada) o se ha detenido (corte que dura). */
 @StringRes
@@ -117,7 +122,7 @@ private fun ResetText(budget: BudgetSummary) {
     val reset = timeOf(budget.nextResetMs)
     Column {
         Text(
-            text = stringResource(R.string.today_of_limit, budget.limitMinutes),
+            text = stringResource(R.string.today_of_limit, duration(budget.limitMinutes)),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
@@ -214,17 +219,24 @@ private fun BudgetRing(remaining: Int, limit: Int, protection: ProtectionState, 
             modifier = Modifier.clearAndSetSemantics { },
         ) { shown ->
             if (shown == ProtectionState.Running) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        remaining.toString(),
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
+                // Menos de 1 h: «45» y «min» debajo. Desde 1 h: «3 h» y los minutos que sobran debajo.
+                val hours = remaining / 60
+                val rest = remaining % 60
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.widthIn(max = RING_TEXT_WIDTH),
+                ) {
+                    FitText(
+                        text = if (hours == 0) remaining.toString() else "$hours h",
+                        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
                     )
-                    Text(
-                        stringResource(R.string.minutes_unit),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (hours == 0 || rest > 0) {
+                        Text(
+                            if (hours == 0) stringResource(R.string.minutes_unit) else duration(rest),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             } else {
                 Sprout(

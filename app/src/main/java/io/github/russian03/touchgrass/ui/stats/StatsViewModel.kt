@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.russian03.touchgrass.core.stats.MonthStats
 import io.github.russian03.touchgrass.core.stats.StatsPolicy
+import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleSource
 import io.github.russian03.touchgrass.data.stats.StatsRepository
 import java.time.LocalDate
@@ -29,13 +30,23 @@ data class StatsUiState(
     val comparison: List<MonthStats>,
     /** Nombre de cada app por paquete. */
     val appNames: Map<String, String>,
+    /** Racha de días de poco uso que llega hasta hoy (no depende del mes que se mira). */
+    val currentStreak: Int = 0,
+    /** La racha más larga desde que hay estadísticas. */
+    val bestStreak: Int = 0,
+    /** Límites diarios del mes que se mira, de menor a mayor; en el mes en curso, también el de hoy. */
+    val limits: List<Int> = emptyList(),
 ) {
     val previous: YearMonth? get() = months.lastOrNull { it < month.month }
     val next: YearMonth? get() = months.firstOrNull { it > month.month }
 }
 
 @HiltViewModel
-class StatsViewModel @Inject constructor(private val stats: StatsRepository, rules: RuleSource) : ViewModel() {
+class StatsViewModel @Inject constructor(
+    private val stats: StatsRepository,
+    budget: BudgetRepository,
+    rules: RuleSource,
+) : ViewModel() {
 
     private val selected = MutableStateFlow<YearMonth?>(null)
 
@@ -44,16 +55,24 @@ class StatsViewModel @Inject constructor(private val stats: StatsRepository, rul
 
     /** `null` mientras se carga. */
     val state: StateFlow<StatsUiState?> =
-        combine(stats.state, selected, appNames) { state, chosen, names ->
+        combine(stats.state, selected, appNames, budget.state) { state, chosen, names, budgetState ->
             val today = stats.today()
             val months = StatsPolicy.months(state, today)
             val month = chosen?.takeIf { it in months } ?: months.last()
+            val summary = StatsPolicy.month(state, month, today)
+            // En el mes en curso cuenta también el límite que hay ahora, aunque se cambiara hoy.
+            val current = budgetState.limitMinutes.takeIf {
+                budgetState.onboardingDone && month == YearMonth.from(today)
+            }
             StatsUiState(
                 today = today,
                 months = months,
-                month = StatsPolicy.month(state, month, today),
+                month = summary,
                 comparison = StatsPolicy.comparison(state, month, today),
                 appNames = names,
+                currentStreak = StatsPolicy.currentStreak(state, today),
+                bestStreak = StatsPolicy.bestStreak(state, today),
+                limits = (summary.limits + listOfNotNull(current)).distinct().sorted(),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
@@ -61,10 +80,9 @@ class StatsViewModel @Inject constructor(private val stats: StatsRepository, rul
         viewModelScope.launch { stats.start() }
     }
 
-    /** Muestra [month]. Un mes ya terminado cuenta como resumen visto. */
+    /** Muestra [month]. */
     fun show(month: YearMonth) {
         selected.value = month
-        if (month < YearMonth.from(stats.today())) viewModelScope.launch { stats.markSeen(month) }
     }
 
     private companion object {

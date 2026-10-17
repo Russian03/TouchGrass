@@ -15,7 +15,6 @@ import io.github.russian03.touchgrass.core.stats.UnlockRecord
 import java.io.File
 import java.io.IOException
 import java.time.LocalDate
-import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -54,13 +53,12 @@ class StatsRepository internal constructor(private val store: DataStore<StatsSta
         update { StatsPolicy.recordRefund(it, day, session.startWallMs, refundedMinutes) }
     }
 
+    /** Apunta el límite de hoy, si aún no estaba. */
+    suspend fun recordLimit(limitMinutes: Int) = update { StatsPolicy.recordLimit(it, today(), limitMinutes) }
+
     suspend fun recordBlock(packageName: String) = update { StatsPolicy.recordBlock(it, today(), packageName) }
 
     suspend fun recordLeave(packageName: String) = update { StatsPolicy.recordLeave(it, today(), packageName) }
-
-    suspend fun markSeen(month: YearMonth) = update { StatsPolicy.markSeen(it, month) }
-
-    suspend fun markNotified(month: YearMonth) = update { StatsPolicy.markNotified(it, month) }
 
     /** Ya se han enseñado las caras hasta ayer. */
     suspend fun markClaimed() = update { StatsPolicy.markClaimed(it, today().minusDays(1)) }

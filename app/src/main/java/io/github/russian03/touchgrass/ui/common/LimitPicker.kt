@@ -32,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,6 +43,8 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.russian03.touchgrass.R
+import io.github.russian03.touchgrass.core.budget.BudgetPolicy
+import io.github.russian03.touchgrass.ui.design.FitText
 import io.github.russian03.touchgrass.ui.design.Sparkles
 import io.github.russian03.touchgrass.ui.design.pressScale
 import io.github.russian03.touchgrass.ui.theme.Ink
@@ -51,9 +52,9 @@ import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 /** Límites que se pueden elegir desde la app. */
-val LIMIT_RANGE = 0..120
+val LIMIT_RANGE = 0..BudgetPolicy.MAX_LIMIT_MINUTES
 private const val STEP = 5
-private val LIMIT_PRESETS = listOf(15, 30, 45, 60, 90)
+private val LIMIT_PRESETS = listOf(15, 30, 60, 90, 120)
 
 /** Selector del límite diario: número grande, − y + a los lados de la unidad y atajos debajo. */
 @Composable
@@ -69,7 +70,7 @@ fun LimitPicker(
         range = LIMIT_RANGE,
         presets = LIMIT_PRESETS,
         unit = stringResource(R.string.limit_unit),
-        description = pluralStringResource(R.plurals.minutes_per_day, minutes, minutes),
+        description = stringResource(R.string.per_day, duration(minutes)),
         onChange = onChange,
         modifier = modifier,
         numberSize = numberSize,
@@ -119,14 +120,16 @@ fun MinutesPicker(
                 label = "minutes",
                 modifier = Modifier.padding(horizontal = 48.dp, vertical = 16.dp),
             ) { value ->
-                Text(
-                    text = value.toString(),
-                    fontSize = numberSize,
-                    lineHeight = numberSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-2).sp,
+                // En horas y minutos («1 h 35 min»); si no cabe, encoge.
+                FitText(
+                    text = duration(value),
+                    style =
+                    MaterialTheme.typography.displayLarge.copy(
+                        fontSize = numberSize,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-2).sp,
+                    ),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.displayLarge,
                     modifier = Modifier.semantics { contentDescription = description },
                 )
             }
@@ -159,7 +162,7 @@ fun MinutesPicker(
                     selected = preset == minutes,
                     enabled = preset in range,
                     onClick = { onChange(preset) },
-                    label = { Text(stringResource(R.string.minutes_short, preset)) },
+                    label = { Text(duration(preset)) },
                     shape = CircleShape,
                     colors =
                     FilterChipDefaults.filterChipColors(

@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.lerp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.stats.DayFace
 import io.github.russian03.touchgrass.core.stats.WeekDay
+import io.github.russian03.touchgrass.ui.common.duration
 import io.github.russian03.touchgrass.ui.common.onWeekday
 import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.DayReveal
@@ -357,8 +358,8 @@ private fun claimPhrase(claim: ClaimState, today: LocalDate): String {
             String.format(
                 Locale.ROOT,
                 pick(phrases(day.face), seed),
-                day.unlockedMinutes,
-                day.limitMinutes ?: 0,
+                duration(day.unlockedMinutes),
+                duration(day.limitMinutes ?: 0),
                 day.streak,
             )
     }

@@ -103,6 +103,8 @@ activarlo**.
     rachas de días con poco uso dan caras especiales. Si agotaste el saldo, el día sale triste y
     en gris; si quitaste la protección, con los ojos en cruz y en rojo. Los días de antes de
     activar la protección por primera vez salen en gris con un guion: aún no contaban.
+  - **Mis logros:** el recuadro verde abre tus estadísticas y el negro enseña tus días de racha
+    con un fuego.
 - **Primer acceso del día.** La primera vez que abres la app cada día, salen las caras de los
   días que aún no habías visto y una frase sobre ayer. Si quitaste la protección, te lo
   recuerda y, si sigue quitada, te ofrece activarla.
@@ -112,21 +114,27 @@ activarlo**.
   aunque salgas de la app. Al acabar vuelve el bloqueo. Si terminas antes desde Inicio, se
   devuelve lo que sobra en múltiplos de 5 minutos.
 - **Pantalla de bloqueo.** Primero aparece *Volver atrás*, que te saca del scroll. Un segundo
-  después, encima y más discreto, sale el enlace *Pedir tiempo de uso*, que abre la pantalla de
-  pedir tiempo con esa app ya elegida.
+  después, encima y más discreto, sale el enlace *Pedir tiempo de uso*, que abre TouchGrass en
+  Inicio para pedirlo desde ahí.
 - **Qué se bloquea:** en Instagram, los Reels: la pestaña y el visor, salvo el reel que abres
   desde un perfil, un chat, Inicio o Guardados. En TikTok, las pestañas **Para ti** y
   **Comunidad**; *Volver atrás* te lleva a Mensajes. Siguiendo, Amigos, Buscar, los perfiles
   y los chats quedan libres.
 - **Motivo.** Antes de pedir tiempo eliges para qué: Baño, Comer, Bus, Pasatiempo, Dormir u
   Otro (con un texto corto).
-- **Estadísticas** (icono de las barras, junto a Ajustes): por mes, los minutos desbloqueados y
-  la media al día, cuántas veces pediste tiempo, cuántas saltó el bloqueo y cuántas volviste
-  atrás, los días sin pedir tiempo y sin agotar el saldo, el reparto por app y por motivo, la
-  comparación con los meses anteriores y el detalle de cada día.
-- **Resumen del mes.** El día 1 a las 8:00 llega un aviso (si permites las notificaciones) y en
-  Inicio sale una tarjeta con el resumen del mes anterior hasta que lo abres.
-- **Ajustes** (icono de la rueda) permite cambiar tu nombre y el límite diario. Bajarlo se
+- **Estadísticas** (desde *Mis logros*), mes a mes:
+  - un **calendario** con la cara y el color de cada día, y cuántos días hubo de cada cara;
+  - los **minutos al día** de media, la **racha actual** y la **mejor racha**, y las **veces que
+    saltó el bloqueo**, con su gráfico día a día;
+  - debajo, los minutos desbloqueados, cuántas veces pediste tiempo y volviste atrás, los días sin
+    pedir tiempo y sin agotar el saldo, el reparto por app y por motivo, la comparación con los
+    meses anteriores y el detalle de cada día.
+- **Caras.** Van según lo que te queda del límite de ese día (o de 2 h, si tu límite es mayor):
+  sin pedir tiempo, genial; si queda el 70 % o más, bien; el 45 % o más, seria; menos, medio mal;
+  y si llegas al tope, triste. Arriba de las estadísticas sale el límite que tenías ese mes.
+- **Racha.** Suma los días seguidos en que usas como mucho el 30 % de tu límite (o de 2 h), sin
+  agotarlo ni quitar la protección. Hoy cuenta mientras sigas dentro.
+- **Ajustes** (icono de la rueda) permite cambiar tu nombre y el límite diario (hasta 4 h). Bajarlo se
   aplica al momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede
   cancelar. También muestra el estado de la protección y la política de privacidad.
 - Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa

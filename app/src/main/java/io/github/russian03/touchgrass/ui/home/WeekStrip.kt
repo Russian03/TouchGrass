@@ -25,6 +25,7 @@ import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.stats.DayFace
 import io.github.russian03.touchgrass.core.stats.StatsPolicy
 import io.github.russian03.touchgrass.core.stats.WeekDay
+import io.github.russian03.touchgrass.ui.common.duration
 import io.github.russian03.touchgrass.ui.common.weekdayDay
 import io.github.russian03.touchgrass.ui.common.weekdayShort
 import io.github.russian03.touchgrass.ui.design.DayPill
@@ -196,7 +197,7 @@ private fun describe(day: WeekDay, name: String, time: DayTime): String = when {
     day.face == DayFace.Disabled -> stringResource(R.string.week_day_disabled, name)
     day.face == DayFace.Sad -> stringResource(R.string.week_day_exhausted, name)
     day.unlockedMinutes == 0 -> stringResource(R.string.week_day_free, name)
-    else -> stringResource(R.string.week_day_unlocked, name, day.unlockedMinutes)
+    else -> stringResource(R.string.week_day_unlocked, name, duration(day.unlockedMinutes))
 }
 
 /** Semanas de ejemplo: del lunes 5 al domingo 18, con hoy el miércoles 14 y caras variadas. */
