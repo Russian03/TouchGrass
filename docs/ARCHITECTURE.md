@@ -194,7 +194,9 @@ se limpia antes de guardarlo (sin asteriscos, máximo 20 caracteres) y no influy
 ## Interfaz
 
 Compose con Material 3 Expressive y la paleta de siempre: crema de fondo, tinta y lima
-(`ui/theme/Color.kt`). Las piezas comunes están en `ui/design` y `ui/common`:
+(`ui/theme/Color.kt`). La app va solo en vertical (`screenOrientation="portrait"` en
+`MainActivity`), aunque el móvil tenga la rotación automática. Las piezas comunes están en
+`ui/design` y `ui/common`:
 
 - **`LimeHeader`**: el banner lima de arriba, con las dos esquinas de abajo en sentidos opuestos.
   Inicio, Ajustes y Estadísticas lo comparten (`SharedTransitionLayout` en `AppNavHost` y
