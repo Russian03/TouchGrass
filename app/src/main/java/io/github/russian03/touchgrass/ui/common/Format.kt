@@ -53,6 +53,17 @@ fun timeOf(epochMs: Long, zone: ZoneId = ZoneId.systemDefault()): String =
 fun isTomorrow(epochMs: Long, zone: ZoneId = ZoneId.systemDefault()): Boolean =
     Instant.ofEpochMilli(epochMs).atZone(zone).toLocalDate() == LocalDate.now(zone).plusDays(1)
 
+/** Duración en horas y minutos: "45 min", "1 h" o "1 h 30 min". */
+fun duration(minutes: Int): String {
+    val hours = minutes / 60
+    val rest = minutes % 60
+    return when {
+        hours == 0 -> "$rest min"
+        rest == 0 -> "$hours h"
+        else -> "$hours h $rest min"
+    }
+}
+
 /** Cuenta atrás: "12:05", o "1:02:05" a partir de una hora. Redondea hacia arriba los segundos. */
 fun countdown(ms: Long): String {
     val total = (ms.coerceAtLeast(0) + 999) / 1_000

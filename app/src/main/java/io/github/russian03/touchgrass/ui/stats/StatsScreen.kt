@@ -55,6 +55,7 @@ import io.github.russian03.touchgrass.core.stats.StatsState
 import io.github.russian03.touchgrass.core.stats.UnlockReason
 import io.github.russian03.touchgrass.core.stats.UnlockRecord
 import io.github.russian03.touchgrass.ui.common.BeigeCard
+import io.github.russian03.touchgrass.ui.common.duration
 import io.github.russian03.touchgrass.ui.common.monthName
 import io.github.russian03.touchgrass.ui.common.monthShort
 import io.github.russian03.touchgrass.ui.common.monthTitle
@@ -71,7 +72,6 @@ import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -139,7 +139,8 @@ private fun StatsContent(state: StatsUiState?, onBack: () -> Unit, onShow: (Year
 @Composable
 private fun MonthLimit(limits: List<Int>, modifier: Modifier = Modifier) {
     if (limits.isEmpty()) return
-    val range = if (limits.size == 1) "${limits.first()}" else "${limits.first()}–${limits.last()}"
+    val range =
+        if (limits.size == 1) duration(limits.first()) else "${duration(limits.first())}–${duration(limits.last())}"
     Text(
         text = stringResource(R.string.stats_month_limit, range),
         style = MaterialTheme.typography.labelLarge,
@@ -183,7 +184,7 @@ private fun SummaryCard(month: MonthStats) {
     BeigeCard {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                text = month.unlockedMinutes.toString(),
+                text = duration(month.unlockedMinutes),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Light,
             )
@@ -223,7 +224,7 @@ private fun AppsCard(month: MonthStats, appNames: Map<String, String>) {
                 Body(
                     stringResource(
                         R.string.stats_app_line,
-                        pluralStringResource(R.plurals.minutes, app.unlockedMinutes, app.unlockedMinutes),
+                        duration(app.unlockedMinutes),
                         pluralStringResource(R.plurals.stats_times, app.unlockCount, app.unlockCount),
                         pluralStringResource(R.plurals.stats_blocks, app.blockCount, app.blockCount),
                     ),
@@ -284,13 +285,13 @@ private fun ComparisonCard(months: List<MonthStats>) {
                     stringResource(
                         R.string.stats_comparison_bar,
                         monthName(month.month),
-                        formatMinutes(month.averageMinutes),
+                        formatDuration(month.averageMinutes),
                     )
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = label },
                 ) {
-                    Text(formatMinutes(month.averageMinutes), style = MaterialTheme.typography.labelSmall)
+                    Text(formatDuration(month.averageMinutes), style = MaterialTheme.typography.labelSmall)
                     Box(Modifier.height(96.dp).padding(top = 4.dp), contentAlignment = Alignment.BottomCenter) {
                         Bar(fraction = (month.averageMinutes / max).toFloat(), highlighted = month === current)
                     }
@@ -323,10 +324,10 @@ private fun ComparisonCard(months: List<MonthStats>) {
 private fun comparisonSentence(current: MonthStats, previous: MonthStats): String {
     val name = monthName(previous.month)
     val diff = current.averageMinutes - previous.averageMinutes
-    if (abs(diff) < 0.05) return stringResource(R.string.stats_comparison_same, name)
+    if (abs(diff).roundToInt() == 0) return stringResource(R.string.stats_comparison_same, name)
     val percent =
         if (previous.averageMinutes > 0) (abs(diff) / previous.averageMinutes * 100).roundToInt() else null
-    val amount = formatMinutes(abs(diff))
+    val amount = formatDuration(abs(diff))
     return when {
         diff < 0 && percent != null -> stringResource(R.string.stats_comparison_less, amount, name, percent)
         diff < 0 -> stringResource(R.string.stats_comparison_less_plain, amount, name)
@@ -374,7 +375,7 @@ private fun DayItem(row: DayRow, today: LocalDate, appNames: Map<String, String>
                 if (unlocks.isEmpty()) {
                     stringResource(R.string.stats_day_no_unlock)
                 } else {
-                    pluralStringResource(R.plurals.minutes, row.unlockedMinutes, row.unlockedMinutes)
+                    duration(row.unlockedMinutes)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (unlocks.isEmpty()) MaterialTheme.colorScheme.primary else LocalContentColor.current,
@@ -401,11 +402,11 @@ private fun UnlockLine(record: UnlockRecord, appNames: Map<String, String>) {
         if (record.refundedMinutes > 0) {
             stringResource(
                 R.string.stats_unlock_refunded,
-                record.netMinutes,
+                duration(record.netMinutes),
                 pluralStringResource(R.plurals.stats_refunded, record.refundedMinutes, record.refundedMinutes),
             )
         } else {
-            pluralStringResource(R.plurals.minutes, record.minutes, record.minutes)
+            duration(record.minutes)
         }
     Body(
         stringResource(
@@ -460,15 +461,8 @@ private fun Body(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** "12", o "2,5" con decimales. */
-internal fun formatMinutes(minutes: Double): String {
-    val rounded = (minutes * 10).roundToInt() / 10.0
-    return if (rounded % 1.0 == 0.0) {
-        rounded.toInt().toString()
-    } else {
-        String.format(Locale.forLanguageTag("es-ES"), "%.1f", rounded)
-    }
-}
+/** Una media de minutos, redondeada al minuto y en horas y minutos: "1 h 5 min". */
+internal fun formatDuration(minutes: Double): String = duration(minutes.roundToInt())
 
 private fun previewState(): StatsUiState {
     val today = LocalDate.of(2026, 10, 14)

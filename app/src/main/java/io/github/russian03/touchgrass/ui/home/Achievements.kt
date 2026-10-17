@@ -1,5 +1,6 @@
 package io.github.russian03.touchgrass.ui.home
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -10,7 +11,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -23,10 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,8 +37,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -60,7 +57,6 @@ import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * «Mis logros», al final de Inicio: a la izquierda, el recuadro lima que abre las estadísticas,
@@ -76,27 +72,21 @@ fun Achievements(streak: Int, onOpenStats: () -> Unit, modifier: Modifier = Modi
 }
 
 /**
- * Recuadro que abre las estadísticas. Para que se vea que se puede pulsar, lleva una flecha en un
- * círculo que cada pocos segundos da un empujoncito, a la vez que el recuadro late muy leve; al
- * pulsarlo encoge y las barras dan un saltito.
+ * Recuadro que abre las estadísticas. Para que se vea que se puede pulsar, late muy leve cada pocos
+ * segundos; al pulsarlo se oscurece un poco, encoge y las barras dan un saltito.
  */
 @Composable
 private fun StatsTile(onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val still = LocalInspectionMode.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val nudge = remember { Animatable(0f) }
     val beat = remember { Animatable(1f) }
     LaunchedEffect(Unit) {
         if (still) return@LaunchedEffect
         delay(HINT_FIRST_MS)
         while (true) {
-            launch {
-                beat.animateTo(HINT_BEAT, tween(HINT_UP_MS))
-                beat.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 300f))
-            }
-            nudge.animateTo(1f, tween(HINT_UP_MS))
-            nudge.animateTo(0f, spring(dampingRatio = 0.35f, stiffness = 300f))
+            beat.animateTo(HINT_BEAT, tween(HINT_UP_MS))
+            beat.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 300f))
             delay(HINT_EVERY_MS)
         }
     }
@@ -105,8 +95,14 @@ private fun StatsTile(onOpen: () -> Unit, modifier: Modifier = Modifier) {
         animationSpec = spring(dampingRatio = 0.45f, stiffness = 500f),
         label = "barsJump",
     )
+    // Pulsado, el lima se oscurece un poco hacia la tinta.
+    val color by animateColorAsState(
+        targetValue = if (pressed) lerp(Lime, Ink, PRESSED_DARKEN) else Lime,
+        animationSpec = tween(PRESS_FADE_MS),
+        label = "statsTilePressed",
+    )
     Tile(
-        color = Lime,
+        color = color,
         contentColor = Ink,
         onClick = onOpen,
         interaction = interaction,
@@ -116,26 +112,11 @@ private fun StatsTile(onOpen: () -> Unit, modifier: Modifier = Modifier) {
             scaleY = beat.value
         },
     ) {
-        Row(verticalAlignment = Alignment.Top) {
-            Text(
-                stringResource(R.string.achievements_stats),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(32.dp).background(Ink, CircleShape),
-            ) {
-                Icon(
-                    painterResource(R.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = Cream,
-                    modifier =
-                    Modifier.size(20.dp).graphicsLayer { translationX = nudge.value * 4.dp.toPx() },
-                )
-            }
-        }
+        Text(
+            stringResource(R.string.achievements_stats),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
         Spacer(Modifier.weight(1f))
         GrowingBars(
             Modifier
@@ -148,6 +129,10 @@ private fun StatsTile(onOpen: () -> Unit, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/** Cuánto se oscurece al pulsarlo (hacia la tinta) y lo que tarda. */
+private const val PRESSED_DARKEN = 0.14f
+private const val PRESS_FADE_MS = 120
 
 /** La pista de que se puede pulsar: primera vez, cada cuánto, cuánto late y lo que tarda en subir. */
 private const val HINT_FIRST_MS = 1_200L

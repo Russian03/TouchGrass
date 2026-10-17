@@ -276,10 +276,10 @@
     <!-- Estadísticas -->
     <string name="stats_header">Mis *estadísticas*</string>
     <string name="stats_more_section">Más *detalles*</string>
-    <string name="stats_month_limit">Límite: %1$s min al día</string>
+    <string name="stats_month_limit">Límite: %1$s al día</string>
     <string name="stats_calendar_day">%1$s: %2$s</string>
     <string name="stats_calendar_today">%1$s: hoy</string>
-    <string name="stats_tile_average">Minutos al día</string>
+    <string name="stats_tile_average">Tiempo al día</string>
     <string name="stats_tile_average_unit">de media este mes</string>
     <string name="stats_tile_best">Mejor racha</string>
     <string name="stats_tile_streak">Racha actual</string>
@@ -296,7 +296,7 @@
     <string name="face_off">protección quitada</string>
     <string name="stats_previous_month">Mes anterior</string>
     <string name="stats_next_month">Mes siguiente</string>
-    <string name="stats_unlocked_minutes">min desbloqueados</string>
+    <string name="stats_unlocked_minutes">desbloqueados</string>
     <string name="stats_unlock_count">Veces que pediste tiempo</string>
     <string name="stats_block_count">Veces que saltó el bloqueo</string>
     <string name="stats_leave_count">Veces que volviste atrás</string>
@@ -315,19 +315,19 @@
     </plurals>
     <string name="stats_reasons_title">Motivos</string>
     <string name="stats_comparison_title">Comparado con otros meses</string>
-    <string name="stats_comparison_body">Minutos desbloqueados al día, de media.</string>
-    <string name="stats_comparison_bar">%1$s: %2$s min al día</string>
-    <string name="stats_comparison_less">%1$s min al día menos que en %2$s (−%3$d %%)</string>
-    <string name="stats_comparison_less_plain">%1$s min al día menos que en %2$s</string>
-    <string name="stats_comparison_more">%1$s min al día más que en %2$s (+%3$d %%)</string>
-    <string name="stats_comparison_more_plain">%1$s min al día más que en %2$s</string>
+    <string name="stats_comparison_body">Tiempo desbloqueado al día, de media.</string>
+    <string name="stats_comparison_bar">%1$s: %2$s al día</string>
+    <string name="stats_comparison_less">%1$s al día menos que en %2$s (−%3$d %%)</string>
+    <string name="stats_comparison_less_plain">%1$s al día menos que en %2$s</string>
+    <string name="stats_comparison_more">%1$s al día más que en %2$s (+%3$d %%)</string>
+    <string name="stats_comparison_more_plain">%1$s al día más que en %2$s</string>
     <string name="stats_comparison_same">Igual que en %1$s</string>
     <string name="stats_days_title">Días</string>
     <string name="stats_today">Hoy</string>
     <string name="stats_yesterday">Ayer</string>
     <string name="stats_day_no_unlock">Sin pedir tiempo</string>
     <string name="stats_unlock_line">%1$s · %2$s · %3$s · %4$s</string>
-    <string name="stats_unlock_refunded">%1$d min (%2$s)</string>
+    <string name="stats_unlock_refunded">%1$s (%2$s)</string>
     <plurals name="stats_refunded">
         <item quantity="one">%d devuelto</item>
         <item quantity="other">%d devueltos</item>

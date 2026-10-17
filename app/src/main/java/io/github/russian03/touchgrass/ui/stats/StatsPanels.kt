@@ -218,7 +218,7 @@ internal fun StatTiles(month: MonthStats, currentStreak: Int, bestStreak: Int, m
             Tile(beigeCardColor(), MaterialTheme.colorScheme.onSurface, Modifier.weight(1f).aspectRatio(1f)) {
                 TileTitle(stringResource(R.string.stats_tile_average))
                 Spacer(Modifier.weight(1f))
-                BigNumber(formatMinutes(month.averageMinutes))
+                BigNumber(formatDuration(month.averageMinutes))
                 Text(stringResource(R.string.stats_tile_average_unit), style = MaterialTheme.typography.bodySmall)
             }
             Tile(Ink, Cream, Modifier.weight(1f).aspectRatio(1f)) {
@@ -273,9 +273,11 @@ private fun TileTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
 }
 
+/** Número grande del recuadro; si es largo («1 h 30 min»), algo más pequeño para que quepa. */
 @Composable
 private fun BigNumber(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, modifier = modifier)
+    val style = if (text.length > 5) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall
+    Text(text, style = style, fontWeight = FontWeight.Bold, modifier = modifier)
 }
 
 /**
