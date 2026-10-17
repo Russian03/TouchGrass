@@ -65,6 +65,7 @@ import io.github.russian03.touchgrass.ui.common.beigeCardColor
 import io.github.russian03.touchgrass.ui.common.firstDayOf
 import io.github.russian03.touchgrass.ui.common.rememberActivateProtection
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
+import io.github.russian03.touchgrass.ui.common.rememberShownProtection
 import io.github.russian03.touchgrass.ui.design.ChunkyPillButton
 import io.github.russian03.touchgrass.ui.design.LimeHeader
 import io.github.russian03.touchgrass.ui.design.MixedTitle
@@ -160,7 +161,9 @@ private fun SettingsContent(
         scroll.animateScrollTo(target, tween(FOCUS_SCROLL_MS, easing = FastOutSlowInEasing))
     }
     // Si se ha llegado para arreglar la protección, su tarjeta parpadea muy despacio hasta que funcione.
-    val pulsing = focusProtection && protection != ProtectionState.Running
+    // Con el margen de los cortes: uno breve se enseña como «Reconectando…» y no parpadea.
+    val shown = rememberShownProtection(protection)
+    val pulsing = focusProtection && shown != ProtectionState.Running
     val dark = isSystemInDarkTheme()
     val beige = beigeCardColor()
     val peak = if (dark) NightPointShade else CardBeigeEdge
@@ -216,7 +219,8 @@ private fun SettingsContent(
                         .staggerIn(order++, loaded),
                 )
                 ProtectionCard(
-                    state = protection,
+                    state = shown,
+                    reconnecting = protection == ProtectionState.Stopped && shown == ProtectionState.Running,
                     manualTime = state.budget?.autoTime == false,
                     showXiaomiTip = showXiaomiTip,
                     actions = protectionActions,

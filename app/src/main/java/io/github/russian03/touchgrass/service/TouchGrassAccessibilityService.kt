@@ -160,11 +160,15 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     /**
-     * Android lo llama al desactivar TouchGrass en Accesibilidad: se apunta que hoy la protección
-     * se ha quitado. Se espera a que quede guardado (con tope), porque el proceso puede acabar ya.
+     * Android lo llama al desactivar TouchGrass en Accesibilidad, pero también al desvincularlo por
+     * su cuenta (al cerrar la app, al actualizarla…). Solo lo primero cuenta como quitar la
+     * protección: entonces se apunta y se espera a que quede guardado (con tope), porque el proceso
+     * puede acabar ya. Si sigue activado en el ajuste, es un corte y no se apunta nada.
      */
     override fun onUnbind(intent: Intent?): Boolean {
-        runBlocking { withTimeoutOrNull(UNBIND_SAVE_TIMEOUT_MS) { stats.markProtectionOff() } }
+        if (!AccessibilityStatus.isEnabledInSettings(this)) {
+            runBlocking { withTimeoutOrNull(UNBIND_SAVE_TIMEOUT_MS) { stats.markProtectionOff() } }
+        }
         return super.onUnbind(intent)
     }
 

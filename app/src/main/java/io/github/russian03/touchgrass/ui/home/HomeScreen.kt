@@ -47,6 +47,7 @@ import io.github.russian03.touchgrass.service.ProtectionState
 import io.github.russian03.touchgrass.ui.common.fullDay
 import io.github.russian03.touchgrass.ui.common.monthName
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
+import io.github.russian03.touchgrass.ui.common.rememberShownProtection
 import io.github.russian03.touchgrass.ui.design.InkPillButton
 import io.github.russian03.touchgrass.ui.design.LimeHeader
 import io.github.russian03.touchgrass.ui.design.LocalLimeHeaderScope
@@ -78,9 +79,10 @@ fun HomeScreen(
     val name by viewModel.name.collectAsStateWithLifecycle()
     val claim by viewModel.claim.collectAsStateWithLifecycle()
     val protection = rememberProtectionState()
-    // Si la protección no funciona, hoy cuenta como día sin protección.
+    // Solo quitarla en Accesibilidad cuenta como día sin protección: un corte del sistema (al cerrar
+    // la app, al reiniciar…) no estropea el día.
     LaunchedEffect(protection) {
-        if (protection != ProtectionState.Running) viewModel.protectionOff()
+        if (protection == ProtectionState.Off) viewModel.protectionOff()
     }
     HomeContent(
         protection = protection,
@@ -208,7 +210,7 @@ private fun HomeContent(
                     )
                     TodayCard(
                         budget = budget,
-                        protected = protection == ProtectionState.Running,
+                        protection = rememberShownProtection(protection),
                         onFixProtection = claim.onOpenProtection,
                         modifier = Modifier.staggerIn(order++),
                     )
@@ -241,7 +243,9 @@ private fun HomeContent(
                 week = week,
                 today = today,
                 fromTop = stripTop,
-                protectionOff = protection != ProtectionState.Running,
+                // Solo si se ha quitado: con un corte no sale el botón (se arregla solo y, si tarda,
+                // ya avisa «Mi día»).
+                protectionOff = protection == ProtectionState.Off,
                 // Cuenta como visto y lleva al apartado de la protección de Ajustes.
                 onEnableProtection = {
                     finishedFor = claimKey

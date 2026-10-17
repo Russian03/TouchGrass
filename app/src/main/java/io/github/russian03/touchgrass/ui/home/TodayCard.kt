@@ -1,5 +1,6 @@
 package io.github.russian03.touchgrass.ui.home
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -40,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.core.budget.BudgetSummary
+import io.github.russian03.touchgrass.service.ProtectionState
 import io.github.russian03.touchgrass.ui.common.BeigeCard
 import io.github.russian03.touchgrass.ui.common.beigeCardColor
 import io.github.russian03.touchgrass.ui.common.firstDayOf
@@ -55,29 +57,38 @@ private const val CALM_BELOW = 0.2f
 
 /**
  * «Mi día»: un anillo ondulado con lo que queda y cuándo se renueva. Si la protección no funciona
- * ([protected] en falso), el anillo pasa a tinta y sin onda, en lugar de los minutos sale el
- * personaje en tinta con los ojos en cruz y a la derecha se avisa, con el botón para arreglarlo en
- * Ajustes ([onFixProtection]).
+ * ([protection], ya con el margen de los cortes), el anillo pasa a tinta y sin onda, en lugar de los
+ * minutos sale el personaje en tinta y a la derecha se avisa, con el botón para arreglarlo en
+ * Ajustes ([onFixProtection]). Quitada en Accesibilidad, con los ojos en cruz; en un corte que
+ * dura, preocupado.
  */
 @Composable
-fun TodayCard(budget: BudgetSummary, protected: Boolean, onFixProtection: () -> Unit, modifier: Modifier = Modifier) {
+fun TodayCard(
+    budget: BudgetSummary,
+    protection: ProtectionState,
+    onFixProtection: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val remainingLabel = pluralStringResource(R.plurals.minutes_left, budget.remainingMinutes, budget.remainingMinutes)
-    val offLabel = stringResource(R.string.today_protection_off_title)
+    val offLabel = stringResource(protection.warningTitle())
     BeigeCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             BudgetRing(
                 remaining = budget.remainingMinutes,
                 limit = budget.limitMinutes,
-                protected = protected,
-                modifier = Modifier.semantics { contentDescription = if (protected) remainingLabel else offLabel },
+                protection = protection,
+                modifier =
+                Modifier.semantics {
+                    contentDescription = if (protection == ProtectionState.Running) remainingLabel else offLabel
+                },
             )
             AnimatedContent(
-                targetState = protected,
+                targetState = protection,
                 transitionSpec = { fadeIn(tween(FADE_MS)) togetherWith fadeOut(tween(FADE_MS)) },
                 label = "todayText",
                 modifier = Modifier.padding(start = 20.dp),
-            ) { on ->
-                if (on) ResetText(budget) else ProtectionOffText(onFixProtection)
+            ) { shown ->
+                if (shown == ProtectionState.Running) ResetText(budget) else ProtectionOffText(shown, onFixProtection)
             }
         }
         val pending = budget.pendingLimitMinutes
@@ -94,6 +105,11 @@ fun TodayCard(budget: BudgetSummary, protected: Boolean, onFixProtection: () -> 
 }
 
 private const val FADE_MS = 300
+
+/** Título del aviso: le faltan permisos (quitada) o se ha detenido (corte que dura). */
+@StringRes
+private fun ProtectionState.warningTitle(): Int =
+    if (this == ProtectionState.Off) R.string.today_protection_off_title else R.string.today_protection_stopped_title
 
 /** De cuánto es el límite y cuándo se renueva. */
 @Composable
@@ -118,16 +134,23 @@ private fun ResetText(budget: BudgetSummary) {
     }
 }
 
-/** Aviso de que la protección no funciona y el botón que lleva a su apartado de Ajustes. */
+/** Aviso de que la protección no funciona ([protection]) y el botón que lleva a su apartado de Ajustes. */
 @Composable
-private fun ProtectionOffText(onFixProtection: () -> Unit) {
+private fun ProtectionOffText(protection: ProtectionState, onFixProtection: () -> Unit) {
     Column {
         Text(
-            text = stringResource(R.string.today_protection_off_title),
+            text = stringResource(protection.warningTitle()),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = stringResource(R.string.today_protection_off_body),
+            text =
+            stringResource(
+                if (protection == ProtectionState.Off) {
+                    R.string.today_protection_off_body
+                } else {
+                    R.string.today_protection_stopped_body
+                },
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
@@ -148,7 +171,8 @@ private fun ProtectionOffText(onFixProtection: () -> Unit) {
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun BudgetRing(remaining: Int, limit: Int, protected: Boolean, modifier: Modifier = Modifier) {
+private fun BudgetRing(remaining: Int, limit: Int, protection: ProtectionState, modifier: Modifier = Modifier) {
+    val protected = protection == ProtectionState.Running
     val target = if (limit > 0) remaining.toFloat() / limit else 0f
     val fill = remember { Animatable(0f) }
     val inspection = LocalInspectionMode.current
@@ -181,15 +205,15 @@ private fun BudgetRing(remaining: Int, limit: Int, protected: Boolean, modifier:
             modifier = Modifier.size(124.dp),
         )
         AnimatedContent(
-            targetState = protected,
+            targetState = protection,
             transitionSpec = {
                 (fadeIn(tween(FADE_MS)) + scaleIn(tween(FADE_MS), initialScale = 0.8f)) togetherWith
                     fadeOut(tween(FADE_MS))
             },
             label = "ringCentre",
             modifier = Modifier.clearAndSetSemantics { },
-        ) { on ->
-            if (on) {
+        ) { shown ->
+            if (shown == ProtectionState.Running) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         remaining.toString(),
@@ -204,7 +228,7 @@ private fun BudgetRing(remaining: Int, limit: Int, protected: Boolean, modifier:
                 }
             } else {
                 Sprout(
-                    mood = SproutMood.Off,
+                    mood = if (shown == ProtectionState.Off) SproutMood.Off else SproutMood.Worried,
                     bodyColor = off,
                     faceColor = beigeCardColor(),
                     modifier = Modifier.width(62.dp),
@@ -217,11 +241,21 @@ private fun BudgetRing(remaining: Int, limit: Int, protected: Boolean, modifier:
 @Preview(showBackground = true, backgroundColor = 0xFFFBF8EF)
 @Composable
 private fun TodayCardPreview() {
-    TouchGrassTheme { TodayCard(previewBudget(), protected = true, onFixProtection = {}, Modifier.padding(16.dp)) }
+    TouchGrassTheme {
+        TodayCard(previewBudget(), ProtectionState.Running, onFixProtection = {}, Modifier.padding(16.dp))
+    }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFFBF8EF)
 @Composable
 private fun TodayCardOffPreview() {
-    TouchGrassTheme { TodayCard(previewBudget(), protected = false, onFixProtection = {}, Modifier.padding(16.dp)) }
+    TouchGrassTheme { TodayCard(previewBudget(), ProtectionState.Off, onFixProtection = {}, Modifier.padding(16.dp)) }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFBF8EF)
+@Composable
+private fun TodayCardStoppedPreview() {
+    TouchGrassTheme {
+        TodayCard(previewBudget(), ProtectionState.Stopped, onFixProtection = {}, Modifier.padding(16.dp))
+    }
 }

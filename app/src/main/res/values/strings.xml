@@ -15,7 +15,9 @@
     <string name="home_service_enable">Activar en Accesibilidad</string>
     <string name="home_service_settings">Ajustes de accesibilidad</string>
     <string name="home_service_stopped">Protección detenida</string>
-    <string name="home_service_stopped_detail">El sistema ha cerrado TouchGrass y el scroll ya no se bloquea. Desactívala y vuelve a activarla en Accesibilidad para recuperarla.</string>
+    <string name="home_service_stopped_detail">El sistema ha cerrado TouchGrass. Suele volver solo en unos segundos; si no, activa el autoinicio o desactívala y vuelve a activarla en Accesibilidad.</string>
+    <string name="home_service_reconnecting">Reconectando…</string>
+    <string name="home_service_reconnecting_detail">El sistema ha cerrado TouchGrass por un instante. Vuelve solo en unos segundos; tu día no se ve afectado.</string>
     <string name="home_service_restart">Reactivar en Accesibilidad</string>
     <string name="home_xiaomi_tip">En Xiaomi, activa «Autoinicio» en los ajustes de la app: así el sistema vuelve a poner en marcha la protección si la cierra.</string>
     <string name="home_xiaomi_tip_open">Abrir ajustes de la app</string>
@@ -47,6 +49,8 @@
     <string name="today_protection_off_title">A TouchGrass le faltan permisos</string>
     <string name="today_protection_off_body">Sin ellos, el scroll no se bloquea.</string>
     <string name="today_protection_off_action">Ir a Ajustes</string>
+    <string name="today_protection_stopped_title">TouchGrass se ha detenido</string>
+    <string name="today_protection_stopped_body">Suele volver solo. Si tarda, revisa el autoinicio.</string>
     <string name="manual_time_title">Hora manual</string>
     <string name="manual_time_body">Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva ni se puede desbloquear nada. Así nadie puede adelantar el reloj para saltarse el límite.</string>
 
