@@ -62,6 +62,7 @@ import io.github.russian03.touchgrass.ui.common.ProtectionActions
 import io.github.russian03.touchgrass.ui.common.ProtectionCard
 import io.github.russian03.touchgrass.ui.common.SystemSettings
 import io.github.russian03.touchgrass.ui.common.beigeCardColor
+import io.github.russian03.touchgrass.ui.common.duration
 import io.github.russian03.touchgrass.ui.common.firstDayOf
 import io.github.russian03.touchgrass.ui.common.rememberActivateProtection
 import io.github.russian03.touchgrass.ui.common.rememberProtectionState
@@ -258,7 +259,7 @@ private fun SettingsContent(
     if (confirmLower) {
         AlertDialog(
             onDismissRequest = { confirmLower = false },
-            title = { Text(stringResource(R.string.settings_lower_title, state.shownLimit)) },
+            title = { Text(stringResource(R.string.settings_lower_title, duration(state.shownLimit))) },
             text = { Text(stringResource(R.string.settings_lower_body)) },
             confirmButton = {
                 TextButton(onClick = {
@@ -328,7 +329,7 @@ private fun LimitCard(
     val nextMonth = firstDayOf(YearMonth.now().plusMonths(1))
     BeigeCard(modifier) {
         Text(
-            text = stringResource(R.string.settings_limit_current, budget.limitMinutes),
+            text = stringResource(R.string.settings_limit_current, duration(budget.limitMinutes)),
             style = MaterialTheme.typography.bodyLarge,
         )
         LimitPicker(
@@ -372,7 +373,7 @@ private fun LimitCard(
         val from = budget.pendingFrom
         if (pending != null && from != null) {
             Text(
-                text = stringResource(R.string.limit_pending, firstDayOf(from), pending),
+                text = stringResource(R.string.limit_pending, firstDayOf(from), duration(pending)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 20.dp),

@@ -9,10 +9,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,6 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -37,6 +39,7 @@ import io.github.russian03.touchgrass.core.budget.BudgetSummary
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.core.budget.UnlockSession
 import io.github.russian03.touchgrass.ui.common.countdown
+import io.github.russian03.touchgrass.ui.common.duration
 import io.github.russian03.touchgrass.ui.common.timeOf
 import io.github.russian03.touchgrass.ui.design.InkPillButton
 import io.github.russian03.touchgrass.ui.design.LimeHeader
@@ -133,11 +136,15 @@ private fun ActiveUnlock(
             description = stringResource(R.string.home_unlock_left, left),
             modifier = Modifier.padding(top = 4.dp),
         )
-        LinearWavyProgressIndicator(
+        // Recta, sin onda: baja de forma continua con el tiempo que queda.
+        LinearProgressIndicator(
             progress = { if (totalMs > 0) (budget.unlockRemainingMs.toFloat() / totalMs).coerceIn(0f, 1f) else 0f },
             color = Ink,
             trackColor = Ink.copy(alpha = 0.15f),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            strokeCap = StrokeCap.Round,
+            gapSize = 0.dp,
+            drawStopIndicator = {},
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).height(6.dp),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -168,7 +175,7 @@ private fun ActiveUnlock(
             text = {
                 Text(
                     if (budget.refundMinutes > 0) {
-                        stringResource(R.string.unlock_end_refund, budget.refundMinutes)
+                        stringResource(R.string.unlock_end_refund, duration(budget.refundMinutes))
                     } else {
                         stringResource(R.string.unlock_end_no_refund)
                     },

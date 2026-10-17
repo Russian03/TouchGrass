@@ -56,6 +56,7 @@ import io.github.russian03.touchgrass.ui.common.beigeCardColor
 import io.github.russian03.touchgrass.ui.common.weekdayDay
 import io.github.russian03.touchgrass.ui.design.AnimatedFlame
 import io.github.russian03.touchgrass.ui.design.FaceDrawing
+import io.github.russian03.touchgrass.ui.design.FitText
 import io.github.russian03.touchgrass.ui.design.SimpleFace
 import io.github.russian03.touchgrass.ui.design.Tile
 import io.github.russian03.touchgrass.ui.design.simple
@@ -225,7 +226,8 @@ internal fun StatTiles(month: MonthStats, currentStreak: Int, bestStreak: Int, m
                 TileTitle(stringResource(R.string.stats_tile_best))
                 Spacer(Modifier.weight(1f))
                 Box(Modifier.fillMaxWidth()) {
-                    Column {
+                    // Deja sitio al fuego de la derecha.
+                    Column(Modifier.padding(end = 48.dp)) {
                         BigNumber(bestStreak.toString())
                         Text(
                             pluralStringResource(R.plurals.stats_days, bestStreak),
@@ -238,14 +240,11 @@ internal fun StatTiles(month: MonthStats, currentStreak: Int, bestStreak: Int, m
         }
         Tile(Lime, Ink, Modifier.fillMaxWidth()) {
             TileTitle(stringResource(R.string.stats_tile_streak))
-            Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 8.dp)) {
-                BigNumber(currentStreak.toString())
-                Text(
-                    pluralStringResource(R.plurals.achievements_streak_days, currentStreak),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
-                )
-            }
+            BigNumber(currentStreak.toString(), Modifier.padding(top = 8.dp))
+            Text(
+                pluralStringResource(R.plurals.achievements_streak_days, currentStreak),
+                style = MaterialTheme.typography.bodyLarge,
+            )
             Text(
                 stringResource(R.string.stats_tile_streak_how),
                 style = MaterialTheme.typography.bodySmall,
@@ -273,11 +272,14 @@ private fun TileTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
 }
 
-/** Número grande del recuadro; si es largo («1 h 30 min»), algo más pequeño para que quepa. */
+/** Número grande del recuadro: encoge si no cabe («1 h 30 min» en un recuadro estrecho). */
 @Composable
 private fun BigNumber(text: String, modifier: Modifier = Modifier) {
-    val style = if (text.length > 5) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall
-    Text(text, style = style, fontWeight = FontWeight.Bold, modifier = modifier)
+    FitText(
+        text = text,
+        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+        modifier = modifier,
+    )
 }
 
 /**

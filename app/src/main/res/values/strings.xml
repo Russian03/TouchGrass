@@ -26,24 +26,17 @@
     <string name="cancel">Cancelar</string>
     <string name="error_saving">No se ha podido guardar. Inténtalo otra vez.</string>
     <string name="minutes_unit">min</string>
-    <string name="minutes_short">%1$d min</string>
-    <plurals name="minutes_per_day">
-        <item quantity="one">%1$d minuto al día</item>
-        <item quantity="other">%1$d minutos al día</item>
-    </plurals>
-    <plurals name="minutes_left">
-        <item quantity="one">Queda %1$d minuto hoy</item>
-        <item quantity="other">Quedan %1$d minutos hoy</item>
-    </plurals>
+    <string name="per_day">%1$s al día</string>
+    <string name="time_left">Te quedan %1$s hoy</string>
 
     <!-- Selector del límite -->
-    <string name="limit_unit">minutos al día</string>
+    <string name="limit_unit">al día</string>
     <string name="limit_less">Menos minutos</string>
     <string name="limit_more">Más minutos</string>
-    <string name="limit_pending">Desde el %1$s: %2$d min al día</string>
+    <string name="limit_pending">Desde el %1$s: %2$s al día</string>
 
     <!-- Hoy -->
-    <string name="today_of_limit">de %1$d min disponibles</string>
+    <string name="today_of_limit">de %1$s disponibles</string>
     <string name="today_resets_at">Se renueva a las %1$s</string>
     <string name="today_resets_tomorrow">Se renueva mañana a las %1$s</string>
     <string name="today_protection_off_title">A TouchGrass le faltan permisos</string>
@@ -62,19 +55,15 @@
     <string name="unlock_app_body_generic">Desbloquea el scroll unos minutos. Se restan de tu saldo al pedirlos y corren aunque salgas de la app.</string>
     <string name="unlock_change_app">Cambiar de app</string>
     <string name="unlock_already">Ya hay un desbloqueo en marcha. Termínalo en Inicio para pedir otro.</string>
-    <string name="unlock_unit">minutos</string>
-    <plurals name="minutes">
-        <item quantity="one">%1$d minuto</item>
-        <item quantity="other">%1$d minutos</item>
-    </plurals>
-    <string name="unlock_request">Desbloquear %1$d min</string>
+    <string name="unlock_unit">de tu saldo</string>
+    <string name="unlock_request">Desbloquear %1$s</string>
     <string name="unlock_none_left">Hoy ya no te quedan minutos. Se renuevan a las %1$s.</string>
     <string name="unlock_manual_time">Activa la hora automática para pedir tiempo.</string>
     <string name="unlock_active_title">Scroll desbloqueado en %1$s</string>
     <string name="unlock_active_until">Hasta las %1$s</string>
     <string name="unlock_end">Terminar ya</string>
     <string name="unlock_end_title">¿Terminar ahora?</string>
-    <string name="unlock_end_refund">Vuelve el bloqueo y se devuelven %1$d min a tu saldo de hoy.</string>
+    <string name="unlock_end_refund">Vuelve el bloqueo y se devuelven %1$s a tu saldo de hoy.</string>
     <string name="unlock_end_no_refund">Vuelve el bloqueo. Los minutos se devuelven de 5 en 5, así que esta vez no se devuelve nada.</string>
     <string name="unlock_end_confirm">Terminar</string>
     <string name="unlock_error">No se ha podido desbloquear. Inténtalo otra vez.</string>
@@ -114,7 +103,7 @@
     <string name="home_xiaomi_tip_title">Autoinicio en Xiaomi</string>
     <string name="home_unlock_left">%1$s restantes</string>
     <string name="week_day_free">%1$s: sin pedir tiempo</string>
-    <string name="week_day_unlocked">%1$s: %2$d min desbloqueados</string>
+    <string name="week_day_unlocked">%1$s: %2$s desbloqueados</string>
     <string name="week_day_exhausted">%1$s: saldo agotado</string>
     <string name="week_day_untracked">%1$s: sin datos</string>
     <string name="week_day_disabled">%1$s: protección quitada</string>
@@ -122,8 +111,8 @@
 
     <!--
         Primer acceso del día: «Mi semana» enseña las caras de los días que faltaban y, debajo, una
-        frase según cómo fue ayer. Sale una distinta cada día. Marcadores: %1$d minutos usados,
-        %2$d límite del día, %3$d días de racha. Lo que va entre asteriscos, en negrita.
+        frase según cómo fue ayer. Sale una distinta cada día. Marcadores: %1$s tiempo usado y
+        %2$s límite del día (en horas y minutos), %3$d días de racha. Lo que va entre asteriscos, en negrita.
     -->
     <string-array name="claim_mythic">
         <item>*%3$d días* seguidos con el scroll a raya. Esto ya es un hábito.</item>
@@ -154,32 +143,32 @@
         <item>*Cero minutos* de scroll. Así se toca hierba.</item>
     </string-array>
     <string-array name="claim_happy">
-        <item>Ayer solo usaste *%1$d de %2$d min*.</item>
-        <item>*%1$d de %2$d min*. Te sobró casi todo el saldo.</item>
-        <item>Solo *%1$d min* de scroll. Lo justo y nada más.</item>
-        <item>Usaste *%1$d de %2$d min*. Otro día así y empiezas una racha.</item>
-        <item>*%1$d min* y a otra cosa. Así se hace.</item>
+        <item>Ayer solo usaste *%1$s de %2$s*.</item>
+        <item>*%1$s de %2$s*. Te sobró casi todo el saldo.</item>
+        <item>Solo *%1$s* de scroll. Lo justo y nada más.</item>
+        <item>Usaste *%1$s de %2$s*. Otro día así y empiezas una racha.</item>
+        <item>*%1$s* y a otra cosa. Así se hace.</item>
     </string-array>
     <string-array name="claim_calm">
-        <item>Usaste *%1$d de %2$d min*. Vas por buen camino.</item>
-        <item>*%1$d de %2$d min*: menos de la mitad. Hoy puedes hacerlo aún mejor.</item>
-        <item>Te quedaste en *%1$d de %2$d min*. Un pasito más y es un gran día.</item>
-        <item>*%1$d min* de scroll. Te sobró más de la mitad del saldo.</item>
-        <item>Usaste *%1$d de %2$d min*. Bien llevado.</item>
+        <item>Usaste *%1$s de %2$s*. Vas por buen camino.</item>
+        <item>*%1$s de %2$s*: menos de la mitad. Hoy puedes hacerlo aún mejor.</item>
+        <item>Te quedaste en *%1$s de %2$s*. Un pasito más y es un gran día.</item>
+        <item>*%1$s* de scroll. Te sobró más de la mitad del saldo.</item>
+        <item>Usaste *%1$s de %2$s*. Bien llevado.</item>
     </string-array>
     <string-array name="claim_neutral">
-        <item>Usaste *%1$d de %2$d min*. Hoy puedes bajar un poco.</item>
-        <item>*%1$d de %2$d min*. Hoy, prueba a pedir un poco menos.</item>
-        <item>Ayer fueron *%1$d min* de scroll. Hoy tienes otra oportunidad.</item>
-        <item>*%1$d de %2$d min*. Nada grave, pero hoy puede ser mejor.</item>
-        <item>Usaste *%1$d de %2$d min*. ¿Y si hoy lo dejas en la mitad?</item>
+        <item>Usaste *%1$s de %2$s*. Hoy puedes bajar un poco.</item>
+        <item>*%1$s de %2$s*. Hoy, prueba a pedir un poco menos.</item>
+        <item>Ayer fueron *%1$s* de scroll. Hoy tienes otra oportunidad.</item>
+        <item>*%1$s de %2$s*. Nada grave, pero hoy puede ser mejor.</item>
+        <item>Usaste *%1$s de %2$s*. ¿Y si hoy lo dejas en la mitad?</item>
     </string-array>
     <string-array name="claim_tight">
-        <item>*%1$d de %2$d min*. Hoy, a por menos.</item>
-        <item>Te quedaste a nada del límite: *%1$d de %2$d min*. Hoy, con más margen.</item>
-        <item>*%1$d de %2$d min*. Bien por no agotarlo, pero hoy puedes más.</item>
-        <item>Usaste *%1$d de %2$d min*. Hoy, intenta dejar algo de saldo.</item>
-        <item>*%1$d min de %2$d*. Lo salvaste por poco: hoy, más tranquilo.</item>
+        <item>*%1$s de %2$s*. Hoy, a por menos.</item>
+        <item>Te quedaste a nada del límite: *%1$s de %2$s*. Hoy, con más margen.</item>
+        <item>*%1$s de %2$s*. Bien por no agotarlo, pero hoy puedes más.</item>
+        <item>Usaste *%1$s de %2$s*. Hoy, intenta dejar algo de saldo.</item>
+        <item>*%1$s de %2$s*. Lo salvaste por poco: hoy, más tranquilo.</item>
     </string-array>
     <string-array name="claim_sad">
         <item>Hoy es un nuevo día: *¡a por todas!*</item>
@@ -233,8 +222,8 @@
     <string name="onboarding_disclosure_decline">No, gracias</string>
     <string name="onboarding_disclosure_consent">Al aceptar, das tu permiso para que TouchGrass use el servicio de accesibilidad solo para esto. Puedes quitarlo cuando quieras en los ajustes de Accesibilidad.</string>
     <string name="privacy_open">Política de privacidad</string>
-    <string name="onboarding_limit_title">¿Cuántos *minutos* al día?</string>
-    <string name="onboarding_limit_body">Es tu límite para este mes: los minutos que podrás desbloquear cada día.</string>
+    <string name="onboarding_limit_title">¿Cuánto *tiempo* al día?</string>
+    <string name="onboarding_limit_body">Es tu límite para este mes: el tiempo que podrás desbloquear cada día, hasta 4 h.</string>
     <string name="onboarding_limit_note">Podrás bajarlo cuando quieras. Para subirlo tendrás que esperar al mes siguiente.</string>
     <string name="onboarding_limit_save">Guardar y seguir</string>
     <string name="onboarding_activate_title">Activa la *protección*</string>
@@ -255,7 +244,7 @@
     <string name="settings_name_save">Guardar nombre</string>
     <string name="settings_name_saved">Nombre guardado.</string>
     <string name="settings_limit_section">Límite *diario*</string>
-    <string name="settings_limit_current">Ahora: %1$d min al día</string>
+    <string name="settings_limit_current">Ahora: %1$s al día</string>
     <string name="settings_limit_rule">Bajarlo se aplica al momento. Subirlo, a partir del mes siguiente.</string>
     <string name="settings_limit_applies_now">Se aplicará ahora mismo.</string>
     <string name="settings_limit_applies_from">Se aplicará a partir del %1$s.</string>
@@ -265,7 +254,7 @@
     <string name="settings_limit_cancelled">Cambio cancelado.</string>
     <string name="settings_limit_manual_time">Activa la hora automática para subir el límite.</string>
     <string name="settings_limit_cancel_pending">Cancelar este cambio</string>
-    <string name="settings_lower_title">¿Bajar a %1$d min al día?</string>
+    <string name="settings_lower_title">¿Bajar a %1$s al día?</string>
     <string name="settings_lower_body">Se aplica ahora mismo. Si luego quieres volver a subirlo, tendrás que esperar al mes siguiente.</string>
     <string name="settings_lower_confirm">Bajar límite</string>
     <string name="settings_protection_section">*Protección*</string>

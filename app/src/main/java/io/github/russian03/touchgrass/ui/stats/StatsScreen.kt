@@ -62,6 +62,7 @@ import io.github.russian03.touchgrass.ui.common.monthTitle
 import io.github.russian03.touchgrass.ui.common.reasonLabel
 import io.github.russian03.touchgrass.ui.common.timeOf
 import io.github.russian03.touchgrass.ui.common.weekdayDay
+import io.github.russian03.touchgrass.ui.design.FitText
 import io.github.russian03.touchgrass.ui.design.LimeHeader
 import io.github.russian03.touchgrass.ui.design.MixedTitle
 import io.github.russian03.touchgrass.ui.design.SectionTitle
@@ -182,18 +183,15 @@ private fun MonthSwitcher(state: StatsUiState, onShow: (YearMonth) -> Unit, modi
 @Composable
 private fun SummaryCard(month: MonthStats) {
     BeigeCard {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = duration(month.unlockedMinutes),
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Light,
-            )
-            Text(
-                text = stringResource(R.string.stats_unlocked_minutes),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(start = 8.dp, bottom = 6.dp),
-            )
-        }
+        // El total encoge si no cabe; la etiqueta va debajo, nunca al lado.
+        FitText(
+            text = duration(month.unlockedMinutes),
+            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Light),
+        )
+        Text(
+            text = stringResource(R.string.stats_unlocked_minutes),
+            style = MaterialTheme.typography.bodyLarge,
+        )
         Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             StatLine(stringResource(R.string.stats_unlock_count), month.unlockCount.toString())
             StatLine(stringResource(R.string.stats_leave_count), month.leaveCount.toString())

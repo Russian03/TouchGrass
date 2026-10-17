@@ -205,6 +205,10 @@ Compose con Material 3 Expressive y la paleta de siempre: crema de fondo, tinta 
   apagado).
 - **`Sprout`**: el logo como personaje, con caras (`SproutMood`), parpadeo, respiración y saltito.
   Lo usan los primeros pasos y «Mi día» sin protección.
+- **Tiempos y números grandes:** todo tiempo se enseña en horas y minutos (`duration()` de
+  `ui/common/Format.kt`: «45 min», «1 h», «1 h 30 min»), salvo la cuenta atrás, que es un reloj.
+  Los números grandes van con **`FitText`**, que encoge en lugar de partirse si no cabe, y su
+  etiqueta va siempre debajo, nunca al lado: así caben en cualquier ancho de pantalla.
 - **`Tile`**: los recuadros de color de «Mis logros» y de las estadísticas.
 - **`AnimatedFlame`**: el fuego de la racha, dibujado en código, que parpadea.
 - **`staggerIn`**: la entrada en cascada de cada pantalla. **`fadingEdges`**: difuminado de los
