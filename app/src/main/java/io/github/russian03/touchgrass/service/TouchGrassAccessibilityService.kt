@@ -96,6 +96,8 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             budget.state.collect {
                 budgetState = it
                 scheduleEvaluation(0)
+                // El límite de cada día, para enseñar el de cada mes en las estadísticas.
+                if (it.onboardingDone) stats.recordLimit(it.limitMinutes)
             }
         }
     }

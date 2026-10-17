@@ -131,7 +131,9 @@ class BudgetPolicyTest {
     fun `límites fuera de rango no se aceptan`() {
         val now = at("2026-10-13T10:00")
         assertThat(BudgetPolicy.changeLimit(limit30, -1, now).denial()).isEqualTo(Denial.InvalidMinutes)
-        assertThat(BudgetPolicy.changeLimit(limit30, 181, now).denial()).isEqualTo(Denial.InvalidMinutes)
+        assertThat(BudgetPolicy.changeLimit(limit30, 245, now).denial()).isEqualTo(Denial.InvalidMinutes)
+        // Hasta 4 h sí: subirlo queda pendiente para el mes siguiente.
+        assertThat(BudgetPolicy.changeLimit(limit30, 240, now).ok().pendingLimitMinutes).isEqualTo(240)
     }
 
     @Test

@@ -30,9 +30,9 @@ class DayFaceTest {
     }
 
     @Test
-    fun `poco uso es hasta el 25 por ciento sin agotar`() {
-        assertThat(DayFaces.isLow(row(10))).isTrue()
-        assertThat(DayFaces.isLow(row(11))).isFalse()
+    fun `poco uso es hasta el 30 por ciento sin agotar`() {
+        assertThat(DayFaces.isLow(row(12))).isTrue()
+        assertThat(DayFaces.isLow(row(13))).isFalse()
         assertThat(DayFaces.isLow(row(0, limit = 0))).isTrue()
         assertThat(DayFaces.isLow(row(5, limit = 5))).isFalse()
     }

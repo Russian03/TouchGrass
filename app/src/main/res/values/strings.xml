@@ -275,16 +275,15 @@
 
     <!-- Estadísticas -->
     <string name="stats_header">Mis *estadísticas*</string>
-    <string name="stats_month_section">Tu *mes*</string>
-    <string name="stats_numbers_section">En *números*</string>
     <string name="stats_more_section">Más *detalles*</string>
+    <string name="stats_month_limit">Límite: %1$s min al día</string>
     <string name="stats_calendar_day">%1$s: %2$s</string>
     <string name="stats_calendar_today">%1$s: hoy</string>
     <string name="stats_tile_average">Minutos al día</string>
     <string name="stats_tile_average_unit">de media este mes</string>
     <string name="stats_tile_best">Mejor racha</string>
     <string name="stats_tile_streak">Racha actual</string>
-    <string name="stats_tile_streak_how">Suma los días seguidos en que usas como mucho el 25 % de tu límite, sin agotarlo ni quitar la protección. Hoy cuenta mientras sigas dentro. Las rachas son desde que empezaste, no solo de este mes.</string>
+    <string name="stats_tile_streak_how">Suma los días seguidos en que usas como mucho el 30 % de tu límite (o de 2 h, si es mayor), sin agotarlo ni quitar la protección. Hoy cuenta mientras sigas dentro. Las rachas son desde que empezaste, no solo de este mes.</string>
     <plurals name="stats_days">
         <item quantity="one">día</item>
         <item quantity="other">días</item>

@@ -50,6 +50,17 @@ object StatsPolicy {
         }
     }
 
+    /**
+     * Apunta el límite diario de [day] si aún no lo tenía, para saber el límite de cada mes aunque
+     * no se pida tiempo. Si ya lo tenía, no lo cambia: un cambio a media jornada cuenta desde el día
+     * siguiente. Antes de empezar a contar no apunta nada.
+     */
+    fun recordLimit(state: StatsState, day: LocalDate, limitMinutes: Int): StatsState {
+        val since = state.since?.let(LocalDate::parse) ?: return state
+        if (day < since || state.days[day.toString()]?.limitMinutes != null) return state
+        return updateDay(state, day) { it.copy(limitMinutes = limitMinutes) }
+    }
+
     fun recordBlock(state: StatsState, day: LocalDate, packageName: String): StatsState =
         updateDay(state, day) { it.copy(blocks = it.blocks.increment(packageName)) }
 
@@ -116,6 +127,7 @@ object StatsPolicy {
             reasons = unlocks.groupingBy { it.reason }.eachCount(),
             days = days,
             calendar = calendar,
+            limits = days.mapNotNull { it.stats.limitMinutes }.distinct().sorted(),
             faces = calendar.filterValues { it != null && it != DayFace.Untracked }
                 .filterKeys { it < today }
                 .values
@@ -309,6 +321,8 @@ data class MonthStats(
     val reasons: Map<UnlockReason, Int>,
     /** Días del mes, del más reciente al más antiguo. */
     val days: List<DayRow>,
+    /** Límites diarios distintos que hubo en el mes, de menor a mayor (vacío si no se apuntó ninguno). */
+    val limits: List<Int> = emptyList(),
     /** Cara de cada día del mes, del 1 al último; `null` en los que aún no han llegado. */
     val calendar: Map<LocalDate, DayFace?> = emptyMap(),
     /** Cuántos días pasados del mes (sin hoy) tuvieron cada cara. */

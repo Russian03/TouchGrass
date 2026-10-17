@@ -26,7 +26,10 @@ data class StatsState(
 
 @Serializable
 data class DayStats(
-    /** Límite diario que había al pedir tiempo ese día; `null` si no se pidió. */
+    /**
+     * Límite diario de ese día: se apunta al empezar el día (lo hace el servicio) o al pedir tiempo.
+     * `null` en días de versiones anteriores sin pedir tiempo.
+     */
     val limitMinutes: Int? = null,
     val unlocks: List<UnlockRecord> = emptyList(),
     /** Veces que ha saltado la pantalla de bloqueo, por app. */

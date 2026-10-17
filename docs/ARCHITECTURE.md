@@ -69,6 +69,10 @@ afecte nunca al bloqueo.
   diaria, porque el primer mes y el actual están a medias) se calculan al vuelo. El resumen lleva
   también la cara de cada día del mes (`calendar`), cuántos días pasados hubo de cada cara
   (`faces`) y los bloqueos de cada día (`blocksByDay`), para el calendario y el gráfico de línea.
+- **Límite de cada mes:** el servicio apunta el límite de cada día al empezarlo
+  (`StatsPolicy.recordLimit`, sin pisar el que ya tenga), y `MonthStats.limits` reúne los del mes.
+  Las estadísticas lo enseñan arriba, en el banner («Límite: 90 min al día», o «60–90» si cambió),
+  porque las caras y las medias de cada mes van según su límite.
 - **Rachas:** `currentStreak` son los días seguidos de poco uso que llegan hasta hoy (hoy cuenta
   mientras siga siendo de poco uso) y `bestStreak`, la más larga desde `since`. Se ven en «Mis
   logros» de Inicio y en los recuadros de las estadísticas.
@@ -77,15 +81,18 @@ afecte nunca al bloqueo.
 
 ### Caras de los días
 
-Cada día pasado tiene una cara (`core/stats/DayFace`) según la parte del límite gastada y la racha
-de días de poco uso (hasta el 25 % del límite, sin agotarlo):
+Cada día pasado tiene una cara (`core/stats/DayFace`) según la parte gastada del límite de ese día
+(`DayStats.limitMinutes`) o de 2 h si el límite es mayor (`FACE_CAP_MINUTES`), y la racha de días
+de poco uso (hasta el 30 %, sin agotarlo):
 
 | Cara | Cuándo |
 |------|--------|
 | `Mythic`, `Legend`, `Cool` | Poco uso con racha de 14, 7 o 3 días o más |
 | `Free` | Sin pedir tiempo |
-| `Happy`, `Calm`, `Neutral`, `Tight` | Hasta el 25 %, 50 %, 75 % o más sin agotarlo |
-| `Sad` | Saldo agotado (cara triste, en gris) |
+| `Happy` | Hasta el 30 % (queda el 70 % o más) |
+| `Calm` | Hasta el 55 % (queda el 45 % o más) |
+| `Neutral`, `Tight` | Más del 55 % sin llegar al tope (los dos, «medio mal») |
+| `Sad` | Saldo agotado, o 2 h gastadas con un límite mayor (cara triste, en gris) |
 | `Disabled` | Se quitó la protección ese día: no cuenta lo usado y rompe la racha (ojos en cruz, en rojo) |
 
 «Mi semana» enseña la semana anterior y la actual con esas caras (`ui/design/DayPill`). Los días
@@ -144,7 +151,8 @@ app (`PrivacyPolicyDialog`) y es la misma que [`PRIVACIDAD.md`](PRIVACIDAD.md).
 
 ## Saldo diario y desbloqueos
 
-Cada mes el usuario tiene un **límite diario** de minutos que puede desbloquear. Las reglas están
+Cada mes el usuario tiene un **límite diario** de minutos que puede desbloquear, de 0 a 4 h
+(`MAX_LIMIT_MINUTES`). Las reglas están
 en `core/budget/BudgetPolicy` (Kotlin puro) y el estado se guarda con `data/budget/BudgetRepository`.
 
 - El día va de **8:00 a 8:00** (hora local). Cada día empieza con el límite completo y lo que no se

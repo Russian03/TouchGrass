@@ -53,6 +53,9 @@ class StatsRepository internal constructor(private val store: DataStore<StatsSta
         update { StatsPolicy.recordRefund(it, day, session.startWallMs, refundedMinutes) }
     }
 
+    /** Apunta el límite de hoy, si aún no estaba. */
+    suspend fun recordLimit(limitMinutes: Int) = update { StatsPolicy.recordLimit(it, today(), limitMinutes) }
+
     suspend fun recordBlock(packageName: String) = update { StatsPolicy.recordBlock(it, today(), packageName) }
 
     suspend fun recordLeave(packageName: String) = update { StatsPolicy.recordLeave(it, today(), packageName) }

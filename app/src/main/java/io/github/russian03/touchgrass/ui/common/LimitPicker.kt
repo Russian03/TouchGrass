@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.russian03.touchgrass.R
+import io.github.russian03.touchgrass.core.budget.BudgetPolicy
 import io.github.russian03.touchgrass.ui.design.Sparkles
 import io.github.russian03.touchgrass.ui.design.pressScale
 import io.github.russian03.touchgrass.ui.theme.Ink
@@ -51,9 +52,9 @@ import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 
 /** Límites que se pueden elegir desde la app. */
-val LIMIT_RANGE = 0..120
+val LIMIT_RANGE = 0..BudgetPolicy.MAX_LIMIT_MINUTES
 private const val STEP = 5
-private val LIMIT_PRESETS = listOf(15, 30, 45, 60, 90)
+private val LIMIT_PRESETS = listOf(15, 30, 60, 90, 120)
 
 /** Selector del límite diario: número grande, − y + a los lados de la unidad y atajos debajo. */
 @Composable

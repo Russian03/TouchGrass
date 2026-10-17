@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -64,6 +65,8 @@ import io.github.russian03.touchgrass.ui.design.LimeHeader
 import io.github.russian03.touchgrass.ui.design.MixedTitle
 import io.github.russian03.touchgrass.ui.design.SectionTitle
 import io.github.russian03.touchgrass.ui.design.staggerIn
+import io.github.russian03.touchgrass.ui.theme.Cream
+import io.github.russian03.touchgrass.ui.theme.Ink
 import io.github.russian03.touchgrass.ui.theme.TouchGrassTheme
 import java.time.LocalDate
 import java.time.YearMonth
@@ -97,7 +100,11 @@ private fun StatsContent(state: StatsUiState?, onBack: () -> Unit, onShow: (Year
                     style = MaterialTheme.typography.displaySmall.copy(fontSize = 40.sp, lineHeight = 46.sp),
                     modifier = Modifier.padding(top = 4.dp, end = 12.dp),
                 )
-                if (state != null) MonthSwitcher(state, onShow, Modifier.padding(top = 12.dp, end = 12.dp))
+                if (state != null) {
+                    MonthSwitcher(state, onShow, Modifier.padding(top = 12.dp, end = 12.dp))
+                    // Las caras y las medias del mes van según su límite: se ve lo primero.
+                    MonthLimit(state.limits, Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp))
+                }
             }
             if (state == null) return@Column
             val month = state.month
@@ -105,10 +112,13 @@ private fun StatsContent(state: StatsUiState?, onBack: () -> Unit, onShow: (Year
             key(month.month) {
                 Column(Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
                     var order = 1
-                    SectionTitle(stringResource(R.string.stats_month_section), Modifier.staggerIn(order++), top = 4.dp)
-                    CalendarCard(month, state.today, Modifier.staggerIn(order++))
-                    SectionTitle(stringResource(R.string.stats_numbers_section), Modifier.staggerIn(order++))
-                    StatTiles(month, state.currentStreak, state.bestStreak, Modifier.staggerIn(order++))
+                    CalendarCard(month, state.today, Modifier.padding(top = 4.dp).staggerIn(order++))
+                    StatTiles(
+                        month,
+                        state.currentStreak,
+                        state.bestStreak,
+                        Modifier.padding(top = 16.dp).staggerIn(order++),
+                    )
                     if (month.trackedDays > 0) {
                         SectionTitle(stringResource(R.string.stats_more_section), Modifier.staggerIn(order++))
                         Column(Modifier.staggerIn(order), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -123,6 +133,20 @@ private fun StatsContent(state: StatsUiState?, onBack: () -> Unit, onShow: (Year
             }
         }
     }
+}
+
+/** Píldora de tinta con el límite diario del mes («90 min al día», o «60–90» si cambió). */
+@Composable
+private fun MonthLimit(limits: List<Int>, modifier: Modifier = Modifier) {
+    if (limits.isEmpty()) return
+    val range = if (limits.size == 1) "${limits.first()}" else "${limits.first()}–${limits.last()}"
+    Text(
+        text = stringResource(R.string.stats_month_limit, range),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = Cream,
+        modifier = modifier.background(Ink, CircleShape).padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 /** El mes que se mira, con las flechas para ir al anterior y al siguiente con datos. */
@@ -492,6 +516,7 @@ private fun previewState(): StatsUiState {
         appNames = mapOf(IG to "Instagram", TT to "TikTok"),
         currentStreak = 5,
         bestStreak = 14,
+        limits = listOf(60, 90),
     )
 }
 

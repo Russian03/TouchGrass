@@ -52,7 +52,7 @@ sealed interface BudgetResult {
 object BudgetPolicy {
 
     val DAY_START: LocalTime = LocalTime.of(8, 0)
-    const val MAX_LIMIT_MINUTES = 180
+    const val MAX_LIMIT_MINUTES = 240
 
     /** Al terminar antes de tiempo se devuelven los minutos que sobran en bloques de este tamaño. */
     const val REFUND_STEP_MINUTES = 5

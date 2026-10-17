@@ -129,9 +129,12 @@ activarlo**.
   - debajo, los minutos desbloqueados, cuántas veces pediste tiempo y volviste atrás, los días sin
     pedir tiempo y sin agotar el saldo, el reparto por app y por motivo, la comparación con los
     meses anteriores y el detalle de cada día.
-- **Racha.** Suma los días seguidos en que usas como mucho el 25 % de tu límite, sin agotarlo ni
-  quitar la protección. Hoy cuenta mientras sigas dentro.
-- **Ajustes** (icono de la rueda) permite cambiar tu nombre y el límite diario. Bajarlo se
+- **Caras.** Van según lo que te queda del límite de ese día (o de 2 h, si tu límite es mayor):
+  sin pedir tiempo, genial; si queda el 70 % o más, bien; el 45 % o más, seria; menos, medio mal;
+  y si llegas al tope, triste. Arriba de las estadísticas sale el límite que tenías ese mes.
+- **Racha.** Suma los días seguidos en que usas como mucho el 30 % de tu límite (o de 2 h), sin
+  agotarlo ni quitar la protección. Hoy cuenta mientras sigas dentro.
+- **Ajustes** (icono de la rueda) permite cambiar tu nombre y el límite diario (hasta 4 h). Bajarlo se
   aplica al momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede
   cancelar. También muestra el estado de la protección y la política de privacidad.
 - Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa

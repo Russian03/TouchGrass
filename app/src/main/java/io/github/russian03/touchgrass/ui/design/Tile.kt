@@ -19,7 +19,8 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Recuadro de color de «Mis logros» y de las estadísticas: esquinas de 28 dp, como las tarjetas, y
- * el contenido en [contentColor]. Con [onClick] se puede pulsar entero y encoge un poco al hacerlo.
+ * el contenido en [contentColor]. Con [onClick] se puede pulsar entero y encoge un poco al hacerlo;
+ * [interaction] deja saber desde fuera si se está pulsando.
  */
 @Composable
 fun Tile(
@@ -27,9 +28,9 @@ fun Tile(
     contentColor: Color,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    interaction: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val interaction = remember { MutableInteractionSource() }
     val press =
         if (onClick == null) {
             Modifier
