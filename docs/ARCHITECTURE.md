@@ -83,10 +83,13 @@ de días de poco uso (hasta el 25 % del límite, sin agotarlo):
 | `Mythic`, `Legend`, `Cool` | Poco uso con racha de 14, 7 o 3 días o más |
 | `Free` | Sin pedir tiempo |
 | `Happy`, `Calm`, `Neutral`, `Tight` | Hasta el 25 %, 50 %, 75 % o más sin agotarlo |
-| `Sad` | Saldo agotado |
-| `Disabled` | Se quitó la protección ese día: no cuenta lo usado y rompe la racha |
+| `Sad` | Saldo agotado (cara triste, en gris) |
+| `Disabled` | Se quitó la protección ese día: no cuenta lo usado y rompe la racha (ojos en cruz, en rojo) |
 
-«Mi semana» enseña la semana anterior y la actual con esas caras.
+«Mi semana» enseña la semana anterior y la actual con esas caras (`ui/design/DayPill`). Los días
+cuentan desde `since`, que fija el servicio la primera vez que se pone en marcha: antes de activar
+la protección por primera vez no hay días que contar (`Untracked`, en gris con un guion), así que
+tardar en dar el permiso no deja ningún día con cara mala.
 
 ### Primer acceso del día
 
@@ -94,7 +97,8 @@ La primera vez que se abre la app cada día salen, en un pop-up, las caras de lo
 se han enseñado (desde el último enseñado hasta ayer, sin salir de «Mi semana»;
 `StatsPolicy.unclaimedDays`). Debajo va una frase según la cara de ayer, o una de «sin trampas» si
 alguno de esos días se quitó la protección (si son varios, se nombra el último). Al cerrarlo se
-guarda `lastDayClaimed`. Si la protección sigue quitada, además de «Volver» sale «Activar
+guarda `lastDayClaimed`. Los días anteriores a `since` (los del guion) nunca se enseñan: el primer
+pop-up sale el día después de activar la protección por primera vez, con ese primer día. Si la protección sigue quitada, además de «Volver» sale «Activar
 protección», que lleva al apartado de la protección de Ajustes.
 
 ## Estado de la protección

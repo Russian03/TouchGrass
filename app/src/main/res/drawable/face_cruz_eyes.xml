@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cara «cruz» de «Mi semana» (se quitó la protección), solo los ojos: se anima por partes al reclamar el día. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="VectorPath"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:pathData="M28.45,38.20 L37.05,46.80 M28.45,46.80 L37.05,38.20"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M63.10,38.20 L71.70,46.80 M63.10,46.80 L71.70,38.20"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round" />
+</vector>

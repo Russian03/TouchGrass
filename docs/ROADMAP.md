@@ -22,6 +22,7 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 15     | `bloque-15/reclamar-dia`      | Primer acceso del día: las caras de los días que faltaban, días sin protección | —      |
 | 16     | `bloque-16/primeros-pasos`    | Primeros pasos nuevos, consentimiento de accesibilidad y política de privacidad | —      |
 | 17     | `bloque-17/ajustes`           | Ajustes rediseñados, aviso de protección en «Mi día», los cortes del servicio no cuentan como trampa | —      |
+| 18     | `bloque-18/cara-sin-proteccion` | En «Mi semana», los días sin protección con los ojos en cruz y en rojo, y los de antes de empezar en gris con un guion | —      |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
 | —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
 | —      | después                       | Reglas para YouTube                                                       | —      |
