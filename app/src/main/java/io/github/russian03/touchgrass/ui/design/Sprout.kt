@@ -34,12 +34,17 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.VectorPath
+import androidx.compose.ui.graphics.vector.toPath
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
 import io.github.russian03.touchgrass.ui.theme.Ink
+import io.github.russian03.touchgrass.ui.theme.Lime
 import io.github.russian03.touchgrass.ui.theme.SproutGreen
 import kotlin.math.PI
 import kotlin.math.sin
@@ -70,6 +75,22 @@ private const val MOUTH_W = 84f
 /** Cuánto se mueven los ojos y la nariz al mirar a un lado (en el espacio del dibujo). */
 private val LookReach = Offset(14f, 10f)
 
+/** Al negar con la cabeza, la cara va de un lado a otro hasta aquí, y la cabeza se inclina esto. */
+private const val SHAKE_REACH = 24f
+private const val SHAKE_TILT = 3f
+
+/** Grosor del contorno en silueta, y margen de los recortes para que no lo corten. */
+private const val OUTLINE_WIDTH = 13f
+private const val CLIP_MARGIN = OUTLINE_WIDTH
+
+/**
+ * El tallo baja esto por debajo del corte, en una franja de [JOINT_HALF_WIDTH] a cada lado de la
+ * base: al mecerse la ramita no se abre una rendija con el cuerpo. Tan cerca de la base apenas se
+ * mueve, así que el solape no se nota.
+ */
+private const val JOINT_OVERLAP = 10f
+private const val JOINT_HALF_WIDTH = 24f
+
 /**
  * Forma de la cara para cada estado: sonrisa (−1 triste … 1), apertura de la boca, ojos felices,
  * tamaño de ojos y ojos en cruz ([cross], de apagado).
@@ -92,6 +113,10 @@ private fun SproutMood.face(): Face = when (this) {
  * hay detrás, [faceColor]). Parpadea solo, respira, mece la ramita y mira a los lados de vez en
  * cuando; con [look] (de −1 a 1 en cada eje) mira hacia ahí. Cada vez que cambia [bounce] da un
  * saltito y la ramita se sacude. [mood] cambia la boca y los ojos con muelle.
+ *
+ * Con [outline], en silueta: solo el contorno, del color de la cara, y por dentro se ve lo de
+ * detrás. Con [shaking] niega con la cabeza: cierra los ojos y la cara va de un lado a otro unas
+ * veces, para, abre los ojos un momento y vuelve a empezar.
  */
 @Composable
 fun Sprout(
@@ -101,10 +126,19 @@ fun Sprout(
     bounce: Int = 0,
     faceColor: Color = Ink,
     bodyColor: Color = SproutGreen,
+    outline: Boolean = false,
+    shaking: Boolean = false,
 ) {
     val inspection = LocalInspectionMode.current
     val body = painterResource(R.drawable.sprout_body)
     val tint = ColorFilter.tint(bodyColor)
+    // El contorno sale del mismo dibujo que el relleno, para que encajen siempre.
+    val bodyVector = ImageVector.vectorResource(R.drawable.sprout_body)
+    val bodyPath =
+        remember(bodyVector) {
+            bodyVector.root.filterIsInstance<VectorPath>().first().pathData.toPath()
+        }
+    val outlineStroke = remember { Stroke(width = OUTLINE_WIDTH, cap = StrokeCap.Round, join = StrokeJoin.Round) }
     val target = mood.face()
     val smile = remember { Animatable(target.smile) }
     val open = remember { Animatable(target.open) }
@@ -119,6 +153,28 @@ fun Sprout(
         launch { happy.animateTo(face.happy, tween(220)) }
         launch { eyes.animateTo(face.eyes, springy) }
         launch { cross.animateTo(face.cross, tween(220)) }
+    }
+
+    // Negar con la cabeza: ojos cerrados y la cara de un lado a otro; luego, una pausa.
+    val shake = remember { Animatable(0f) }
+    val closed = remember { Animatable(0f) }
+    LaunchedEffect(shaking) {
+        if (!shaking || inspection) {
+            launch { shake.animateTo(0f, tween(200)) }
+            closed.animateTo(0f, tween(150))
+            return@LaunchedEffect
+        }
+        val swing = tween<Float>(260, easing = FastOutSlowInEasing)
+        while (true) {
+            closed.animateTo(1f, tween(140))
+            repeat(SHAKES) {
+                shake.animateTo(-1f, swing)
+                shake.animateTo(1f, swing)
+            }
+            shake.animateTo(0f, swing)
+            closed.animateTo(0f, tween(180))
+            delay(SHAKE_PAUSE_MS)
+        }
     }
 
     // Parpadeo: cada 2,5–5 s, y a veces dos seguidos.
@@ -138,11 +194,13 @@ fun Sprout(
     // Mirada: hacia [look] o, sin nada que mirar, a un lado y a otro de vez en cuando.
     val lookX = remember { Animatable(0f) }
     val lookY = remember { Animatable(0f) }
-    LaunchedEffect(look) {
+    LaunchedEffect(look, shaking) {
         val springy = spring<Float>(dampingRatio = 0.7f, stiffness = 250f)
-        if (look != null) {
-            launch { lookX.animateTo(look.x.coerceIn(-1f, 1f), springy) }
-            lookY.animateTo(look.y.coerceIn(-1f, 1f), springy)
+        if (look != null || shaking) {
+            // Mientras niega, mira al frente: la cara ya se mueve con el vaivén.
+            val target = look ?: Offset.Zero
+            launch { lookX.animateTo(target.x.coerceIn(-1f, 1f), springy) }
+            lookY.animateTo(target.y.coerceIn(-1f, 1f), springy)
             return@LaunchedEffect
         }
         if (inspection) return@LaunchedEffect
@@ -188,26 +246,54 @@ fun Sprout(
         withTransform({
             translate(top = -h * 0.08f * size.height)
             scale(squashX, squashY, pivot = Offset(size.width / 2, size.height))
+            rotate(shake.value * SHAKE_TILT, pivot = Offset(size.width / 2, size.height))
             scale(s, s, pivot = Offset.Zero)
         }) {
             val full = Size(BODY_W, BODY_H)
+            val drawBody: DrawScope.() -> Unit = {
+                if (outline) {
+                    drawPath(bodyPath, faceColor, style = outlineStroke)
+                } else {
+                    with(body) { draw(full, colorFilter = tint) }
+                }
+            }
             // La ramita, aparte, girando sobre su base; sacudida al saltar.
             rotate(sway + 18f * h * sin(PI * h).toFloat(), pivot = TwigBase) {
-                clipRect(right = BODY_W, bottom = TWIG_BOTTOM) { with(body) { draw(full, colorFilter = tint) } }
+                clipRect(
+                    left = -CLIP_MARGIN,
+                    top = -CLIP_MARGIN,
+                    right = BODY_W + CLIP_MARGIN,
+                    bottom = TWIG_BOTTOM,
+                    block = drawBody,
+                )
+                // Un poco del tallo por debajo del corte, solo junto a la base, para tapar la rendija.
+                clipRect(
+                    left = TwigBase.x - JOINT_HALF_WIDTH,
+                    top = TWIG_BOTTOM,
+                    right = TwigBase.x + JOINT_HALF_WIDTH,
+                    bottom = TWIG_BOTTOM + JOINT_OVERLAP,
+                    block = drawBody,
+                )
             }
             // Los recortes van en el espacio del dibujo, no en píxeles: por eso los bordes son explícitos.
-            clipRect(top = TWIG_BOTTOM, right = BODY_W, bottom = BODY_H) {
-                with(body) { draw(full, colorFilter = tint) }
-            }
+            clipRect(
+                left = -CLIP_MARGIN,
+                top = TWIG_BOTTOM,
+                right = BODY_W + CLIP_MARGIN,
+                bottom = BODY_H + CLIP_MARGIN,
+                block = drawBody,
+            )
             drawFace(
                 faceColor = faceColor,
-                look = Offset(lookX.value * LookReach.x, lookY.value * LookReach.y),
+                look = Offset(lookX.value * LookReach.x + shake.value * SHAKE_REACH, lookY.value * LookReach.y),
                 blink = blink.value,
+                closed = closed.value,
                 smile = smile.value,
                 open = open.value.coerceAtLeast(0f),
                 happy = happy.value.coerceIn(0f, 1f),
                 eyeScale = eyes.value,
                 cross = cross.value.coerceIn(0f, 1f),
+                roundMouth = outline,
             )
         }
     }
@@ -217,11 +303,13 @@ private fun DrawScope.drawFace(
     faceColor: Color,
     look: Offset,
     blink: Float,
+    closed: Float,
     smile: Float,
     open: Float,
     happy: Float,
     eyeScale: Float,
     cross: Float,
+    roundMouth: Boolean,
 ) {
     // Ojos: óvalos que se cierran al parpadear; con ojos felices, arcos «^»; apagado, cruces «✕».
     listOf(LeftEye, RightEye).forEach { centre ->
@@ -229,7 +317,7 @@ private fun DrawScope.drawFace(
         val rx = EYE_RX * eyeScale
         // Con los ojos en cruz no parpadea.
         val ry = EYE_RY * eyeScale * (blink + (1f - blink) * cross).coerceAtLeast(0.08f)
-        val oval = (1f - happy) * (1f - cross)
+        val oval = (1f - happy) * (1f - cross) * (1f - closed)
         if (oval > 0f) {
             drawOval(
                 faceColor.copy(alpha = oval),
@@ -244,6 +332,15 @@ private fun DrawScope.drawFace(
                     quadraticTo(c.x, c.y - ry * 1.6f, c.x + rx, c.y + 4f)
                 }
             drawPath(arc, faceColor.copy(alpha = happy), style = Stroke(width = 8f, cap = StrokeCap.Round))
+        }
+        if (closed > 0f) {
+            // Cerrados: un arco hacia abajo, «‿».
+            val lid =
+                Path().apply {
+                    moveTo(c.x - rx, c.y - 2f)
+                    quadraticTo(c.x, c.y + EYE_RY * eyeScale * 1.2f, c.x + rx, c.y - 2f)
+                }
+            drawPath(lid, faceColor.copy(alpha = closed), style = Stroke(width = 8f, cap = StrokeCap.Round))
         }
         if (cross > 0f) {
             val arm = rx * 1.05f
@@ -263,8 +360,24 @@ private fun DrawScope.drawFace(
         }
     drawPath(nose, faceColor)
     drawPath(nose, faceColor, style = Stroke(width = 6f, join = StrokeJoin.Round))
-    // Boca: de triste a sonrisa abierta como la del logo (la «D» de lado).
-    drawPath(mouthPath(smile, open, look * 0.3f), faceColor)
+    // Boca: de triste a sonrisa abierta como la del logo (la «D» de lado). En silueta y cerrada,
+    // una línea con las puntas redondas, como la cara contenta de «Mi semana».
+    if (roundMouth && open == 0f) {
+        drawPath(closedMouthPath(smile, look * 0.3f), faceColor, style = Stroke(width = 10f, cap = StrokeCap.Round))
+    } else {
+        drawPath(mouthPath(smile, open, look * 0.3f), faceColor)
+    }
+}
+
+/** Boca cerrada como una sola curva, con las comisuras arriba ([smile] > 0) o abajo. */
+private fun closedMouthPath(smile: Float, shift: Offset): Path {
+    val c = MouthCentre + shift
+    val half = MOUTH_W / 2 * 0.55f
+    val corners = c.y - 12f * smile
+    return Path().apply {
+        moveTo(c.x - half, corners)
+        quadraticTo(c.x, c.y + 12f * smile, c.x + half, corners)
+    }
 }
 
 /** Boca con las comisuras arriba ([smile] > 0) o abajo (< 0) y más o menos abierta ([open]). */
@@ -282,6 +395,10 @@ private fun mouthPath(smile: Float, open: Float, shift: Offset): Path {
         close()
     }
 }
+
+/** Vaivenes de cada «no» y pausa entre uno y otro. */
+private const val SHAKES = 3
+private const val SHAKE_PAUSE_MS = 1_600L
 
 /** Medidas del personaje dentro de su caja, para colocarlo en el bulto de la tarjeta. */
 object SproutGeometry {
@@ -304,4 +421,10 @@ private fun SproutMoodsPreview() {
     ) {
         SproutMood.entries.forEach { Sprout(it, Modifier.width(80.dp), faceColor = Color(0xFF141513)) }
     }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFB5E35A)
+@Composable
+private fun SproutOutlinePreview() {
+    Sprout(SproutMood.Calm, Modifier.background(Lime).padding(8.dp).width(120.dp), outline = true, shaking = true)
 }

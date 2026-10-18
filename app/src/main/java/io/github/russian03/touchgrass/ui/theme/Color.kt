@@ -12,6 +12,9 @@ val InkSoft = Color(0xFF4A4A45)
 val InkMuted = Color(0xFF8A8A80)
 val Alert = Color(0xFFE5533D)
 
+/** Canto de un botón con relieve negro. */
+val InkEdge = Color(0xFF45453F)
+
 /** Botón con relieve secundario («Volver», «Ahora no»): crema oscuro con su canto. */
 val ChunkyNeutral = Color(0xFFECE8DB)
 val ChunkyNeutralEdge = Color(0xFFCDC8B8)
@@ -47,8 +50,3 @@ internal val Night = Color(0xFF141513)
 internal val NightSurface = Color(0xFF1F211D)
 internal val NightInk = Color(0xFFF2F1EA)
 internal val NightInkSoft = Color(0xFFC4C3B8)
-
-// Paleta anterior: aún la usa la pantalla de bloqueo, que se rediseña en otro bloque.
-val Grass = Color(0xFF006E1C)
-val GrassGlow = Color(0xFF4CAF50)
-val Paper = Color(0xFFF9F9F9)
