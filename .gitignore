@@ -33,6 +33,5 @@ desktop.ini
 *.aab
 *.hprof
 
-# Material de diseño solo local: referencias de terceros y lo ya usado
+# Material de diseño solo local: referencias de terceros
 design/referencias/
-eliminar/

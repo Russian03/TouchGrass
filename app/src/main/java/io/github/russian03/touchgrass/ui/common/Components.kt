@@ -23,20 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.russian03.touchgrass.R
-import io.github.russian03.touchgrass.ui.design.InkPillButton
 import io.github.russian03.touchgrass.ui.theme.CardBeige
-
-/** Tarjeta blanca (o gris noche) con esquinas de 28 dp y sin sombra, la base de todas las pantallas. */
-@Composable
-fun Card(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = MaterialTheme.shapes.large,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(24.dp), content = content)
-    }
-}
 
 /** Beige de las tarjetas de las pantallas nuevas (primeros pasos, Ajustes); de noche, el gris de siempre. */
 @Composable
@@ -89,10 +76,4 @@ fun TopBar(title: String? = null, onBack: (() -> Unit)? = null, action: (@Compos
             if (action != null) Box(Modifier.align(Alignment.CenterEnd)) { action() }
         }
     }
-}
-
-/** Botón principal ancho: la píldora de tinta del diseño nuevo. */
-@Composable
-fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    InkPillButton(text = text, onClick = onClick, enabled = enabled, fillWidth = true, modifier = modifier)
 }

@@ -50,9 +50,9 @@ condición puede pedir también un **texto** (`"text": ["Para ti", "For You"]`),
 nombra alguna regla, y solo si es uno de los que busca; cualquier otro texto se descarta.
 Los identificadores de Android (`android:id/…`) se guardan con su prefijo; los de la app, sin él.
 
-En el build de debug, el servicio vuelca a logcat los viewIds visibles cada vez que cambian
-(`DUMP pkg=… ids=…`), para descubrir los nuevos cuando una actualización de Instagram o TikTok
-rompa una regla. En release no existe: R8 quita esos logs.
+El servicio no escribe nada en logcat. Para descubrir los identificadores nuevos cuando una
+actualización de Instagram o TikTok rompa una regla, se miran con `adb shell uiautomator dump`
+o con el Layout Inspector de Android Studio.
 
 ## Estadísticas
 
@@ -199,10 +199,10 @@ Compose con Material 3 Expressive y la paleta de siempre: crema de fondo, tinta 
 `ui/design` y `ui/common`:
 
 - **`LimeHeader`**: el banner lima de arriba, con las dos esquinas de abajo en sentidos opuestos.
-  Inicio, Ajustes y Estadísticas lo comparten (`SharedTransitionLayout` en `AppNavHost` y
+  Inicio, Ajustes, Estadísticas y Pedir tiempo lo comparten (`SharedTransitionLayout` en `AppNavHost` y
   `LocalLimeHeaderScope`): al ir de una a otra cambia de tamaño y los textos se funden.
 - **`SectionTitle` / `MixedTitle`**: títulos con el grosor mezclado («Mi \*día\*»).
-- **`BeigeCard`**: las tarjetas beige de Inicio, Ajustes y los primeros pasos.
+- **`BeigeCard`**: las tarjetas beige de Inicio, Ajustes, Pedir tiempo y los primeros pasos.
 - **`ChunkyPillButton`**: los botones con relieve (lima el principal, crema el secundario, gris
   apagado).
 - **`Sprout`**: el logo como personaje, con caras (`SproutMood`), parpadeo, respiración y saltito.
@@ -246,8 +246,8 @@ navegación vacía.
   Inicio (desde la pantalla de bloqueo): no cambia nada. El servicio exige
   `BIND_ACCESSIBILITY_SERVICE`. Las librerías no añaden permisos, y el único receiver
   exportado (`ProfileInstallReceiver` de AndroidX) exige `DUMP`, que solo tiene adb.
-- En release: R8 con minify y shrinkResources, y sin logs `v`, `d` ni `i`, para que logcat no
-  revele cuándo se usan las apps bloqueadas.
+- La app no escribe logs. Por si alguno se colara, en release R8 quita los `v`, `d` e `i`, para
+  que logcat no revele cuándo se usan las apps bloqueadas. Además: minify y shrinkResources.
 - La APK de release se firma con una clave propia. En local se lee de `keystore.properties` y
   en CI de los secretos de GitHub. La keystore nunca entra al repo (ver README, *Publicar una
   versión*).

@@ -12,8 +12,6 @@ data class ScreenSnapshot(val packageName: String, val nodes: List<ViewNode>) {
         byId[viewId].orEmpty().any {
             (selected == null || it.selected == selected) && (text.isEmpty() || it.text in text)
         }
-
-    val viewIds: Set<String> get() = byId.keys
 }
 
 data class ViewNode(

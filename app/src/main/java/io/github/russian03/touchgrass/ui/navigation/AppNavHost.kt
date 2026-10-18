@@ -35,7 +35,8 @@ fun AppNavHost(start: Any, homeRequest: Boolean = false, onHomeRequestHandled: (
     // Las pantallas entran con fundido y creciendo un poco, y salen con fundido y encogiendo.
     val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
     val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
-    // Inicio, Ajustes y Estadísticas comparten el banner lima: al ir de una a otra cambia de tamaño en lugar de fundirse.
+    // Inicio, Ajustes, Estadísticas y Pedir tiempo comparten el banner lima: al ir de una a otra
+    // cambia de tamaño en lugar de fundirse.
     SharedTransitionLayout {
         NavHost(
             navController = nav,
@@ -85,10 +86,14 @@ fun AppNavHost(start: Any, homeRequest: Boolean = false, onHomeRequestHandled: (
                 }
             }
             composable<UnlockRoute> {
-                UnlockScreen(
-                    onBack = dropUnlessResumed { nav.popBackStack() },
-                    onDone = dropUnlessResumed { nav.popBackStack() },
-                )
+                CompositionLocalProvider(
+                    LocalLimeHeaderScope provides LimeHeaderScope(this@SharedTransitionLayout, this),
+                ) {
+                    UnlockScreen(
+                        onBack = dropUnlessResumed { nav.popBackStack() },
+                        onDone = dropUnlessResumed { nav.popBackStack() },
+                    )
+                }
             }
         }
     }
