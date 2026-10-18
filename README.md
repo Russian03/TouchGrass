@@ -113,9 +113,10 @@ activarlo**.
   todas las apps y solo hay un desbloqueo a la vez. Los minutos se restan al pedirlos y corren
   aunque salgas de la app. Al acabar vuelve el bloqueo. Si terminas antes desde Inicio, se
   devuelve lo que sobra en múltiplos de 5 minutos.
-- **Pantalla de bloqueo.** Primero aparece *Volver atrás*, que te saca del scroll. Un segundo
-  después, encima y más discreto, sale el enlace *Pedir tiempo de uso*, que abre TouchGrass en
-  Inicio para pedirlo desde ahí.
+- **Pantalla de bloqueo.** Verde, con el logo negando con la cabeza, «Respira.» y una línea que
+  te recuerda que el scroll está bloqueado. Un segundo después sale *Volver atrás*, que te saca
+  del scroll. Un segundo más tarde, encima y más discreto, el enlace *Pedir más minutos*, que
+  abre TouchGrass en Inicio para pedirlos desde ahí.
 - **Qué se bloquea:** en Instagram, los Reels: la pestaña y el visor, salvo el reel que abres
   desde un perfil, un chat, Inicio o Guardados. En TikTok, las pestañas **Para ti** y
   **Comunidad**; *Volver atrás* te lleva a Mensajes. Siguiendo, Amigos, Buscar, los perfiles

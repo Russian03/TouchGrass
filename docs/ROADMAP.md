@@ -25,7 +25,7 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 18     | `bloque-18/cara-sin-proteccion` | En «Mi semana», los días sin protección con los ojos en cruz y en rojo, y los de antes de empezar en gris con un guion | —      |
 | 19     | `bloque-19/estadisticas`      | Estadísticas rediseñadas (calendario de caras, rachas, recuadros), «Mis logros» en Inicio; fuera el aviso del mes | —      |
 | 20     | `bloque-20/solo-vertical`     | La app se queda en vertical aunque el móvil tenga la rotación automática | —      |
-| 21     | `bloque-21/bloqueo-y-pedir-tiempo` | Rediseñar la pantalla de bloqueo y la de pedir tiempo (pendiente) | —      |
+| 21     | `bloque-21/bloqueo-y-pedir-tiempo` | Pantalla de bloqueo rediseñada (lima, logo en silueta que niega); pendiente: la de pedir tiempo | —      |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
 | —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
 | —      | después                       | Reglas para YouTube                                                       | —      |

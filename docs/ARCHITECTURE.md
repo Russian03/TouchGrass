@@ -160,7 +160,7 @@ en `core/budget/BudgetPolicy` (Kotlin puro) y el estado se guarda con `data/budg
 - Un desbloqueo se pide para una app y unos minutos, que se **restan enteros al pedirlo**. Dura
   esos minutos de reloj, aunque se salga de la app. Solo puede haber uno a la vez y el saldo es
   el mismo para todas las apps. La pantalla de pedir tiempo (`ui/unlock`) lista las apps con
-  reglas usando el `name` y `blocks` de cada fichero. El enlace de la pantalla de bloqueo abre
+  reglas usando el `name` y `blocks` de cada fichero. El enlace «Pedir más minutos» de la pantalla de bloqueo abre
   Inicio (extra `EXTRA_OPEN_HOME` de `MainActivity`), desde donde se pide tiempo.
 - Un desbloqueo se puede **terminar antes de tiempo**. Se devuelve lo que le quedaba, redondeado
   hacia abajo a múltiplos de 5 (13 → 10, 4 → 0), y solo el mismo día lógico en que se pidió.
@@ -206,7 +206,14 @@ Compose con Material 3 Expressive y la paleta de siempre: crema de fondo, tinta 
 - **`ChunkyPillButton`**: los botones con relieve (lima el principal, crema el secundario, gris
   apagado).
 - **`Sprout`**: el logo como personaje, con caras (`SproutMood`), parpadeo, respiración y saltito.
-  Lo usan los primeros pasos y «Mi día» sin protección.
+  Lo usan los primeros pasos y «Mi día» sin protección. Con `outline` sale en silueta (solo el
+  contorno, sacado del mismo `sprout_body`, y la boca cerrada con las puntas redondas) y con
+  `shaking` niega con la cabeza: ojos cerrados y la cara de un lado a otro.
+- **Pantalla de bloqueo** (`overlay/BlockScreen.kt`): fondo lima y, abajo a la izquierda, el
+  `Sprout` en silueta negando, «\*Respira.\*» y una línea más pequeña. Un segundo después del
+  fundido sale «Volver atrás» (`ChunkyPillButton` compacto, negro con texto lima) y, un segundo
+  más tarde, encima, el enlace discreto «Pedir más minutos». La ventana del servicio no tiene
+  tema, así que la pantalla se envuelve en `TouchGrassTheme` claro.
 - **Tiempos y números grandes:** todo tiempo se enseña en horas y minutos (`duration()` de
   `ui/common/Format.kt`: «45 min», «1 h», «1 h 30 min»), salvo la cuenta atrás, que es un reloj.
   Los números grandes van con **`FitText`**, que encoge en lugar de partirse si no cabe, y su

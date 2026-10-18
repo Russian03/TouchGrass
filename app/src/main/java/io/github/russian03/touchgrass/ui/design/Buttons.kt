@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -122,7 +123,7 @@ private val ChunkyShape = RoundedCornerShape(16.dp)
 /**
  * Botón con relieve, como «Share my progress»: ancho, con el texto en mayúsculas y un canto más
  * oscuro debajo. Al pulsarlo baja y tapa el canto, como una tecla. Sin [enabled] sale gris y
- * no se puede pulsar.
+ * no se puede pulsar. Con [compact] es pequeño y solo tan ancho como su texto.
  */
 @Composable
 fun ChunkyPillButton(
@@ -133,20 +134,23 @@ fun ChunkyPillButton(
     edgeColor: Color = LimeDeep,
     contentColor: Color = Ink,
     enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val height = if (compact) ChunkyCompactHeight else ChunkyHeight
+    val edgeHeight = if (compact) ChunkyCompactEdge else ChunkyEdge
+    val width = if (compact) Modifier else Modifier.fillMaxWidth()
     val container by animateColorAsState(if (enabled) containerColor else Dull, label = "chunkyColor")
     val edge by animateColorAsState(if (enabled) edgeColor else DullEdge, label = "chunkyEdge")
     val pressed by interaction.collectIsPressedAsState()
     val drop by animateDpAsState(
-        targetValue = if (pressed) ChunkyEdge else 0.dp,
+        targetValue = if (pressed) edgeHeight else 0.dp,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "chunkyDrop",
     )
     Box(
         modifier
-            .fillMaxWidth()
-            .height(ChunkyHeight + ChunkyEdge)
+            .then(width)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -158,25 +162,26 @@ fun ChunkyPillButton(
         // Canto: asoma por debajo del botón.
         Box(
             Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(ChunkyHeight)
+                .matchParentSize()
+                .padding(top = edgeHeight)
                 .background(edge, ChunkyShape),
         )
         Box(
             contentAlignment = Alignment.Center,
             modifier =
             Modifier
+                .padding(bottom = edgeHeight)
                 .offset { IntOffset(0, drop.roundToPx()) }
-                .fillMaxWidth()
-                .height(ChunkyHeight)
-                .background(container, ChunkyShape),
+                .then(width)
+                .height(height)
+                .background(container, ChunkyShape)
+                .padding(horizontal = if (compact) 20.dp else 0.dp),
         ) {
             Text(
                 text = text.uppercase(),
-                style = MaterialTheme.typography.labelLarge,
+                style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.5.sp,
+                letterSpacing = if (compact) 1.sp else 1.5.sp,
                 color = if (enabled) contentColor else InkMuted,
             )
         }
@@ -184,6 +189,8 @@ fun ChunkyPillButton(
 }
 
 private val ChunkyHeight = 52.dp
+private val ChunkyCompactHeight = 40.dp
+private val ChunkyCompactEdge = 3.dp
 
 /** Encoge un poco mientras se pulsa, con el muelle rápido del tema. */
 @Composable

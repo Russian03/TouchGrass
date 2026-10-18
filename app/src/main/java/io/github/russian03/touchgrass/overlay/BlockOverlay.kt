@@ -5,7 +5,7 @@ import android.content.Intent
 import io.github.russian03.touchgrass.MainActivity
 
 /**
- * Pantalla "No hay scroll" que aparece encima de una zona bloqueada, sin sacar al usuario
+ * Pantalla «El scroll está bloqueado» que aparece encima de una zona bloqueada, sin sacar al usuario
  * de ella. Mientras se ve, la app de debajo no recibe toques ni suena. [show] recibe la app
  * bloqueada (para pedir tiempo para ella) y `onLeave`, que saca al usuario de la zona
  * bloqueada cuando elige uno de los botones.
@@ -20,10 +20,8 @@ class BlockOverlay(private val service: AccessibilityService) {
     fun show(packageName: String, onLeave: () -> Unit) {
         if (window.isShowing) return
         silencer.silence()
-        val blurred = window.blursBehind
         window.show(blurInMs = FADE_IN_MS) {
             BlockScreen(
-                blurredBehind = blurred,
                 fadeInMs = FADE_IN_MS,
                 onBack = {
                     onLeave()

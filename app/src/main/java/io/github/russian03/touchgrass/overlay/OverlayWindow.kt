@@ -30,7 +30,7 @@ internal class OverlayWindow(private val service: AccessibilityService) {
     val isShowing: Boolean get() = view != null
 
     /** Si el sistema puede desenfocar en vivo lo que hay detrás de la ventana (Android 12+). */
-    val blursBehind: Boolean
+    private val blursBehind: Boolean
         get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && windowManager.isCrossWindowBlurEnabled
 
     /** Muestra [content]; si se puede, lo de detrás se va desenfocando durante [blurInMs]. */
