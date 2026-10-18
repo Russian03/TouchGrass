@@ -109,7 +109,7 @@ activarlo**.
   días que aún no habías visto y una frase sobre ayer. Si quitaste la protección, te lo
   recuerda y, si sigue quitada, te ofrece activarla.
 - **Pedir tiempo**, en Inicio, abre una pantalla en la que eliges la app y después los minutos
-  (atajos de 5 a 60 o − / +), nunca más de los que quedan hoy. El saldo es el mismo para
+  (atajos de 5 a 60 o − / +, nunca más de los que quedan hoy) y para qué los quieres. El saldo es el mismo para
   todas las apps y solo hay un desbloqueo a la vez. Los minutos se restan al pedirlos y corren
   aunque salgas de la app. Al acabar vuelve el bloqueo. Si terminas antes desde Inicio, se
   devuelve lo que sobra en múltiplos de 5 minutos.

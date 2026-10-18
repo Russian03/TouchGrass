@@ -59,7 +59,7 @@ class BudgetRepositoryTest {
         assertThat(state.limitMinutes).isEqualTo(30)
         assertThat(state.onboardingDone).isTrue()
         assertThat(state.usedMinutes).isEqualTo(20)
-        assertThat(BudgetPolicy.isUnlocked(state, instagram, now())).isTrue()
+        assertThat(isUnlocked(state, instagram, now())).isTrue()
     }
 
     @Test
@@ -93,7 +93,7 @@ class BudgetRepositoryTest {
         val file = folder.newFile("corrupt.json").apply { writeText("{ esto no es json") }
         val state = repository(file).state.first()
         assertThat(state).isEqualTo(BudgetState())
-        assertThat(BudgetPolicy.maxUnlockMinutes(state, now())).isEqualTo(0)
+        assertThat(BudgetPolicy.remainingMinutes(state, now())).isEqualTo(0)
     }
 
     @Test
@@ -116,3 +116,7 @@ class BudgetRepositoryTest {
         BudgetSerializer.readFrom(ByteArrayInputStream("[]".encodeToByteArray()))
     }
 }
+
+/** Si [packageName] está desbloqueada ahora mismo (como lo comprueba el servicio). */
+private fun isUnlocked(state: BudgetState, packageName: String, now: TimeSnapshot): Boolean =
+    BudgetPolicy.activeUnlock(state, now)?.packageName == packageName

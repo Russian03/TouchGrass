@@ -49,7 +49,9 @@
 
     <!-- Pedir tiempo -->
     <string name="unlock_title">Pedir tiempo</string>
-    <string name="unlock_choose_title">¿Qué quieres desbloquear?</string>
+    <string name="unlock_header">Pedir *tiempo*</string>
+    <string name="unlock_choose_title">¿Qué *app*?</string>
+    <string name="unlock_minutes_section">¿Cuánto *tiempo*?</string>
     <string name="unlock_choose_body">El saldo de hoy es el mismo para todas las apps.</string>
     <string name="unlock_app_body">Desbloquea %1$s unos minutos. Se restan de tu saldo al pedirlos y corren aunque salgas de la app.</string>
     <string name="unlock_app_body_generic">Desbloquea el scroll unos minutos. Se restan de tu saldo al pedirlos y corren aunque salgas de la app.</string>
@@ -68,7 +70,7 @@
     <string name="unlock_end_confirm">Terminar</string>
     <string name="unlock_error">No se ha podido desbloquear. Inténtalo otra vez.</string>
     <string name="unlock_error_not_enough">No te quedan tantos minutos hoy.</string>
-    <string name="unlock_reason_title">¿Para qué?</string>
+    <string name="unlock_reason_title">¿Para *qué*?</string>
     <string name="unlock_reason_missing">Elige para qué lo pides.</string>
     <string name="unlock_reason_note_missing">Escribe para qué lo pides.</string>
     <string name="unlock_reason_note_hint">Para…</string>

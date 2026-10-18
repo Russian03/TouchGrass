@@ -97,13 +97,6 @@ object BudgetPolicy {
         return (current.limitMinutes - current.usedMinutes).coerceAtLeast(0)
     }
 
-    /** Lo máximo que se puede pedir ahora mismo, o 0 si no se puede pedir nada. */
-    fun maxUnlockMinutes(state: BudgetState, now: TimeSnapshot): Int = when {
-        !now.autoTime -> 0
-        activeUnlock(state, now) != null -> 0
-        else -> remainingMinutes(state, now)
-    }
-
     /** Desbloqueo en marcha (para cualquier app), o `null` si no hay o ya ha caducado. */
     fun activeUnlock(state: BudgetState, now: TimeSnapshot): UnlockSession? =
         state.unlock?.takeIf { unlockRemainingMs(it, now) > 0 }
@@ -123,10 +116,6 @@ object BudgetPolicy {
             }
         return remaining.coerceIn(0, duration)
     }
-
-    /** Si [packageName] está desbloqueada ahora mismo. */
-    fun isUnlocked(state: BudgetState, packageName: String, now: TimeSnapshot): Boolean =
-        activeUnlock(state, now)?.packageName == packageName
 
     /** Concede [minutes] minutos de [packageName] y los resta del saldo de hoy. */
     fun requestUnlock(

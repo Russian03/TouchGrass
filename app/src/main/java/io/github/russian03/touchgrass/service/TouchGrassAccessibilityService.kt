@@ -14,19 +14,16 @@ import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
-import io.github.russian03.touchgrass.BuildConfig
 import io.github.russian03.touchgrass.core.budget.BudgetPolicy
 import io.github.russian03.touchgrass.core.budget.BudgetState
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
-import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleRepository
 import io.github.russian03.touchgrass.data.stats.StatsRepository
@@ -64,7 +61,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private var pendingSince: Long? = null
     private var launcher: String? = null
     private var leftAt = Long.MIN_VALUE / 2
-    private var lastDumpedIds: Set<String> = emptySet()
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -144,7 +140,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         pendingSince = null
         leftAt = SystemClock.elapsedRealtime()
         overlay.hide()
-        if (BuildConfig.DEBUG) Log.d(TAG, "Fuera de la app: pantalla quitada")
     }
 
     /** App de inicio del móvil (la que también muestra Recientes), o `null` si no se encuentra. */
@@ -232,7 +227,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         }
 
         val snapshot = SnapshotBuilder.build(root, engine.texts(root.packageName.toString()))
-        if (BuildConfig.DEBUG) dump(snapshot)
         engine.place(snapshot)?.let(session::onPlace)
         if (engine.pagers(snapshot.packageName).any { snapshot.has(it) }) {
             session.onViewerShown(SystemClock.elapsedRealtime())
@@ -246,7 +240,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             rule == null -> overlay.hide()
             !overlay.isShowing && SystemClock.elapsedRealtime() - leftAt >= LEAVE_COOLDOWN_MS -> {
                 overlay.show(snapshot.packageName, onLeave = { leave(rule, snapshot.packageName) })
-                Log.i(TAG, "Regla '${rule.id}' aplicada (origen=${session.origin}, scroll=${session.scrolled})")
                 scope.launch { stats.recordBlock(snapshot.packageName) }
             }
         }
@@ -273,16 +266,15 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private fun leave(rule: Rule, packageName: String) {
         leftAt = SystemClock.elapsedRealtime()
         val root = rootInActiveWindow
-        val done =
-            when (val action = rule.action) {
-                Action.Back -> performGlobalAction(GLOBAL_ACTION_BACK)
-                is Action.Click ->
-                    root?.let { clickTarget(it, action) }
-                        ?.clickableSelfOrParent()
-                        ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true ||
-                        performGlobalAction(GLOBAL_ACTION_BACK)
-            }
-        Log.i(TAG, "Salida de '${rule.id}' (ok=$done)")
+        when (val action = rule.action) {
+            Action.Back -> performGlobalAction(GLOBAL_ACTION_BACK)
+            // Si no encuentra a dónde ir, al menos vuelve atrás.
+            is Action.Click ->
+                root?.let { clickTarget(it, action) }
+                    ?.clickableSelfOrParent()
+                    ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true ||
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+        }
         scope.launch { stats.recordLeave(packageName) }
     }
 
@@ -306,17 +298,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private fun AccessibilityNodeInfo.clickableSelfOrParent(): AccessibilityNodeInfo? =
         generateSequence(this) { it.parent }.take(MAX_CLICK_ANCESTORS).firstOrNull { it.isClickable }
 
-    /** Solo en debug: vuelca los identificadores visibles para descubrir y mantener reglas. */
-    private fun dump(snapshot: ScreenSnapshot) {
-        val ids = snapshot.viewIds
-        if (ids == lastDumpedIds) return
-        lastDumpedIds = ids
-        val selected = snapshot.nodes.filter { it.selected }.map { it.viewId }.distinct()
-        Log.d(TAG, "DUMP pkg=${snapshot.packageName} selected=$selected ids=${ids.sorted()}")
-    }
-
     private companion object {
-        const val TAG = "TouchGrass"
         const val DEBOUNCE_MS = 150L
         const val MAX_WAIT_MS = 300L
         const val LEAVE_COOLDOWN_MS = 1_000L

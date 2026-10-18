@@ -159,29 +159,29 @@ class BudgetPolicyTest {
         val state = BudgetPolicy.requestUnlock(limit30, instagram, 20, allowed, now).ok()
         assertThat(state.usedMinutes).isEqualTo(20)
         assertThat(BudgetPolicy.remainingMinutes(state, now)).isEqualTo(10)
-        assertThat(BudgetPolicy.isUnlocked(state, instagram, now)).isTrue()
+        assertThat(isUnlocked(state, instagram, now)).isTrue()
     }
 
     @Test
     fun `el desbloqueo dura los minutos pedidos de reloj monotónico`() {
         val state = BudgetPolicy.requestUnlock(limit30, instagram, 20, allowed, at("2026-10-13T10:00")).ok()
-        assertThat(BudgetPolicy.isUnlocked(state, instagram, at("2026-10-13T10:19", elapsedMin = 1_019))).isTrue()
-        assertThat(BudgetPolicy.isUnlocked(state, instagram, at("2026-10-13T10:20", elapsedMin = 1_020))).isFalse()
+        assertThat(isUnlocked(state, instagram, at("2026-10-13T10:19", elapsedMin = 1_019))).isTrue()
+        assertThat(isUnlocked(state, instagram, at("2026-10-13T10:20", elapsedMin = 1_020))).isFalse()
     }
 
     @Test
     fun `adelantar el reloj de pared no acaba ni alarga el desbloqueo`() {
         val state = BudgetPolicy.requestUnlock(limit30, instagram, 20, allowed, at("2026-10-13T10:00")).ok()
         // Pared retrasada, pero el monotónico dice que ya han pasado 25 minutos.
-        assertThat(BudgetPolicy.isUnlocked(state, instagram, at("2026-10-13T09:00", elapsedMin = 1_025))).isFalse()
+        assertThat(isUnlocked(state, instagram, at("2026-10-13T09:00", elapsedMin = 1_025))).isFalse()
     }
 
     @Test
     fun `tras reiniciar se sigue el reloj de pared si es automático`() {
         val state = BudgetPolicy.requestUnlock(limit30, instagram, 20, allowed, at("2026-10-13T10:00")).ok()
-        assertThat(BudgetPolicy.isUnlocked(state, instagram, at("2026-10-13T10:10", elapsedMin = 1, boot = 2))).isTrue()
+        assertThat(isUnlocked(state, instagram, at("2026-10-13T10:10", elapsedMin = 1, boot = 2))).isTrue()
         assertThat(
-            BudgetPolicy.isUnlocked(state, instagram, at("2026-10-13T10:21", elapsedMin = 2, boot = 2)),
+            isUnlocked(state, instagram, at("2026-10-13T10:21", elapsedMin = 2, boot = 2)),
         ).isFalse()
     }
 
@@ -189,7 +189,7 @@ class BudgetPolicyTest {
     fun `tras reiniciar sin hora automática el desbloqueo se acaba`() {
         val state = BudgetPolicy.requestUnlock(limit30, instagram, 20, allowed, at("2026-10-13T10:00")).ok()
         val now = at("2026-10-13T10:05", elapsedMin = 1, boot = 2, autoTime = false)
-        assertThat(BudgetPolicy.isUnlocked(state, instagram, now)).isFalse()
+        assertThat(isUnlocked(state, instagram, now)).isFalse()
     }
 
     @Test
@@ -213,14 +213,14 @@ class BudgetPolicyTest {
     fun `el desbloqueo es solo para la app pedida`() {
         val now = at("2026-10-13T10:00")
         val state = BudgetPolicy.requestUnlock(limit30, instagram, 10, allowed, now).ok()
-        assertThat(BudgetPolicy.isUnlocked(state, "com.zhiliaoapp.musically", now)).isFalse()
+        assertThat(isUnlocked(state, "com.zhiliaoapp.musically", now)).isFalse()
     }
 
     @Test
     fun `no se puede pedir más de lo que queda`() {
         val now = at("2026-10-13T10:00")
         val spent = limit30.copy(day = "2026-10-13", usedMinutes = 25)
-        assertThat(BudgetPolicy.maxUnlockMinutes(spent, now)).isEqualTo(5)
+        assertThat(BudgetPolicy.remainingMinutes(spent, now)).isEqualTo(5)
         assertThat(BudgetPolicy.requestUnlock(spent, instagram, 10, allowed, now).denial())
             .isEqualTo(Denial.NotEnoughBudget)
         assertThat(BudgetPolicy.requestUnlock(spent, instagram, 5, allowed, now).ok().usedMinutes).isEqualTo(30)
@@ -229,15 +229,14 @@ class BudgetPolicyTest {
     @Test
     fun `con el saldo agotado no se puede pedir nada hasta las 8`() {
         val spent = limit30.copy(day = "2026-10-13", usedMinutes = 30)
-        assertThat(BudgetPolicy.maxUnlockMinutes(spent, at("2026-10-14T07:59"))).isEqualTo(0)
-        assertThat(BudgetPolicy.maxUnlockMinutes(spent, at("2026-10-14T08:00"))).isEqualTo(30)
+        assertThat(BudgetPolicy.remainingMinutes(spent, at("2026-10-14T07:59"))).isEqualTo(0)
+        assertThat(BudgetPolicy.remainingMinutes(spent, at("2026-10-14T08:00"))).isEqualTo(30)
     }
 
     @Test
     fun `no se puede pedir otro desbloqueo con uno en marcha`() {
         val now = at("2026-10-13T10:00")
         val state = BudgetPolicy.requestUnlock(limit30, instagram, 10, allowed, now).ok()
-        assertThat(BudgetPolicy.maxUnlockMinutes(state, now)).isEqualTo(0)
         assertThat(BudgetPolicy.requestUnlock(state, instagram, 10, allowed, now).denial())
             .isEqualTo(Denial.AlreadyUnlocked)
     }
@@ -245,7 +244,6 @@ class BudgetPolicyTest {
     @Test
     fun `sin hora automática no se puede desbloquear`() {
         val now = at("2026-10-13T10:00", autoTime = false)
-        assertThat(BudgetPolicy.maxUnlockMinutes(limit30, now)).isEqualTo(0)
         assertThat(BudgetPolicy.requestUnlock(limit30, instagram, 10, allowed, now).denial())
             .isEqualTo(Denial.ManualTime)
     }
@@ -272,7 +270,7 @@ class BudgetPolicyTest {
         val ended = BudgetPolicy.endUnlock(state, now).ok()
         assertThat(ended.unlock).isNull()
         assertThat(ended.usedMinutes).isEqualTo(10)
-        assertThat(BudgetPolicy.isUnlocked(ended, instagram, now)).isFalse()
+        assertThat(isUnlocked(ended, instagram, now)).isFalse()
     }
 
     @Test
@@ -321,3 +319,7 @@ class BudgetPolicyTest {
         assertThat(BudgetPolicy.refundMinutes(session, at("2026-10-13T10:00"))).isEqualTo(0)
     }
 }
+
+/** Si [packageName] está desbloqueada ahora mismo (como lo comprueba el servicio). */
+private fun isUnlocked(state: BudgetState, packageName: String, now: TimeSnapshot): Boolean =
+    BudgetPolicy.activeUnlock(state, now)?.packageName == packageName
