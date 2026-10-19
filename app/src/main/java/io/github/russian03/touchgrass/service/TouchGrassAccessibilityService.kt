@@ -13,6 +13,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -48,6 +49,8 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private lateinit var overlay: BlockOverlay
     private val session = ViewerSession()
     private val keyguard by lazy { getSystemService(KeyguardManager::class.java) }
+    private val power by lazy { getSystemService(PowerManager::class.java) }
+    private val confirmation = ShowConfirmation()
     private val handler = Handler(Looper.getMainLooper())
     private val evaluateRunnable = Runnable { evaluateCurrentScreen() }
 
@@ -75,6 +78,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             screenReceiver,
             IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_USER_PRESENT)
             },
             ContextCompat.RECEIVER_NOT_EXPORTED,
@@ -98,14 +102,23 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         }
     }
 
-    /** Al apagar la pantalla se quita la de bloqueo (si no, taparía el bloqueo del móvil). */
+    /**
+     * Al apagar la pantalla se quita la de bloqueo (si no, taparía el bloqueo del móvil) y se
+     * cancela cualquier mirada pendiente, para que no vuelva a ponerla con el móvil apagado.
+     */
     private val screenReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 when (intent.action) {
-                    Intent.ACTION_SCREEN_OFF -> overlay.hideKeepingSilence()
-                    // Desbloqueado: si sigue el reel, la pantalla vuelve; si no, vuelve el sonido.
-                    Intent.ACTION_USER_PRESENT -> scheduleEvaluation(0)
+                    Intent.ACTION_SCREEN_OFF -> {
+                        handler.removeCallbacks(evaluateRunnable)
+                        pendingSince = null
+                        confirmation.reset()
+                        overlay.hideKeepingSilence()
+                    }
+                    // Encendido sin pedir desbloqueo (p. ej. con retardo de bloqueo), o desbloqueado:
+                    // si sigue el reel, la pantalla vuelve; si no, vuelve el sonido.
+                    Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> scheduleEvaluation(0)
                 }
             }
         }
@@ -117,6 +130,12 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             return
         }
         if (!::engine.isInitialized || packageName !in engine.packages) return
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED && overlay.isShowing) {
+            // Solo llegan toques a la app mientras la pantalla aparece: el usuario se está yendo
+            // (p. ej. a otra pestaña). Se mira enseguida para quitarla antes de que se vea más.
+            scheduleEvaluation(CLICK_SETTLE_MS)
+            return
+        }
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED && trackPager(event, packageName!!)) {
             // El usuario acaba de pasar al siguiente reel: no se espera a que la pantalla se calme.
             scheduleEvaluation(0)
@@ -138,6 +157,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private fun onLeftApp() {
         handler.removeCallbacks(evaluateRunnable)
         pendingSince = null
+        confirmation.reset()
         leftAt = SystemClock.elapsedRealtime()
         overlay.hide()
     }
@@ -216,12 +236,19 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     private fun evaluateCurrentScreen() {
         pendingSince = null
-        // Con el móvil bloqueado no se pone nada: taparía la pantalla de bloqueo.
-        if (keyguard.isKeyguardLocked) return
+        // Con la pantalla apagada o el móvil bloqueado no se pone nada (taparía la pantalla de
+        // bloqueo del móvil) y, si estaba puesta, se quita sin devolver el sonido. La mirada
+        // periódica lo detecta incluso antes de que llegue el aviso de pantalla apagada.
+        if (!power.isInteractive || keyguard.isKeyguardLocked) {
+            confirmation.reset()
+            if (overlay.isShowing) overlay.hideKeepingSilence()
+            return
+        }
         // A veces la ventana activa no está disponible un instante: entonces no se cambia nada.
         val root = rootInActiveWindow ?: return
         if (root.packageName?.toString() !in engine.packages) {
             // Solo recibimos eventos de Instagram: si el usuario se ha ido, la pantalla no debe quedarse.
+            confirmation.reset()
             overlay.hide()
             return
         }
@@ -236,11 +263,24 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         val rule =
             engine.evaluate(snapshot, session.origin, session.scrolled)
                 ?.takeUnless { unlocked(snapshot.packageName) }
+        val now = SystemClock.elapsedRealtime()
         when {
-            rule == null -> overlay.hide()
-            !overlay.isShowing && SystemClock.elapsedRealtime() - leftAt >= LEAVE_COOLDOWN_MS -> {
-                overlay.show(snapshot.packageName, onLeave = { leave(rule, snapshot.packageName) })
-                scope.launch { stats.recordBlock(snapshot.packageName) }
+            rule == null -> {
+                confirmation.reset()
+                overlay.hide()
+            }
+            overlay.isShowing || now - leftAt < LEAVE_COOLDOWN_MS -> Unit
+            // Se vuelve a mirar en un momento: si sigue igual, entonces se pone.
+            !confirmation.onMatch("${snapshot.packageName}/${rule.id}", now) ->
+                scheduleEvaluation(confirmation.remainingMs(now))
+            else -> {
+                confirmation.reset()
+                val packageName = snapshot.packageName
+                overlay.show(
+                    onLeave = { leave(rule, packageName) },
+                    // Solo cuenta si ha llegado a aparecer del todo (no si se ha ido mientras aparecía).
+                    onSettled = { scope.launch { stats.recordBlock(packageName) } },
+                )
             }
         }
 
@@ -303,6 +343,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val MAX_WAIT_MS = 300L
         const val LEAVE_COOLDOWN_MS = 1_000L
         const val OVERLAY_POLL_MS = 200L
+        const val CLICK_SETTLE_MS = 50L
         const val EXPIRY_MARGIN_MS = 100L
         const val MAX_CLICK_ANCESTORS = 4
         const val UNBIND_SAVE_TIMEOUT_MS = 1_000L

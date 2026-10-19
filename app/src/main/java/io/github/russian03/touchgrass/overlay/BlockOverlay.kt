@@ -6,9 +6,9 @@ import io.github.russian03.touchgrass.MainActivity
 
 /**
  * Pantalla «El scroll está bloqueado» que aparece encima de una zona bloqueada, sin sacar al usuario
- * de ella. Mientras se ve, la app de debajo no recibe toques ni suena. [show] recibe la app
- * bloqueada (para pedir tiempo para ella) y `onLeave`, que saca al usuario de la zona
- * bloqueada cuando elige uno de los botones.
+ * de ella. Mientras se ve, la app de debajo no suena y, cuando acaba de aparecer, tampoco recibe
+ * toques. [show] recibe `onLeave`, que saca al usuario de la zona bloqueada cuando elige uno de
+ * los botones, y `onSettled`, que avisa cuando la pantalla ya ha aparecido del todo.
  */
 class BlockOverlay(private val service: AccessibilityService) {
 
@@ -17,16 +17,18 @@ class BlockOverlay(private val service: AccessibilityService) {
 
     val isShowing: Boolean get() = window.isShowing
 
-    fun show(packageName: String, onLeave: () -> Unit) {
+    fun show(onLeave: () -> Unit, onSettled: () -> Unit) {
         if (window.isShowing) return
         silencer.silence()
-        window.show(blurInMs = FADE_IN_MS) {
+        // El botón atrás hace lo mismo que «Volver atrás».
+        val back = {
+            onLeave()
+            hide()
+        }
+        window.show(blurInMs = FADE_IN_MS, onBack = back, onSettled = onSettled) {
             BlockScreen(
                 fadeInMs = FADE_IN_MS,
-                onBack = {
-                    onLeave()
-                    hide()
-                },
+                onBack = back,
                 onOpenApp = {
                     onLeave()
                     openApp()
