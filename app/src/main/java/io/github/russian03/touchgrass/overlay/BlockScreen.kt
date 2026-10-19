@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.overlay
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -58,14 +59,16 @@ private const val ENTER_STEP_MS = 150L
 /**
  * Pantalla de bloqueo que aparece encima del scroll: lima, con el logo en silueta abajo a la
  * izquierda negando con la cabeza, «Respira.» y, más pequeño, «El scroll está bloqueado». Entra con un fundido de
- * [fadeInMs] y desde el primer instante se traga los toques, así que ya no se puede hacer scroll.
+ * [fadeInMs]; mientras entra, los toques pasan a la app (tocar otra pestaña la cancela) y, al
+ * acabar, se los traga, así que ya no se puede hacer scroll.
  * Un segundo después del fundido sale, abajo a la izquierda, el único botón: «Volver atrás», en
  * negro. Un segundo más tarde, encima, el enlace discreto para pedir más minutos (abre la app).
  */
 @Composable
 fun BlockScreen(fadeInMs: Long, onBack: () -> Unit, onOpenApp: () -> Unit) {
     val enter = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { enter.animateTo(1f, tween(fadeInMs.toInt(), easing = FastOutSlowInEasing)) }
+    // Empieza muy suave y acelera al final: si el usuario se va enseguida, apenas se llega a ver.
+    LaunchedEffect(Unit) { enter.animateTo(1f, tween(fadeInMs.toInt(), easing = EaseInCubic)) }
 
     // Primero «Volver atrás» y, aún más tarde, el enlace para pedir minutos.
     val back = remember { Animatable(0f) }

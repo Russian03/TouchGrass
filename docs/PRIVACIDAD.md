@@ -1,6 +1,6 @@
 # Política de privacidad de TouchGrass
 
-Última actualización: 17 de octubre de 2026
+Última actualización: 19 de octubre de 2026
 
 TouchGrass es una app para usar menos el scroll de otras apps. Funciona entera en tu móvil: no
 tiene cuentas, ni anuncios, ni permiso de Internet.
@@ -10,7 +10,8 @@ tiene cuentas, ni anuncios, ni permiso de Internet.
 Con tu permiso, TouchGrass usa el servicio de accesibilidad de Android solo para saber cuándo
 entras en el scroll de las apps que bloquea (ahora, Instagram y TikTok) y taparlo con una pausa.
 Mira los identificadores de los botones de esas apps, el nombre de algunas pestañas (como «Para
-ti») y si has vuelto a la pantalla de inicio. Nunca lee tus mensajes, publicaciones, nombres,
+ti») y si has vuelto a la pantalla de inicio. Solo mientras se ve la pausa, recibe los botones de
+volumen para que no hagan nada y el sonido no vuelva. Nunca lee tus mensajes, publicaciones, nombres,
 contraseñas ni nada de otras apps, y no guarda lo que hay en tu pantalla.
 
 ## Qué se guarda

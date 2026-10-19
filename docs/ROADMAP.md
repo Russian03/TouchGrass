@@ -27,10 +27,9 @@ Cada bloque es una rama `bloque-N/<nombre>` que se integra en `main` tras revisi
 | 20     | `bloque-20/solo-vertical`     | La app se queda en vertical aunque el móvil tenga la rotación automática | —      |
 | 21     | `bloque-21/bloqueo-y-pedir-tiempo` | Pantalla de bloqueo rediseñada (lima, logo en silueta que niega) | —      |
 | 22     | `bloque-22/pedir-tiempo-y-limpieza` | Pedir tiempo con el diseño nuevo; fuera el código de depuración | v2.0.0 |
+| 23     | `bloque-23/volumen-y-bloqueo` | Botones de volumen bloqueados durante la pausa; la pausa se cancela al irse mientras aparece, no parpadea en otras pestañas y no reaparece al apagar el móvil | v2.1.0 |
 | —      | después                       | PIN opcional para pedir tiempo                                            | —      |
-| —      | después                       | Bloquear los botones de volumen durante la pantalla de bloqueo            | —      |
 | —      | después                       | Reglas para YouTube                                                       | —      |
-| —      | después                       | Diseño: revisar el aspecto visual de la app                               | —      |
 
 ## Publicar en Google Play
 
