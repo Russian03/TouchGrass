@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Android 11 y anteriores: no se respalda nada. Los datos de uso y ajustes
-     se quedan en el dispositivo (ver docs/ARCHITECTURE.md, "Privacidad"). -->
+     se quedan en el dispositivo (ver docs/PRIVACIDAD.md). -->
 <full-backup-content>
     <exclude domain="root" path="." />
     <exclude domain="file" path="." />

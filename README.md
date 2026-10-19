@@ -1,250 +1,188 @@
-# TouchGrass 🌱
+<p align="center">
+  <img src="design/assets/ic_launcher-playstore.png" width="120" alt="TouchGrass logo">
+</p>
 
-Una app Android para usar Instagram y TikTok sin caer en el *doomscrolling*.
-Más adelante también YouTube.
+<h1 align="center">TouchGrass</h1>
 
-TouchGrass **no sustituye** a la app oficial. Funciona *por encima* de ella mediante un
-servicio de accesibilidad que detecta cuándo entras en el scroll (los Reels de Instagram,
-Para ti y Comunidad de TikTok) y pone una pantalla de bloqueo encima. Si quieres verlos, pides unos minutos de tu saldo diario. Así puedes seguir
-usando los mensajes, las publicaciones de tus amigos y las historias.
+<p align="center">
+  <b>Keep Instagram and TikTok. Lose the endless scroll.</b><br>
+  An Android app that blocks Reels and the For You feed — and nothing else.
+</p>
 
-> **[Descargar la última versión](../../releases/latest)**. Bloquea los Reels de Instagram
-> y las pestañas Para ti y Comunidad de TikTok. La versión antigua, basada en WebView, está archivada en el tag
-> [`legacy-v0`](../../tree/legacy-v0).
+<p align="center">
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/Russian03/TouchGrass?label=download&color=b5e35a" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3ddc84?logo=android&logoColor=white" alt="Android 8.0+">
+  <img src="https://img.shields.io/badge/internet%20permission-none-1c1c1c" alt="No internet permission">
+</p>
 
-## Compatibilidad
+<p align="center">
+  🇬🇧 English · <a href="README.es.md">🇪🇸 Español</a>
+</p>
 
-Funciona en **cualquier móvil Android 8.0 (API 26) o superior**, de cualquier marca.
-El bloqueo usa el servicio de accesibilidad estándar de Android y las reglas dependen de las
-apps de Instagram y TikTok, no del modelo de móvil.
+---
 
-Algunas capas de fabricante cierran apps en segundo plano de forma agresiva y pueden
-detener la protección un momento. Android la vuelve a poner en marcha sola en unos segundos y
-esos cortes no cuentan como haberla quitado. Si un corte dura, la app lo avisa en *Mi día*.
-Más abajo se explica qué hacer en cada caso.
+TouchGrass sits **on top of the official apps**. You keep using Instagram and TikTok for what
+you actually want (messages, your friends' posts, stories, profiles), but the moment you
+enter the endless video feed, a calm full-screen pause covers it.
 
-## Instalación
+If you really want to watch, you ask for a few minutes from a **daily budget** that you set
+yourself. When they run out, the pause comes back.
 
-TouchGrass no está en ninguna tienda: se instala desde las
-[Releases de GitHub](../../releases/latest).
+## Features
 
-1. **Descargar la APK.** Desde el móvil, abre la [última Release](../../releases/latest) y
-   descarga `touchgrass-vX.Y.Z.apk` (en *Assets*). Ábrela desde Descargas y pulsa
-   *Instalar*. Android pedirá permitir la instalación de apps de origen desconocido para el
-   navegador o la app de archivos.
-2. **Permitir ajustes restringidos** (Android 13 o superior). Android bloquea la
-   accesibilidad a las apps instaladas fuera de una tienda. Ve a
-   *Ajustes → Aplicaciones → TouchGrass → ⋮ → Permitir ajustes restringidos*.
-   Si no aparece la opción, intenta activar primero la protección (paso 4); al rechazarlo,
-   la opción se desbloquea.
-3. **Primeros pasos.** La primera vez que abres TouchGrass te pide tu nombre (opcional), te
-   explica cómo funciona y te pide tu límite de minutos al día. Antes de activar la protección
-   te enseña qué lee el servicio de accesibilidad y qué no, y te pide que lo aceptes.
-4. **Activar la protección.** En el último paso, pulsa *Activar en Accesibilidad* y activa
-   TouchGrass en la lista de servicios. Vuelve a la app: debe mostrar *Protección activada*.
+- **Blocks only the scroll.** Instagram Reels (tab and viewer) and TikTok's *For You* and
+  *Community* tabs. Everything else stays free.
+- **Smart exceptions.** A reel opened from a profile, a chat, your feed or your saved posts
+  plays normally. From a chat, your feed or your saved posts, swiping to the next reel brings
+  the pause.
+- **Daily budget.** Choose how many minutes per day you can unlock (up to 4 h). The day resets
+  at 8:00. Lowering the limit applies at once. Raising it only applies from the next month.
+- **Ask for time, with a reason.** Pick the app, the minutes and why (bathroom, food, bus,
+  hobby, sleep or your own text). Finish early and the unused time comes back, rounded down
+  to multiples of 5 minutes.
+- **Stats that motivate.** A face for every day, streaks of low-usage days, a monthly calendar
+  and how often the pause stopped you.
+- **Hard to cheat.** Unlocks are timed with a clock you can't change, the budget needs
+  automatic date and time, and turning the protection off is remembered.
+- **Silences the feed.** While the pause is on, the video is muted and the volume buttons do
+  nothing.
+- **100% private.** No internet permission, no accounts, no analytics. Nothing leaves your
+  phone.
 
-### Xiaomi, Redmi y POCO (HyperOS / MIUI)
+## How it works
 
-HyperOS y MIUI matan el proceso de la app con mucha facilidad, por ejemplo al limpiar
-memoria. Android vuelve a arrancar el servicio en unos segundos solo si el sistema le deja.
-Para que le deje:
+TouchGrass uses Android's **accessibility service**, limited to Instagram, TikTok and your
+home screen. It looks only at the internal *IDs* of the on-screen buttons (for example "Reels
+tab, selected") and, on TikTok, the name of the top tabs. It never reads messages, captions,
+names or anything typed.
 
-- En *Ajustes → Aplicaciones → TouchGrass*:
-  - Activa **Autoinicio**.
-  - En **Ahorro de batería**, elige **Sin restricciones**.
-- La propia app muestra este consejo en Xiaomi, con un botón que abre esos ajustes.
-- TouchGrass no aparece en Recientes a propósito: así no se puede cerrar deslizando su
-  tarjeta.
+When those IDs match a blocked area, TouchGrass places a full-screen pause on top. The
+official app keeps running underneath, so nothing is modified, injected or patched.
 
-### Otros Android
+The detection rules live in small JSON files (`app/src/main/assets/rules/`), so they can be
+updated when Instagram or TikTok change their apps.
 
-En Android puro (Pixel, Motorola, etc.) normalmente no hace falta nada más. En otras
-marcas con ahorro de batería agresivo (Samsung, Huawei, OnePlus, Oppo…) conviene
-quitar a TouchGrass de las optimizaciones de batería si la protección se detiene.
-Por ejemplo, en Samsung: *Ajustes → Batería → Límites de uso en segundo plano →
-Aplicaciones que nunca entran en suspensión*.
+## Download and install
 
-Solo se ha probado en un Xiaomi con HyperOS. En otras marcas debería funcionar, pero
-no está verificado.
+TouchGrass is not on the Play Store. It is installed from
+[GitHub Releases](../../releases/latest).
 
-### Comprobar la descarga (opcional)
+1. **Download the APK.** On your phone, open the [latest release](../../releases/latest) and
+   download `touchgrass-vX.Y.Z.apk` from *Assets*. Open it and tap *Install*. Android will ask
+   you to allow installing apps from your browser or file manager.
+2. **Allow restricted settings** (Android 13+). Android blocks accessibility for apps that
+   don't come from a store. Go to *Settings → Apps → TouchGrass → ⋮ → Allow restricted
+   settings*. If the option isn't there, first try to turn on the protection (step 4); after
+   Android refuses once, the option appears.
+3. **First steps.** TouchGrass asks for your name (optional), explains how it works and asks
+   for your daily limit. Before turning on the protection, it shows exactly what the service
+   reads and what it doesn't, and asks for your consent.
+4. **Turn on the protection.** Tap *Activar en Accesibilidad* (turn on in Accessibility) and
+   enable TouchGrass. Back in the app, it should say the scroll is now blocked.
 
-Cada Release incluye `touchgrass-vX.Y.Z.apk.sha256`. En un ordenador, con los dos ficheros
-en la misma carpeta:
+> The app is in **Spanish**.
+
+### Xiaomi, Redmi and POCO (HyperOS / MIUI)
+
+These systems kill background apps aggressively. Android restarts the protection by itself
+within seconds, but only if the system allows it:
+
+- In *Settings → Apps → TouchGrass*, turn on **Autostart** and set **Battery saver** to **No
+  restrictions**. The app shows this tip, with a shortcut, on Xiaomi phones.
+- TouchGrass is hidden from Recents on purpose, so it can't be closed by swiping it away.
+
+### Other phones
+
+On stock Android (Pixel, Motorola…) nothing else is needed. On brands with aggressive battery
+savers (Samsung, Huawei, OnePlus, Oppo…), exclude TouchGrass from battery optimization if the
+protection stops. On Samsung: *Settings → Battery → Background usage limits → Never sleeping
+apps*.
+
+Tested on a Xiaomi with HyperOS (Android 14). Other brands should work but are not verified.
+
+### Verify the download (optional)
+
+Each release includes `touchgrass-vX.Y.Z.apk.sha256`:
 
 ```bash
-sha256sum -c touchgrass-vX.Y.Z.apk.sha256    # debe decir OK
+sha256sum -c touchgrass-vX.Y.Z.apk.sha256    # should print OK
 ```
 
-Todas las versiones van firmadas con la misma clave. La huella SHA-256 del certificado es:
+All releases are signed with the same key. SHA-256 fingerprint of the certificate:
 
 ```
 4d9cde9b128b248b103de0124f4ba33e56604af95620c538ef45f0e8af8df652
 ```
 
-Se puede comprobar con `apksigner verify --print-certs touchgrass-vX.Y.Z.apk` (viene con el
-Android SDK).
+Check it with `apksigner verify --print-certs touchgrass-vX.Y.Z.apk` (part of the Android
+SDK).
 
-### Si aparece «TouchGrass se ha detenido»
+## Updating
 
-El sistema ha cerrado el servicio aunque el ajuste siga activado y no ha vuelto en un minuto.
-Tu día no se ve afectado: solo cuenta como trampa desactivarlo tú en Accesibilidad. Comprueba
-el *Autoinicio* y el ahorro de batería (ver arriba). Si sigue sin volver, en *Ajustes →
-Protección* pulsa *Reactivar en Accesibilidad*, **desactiva** TouchGrass y **vuelve a
-activarlo**.
+TouchGrass **never updates itself**: it has no internet permission, on purpose.
 
-## Uso
+- **To update**, download the new APK and install it over the current one. Since every
+  version is signed with the same key, your limit, budget and stats are kept.
+- **To hear about new versions**, either *Watch → Custom → Releases* on this repo, or add it
+  to [Obtainium](https://github.com/ImranR98/Obtainium).
 
-- **Inicio** te saluda por tu nombre y muestra:
-  - **Mi día:** los minutos que quedan hoy y cuándo se renueva el saldo (a las 8:00). Si la
-    protección está quitada, el personaje sale con los ojos en cruz y un botón te lleva a
-    arreglarlo en Ajustes.
-  - **Mi semana:** la semana anterior y la actual, con una cara por día según lo que usaste. Las
-    rachas de días con poco uso dan caras especiales. Si agotaste el saldo, el día sale triste y
-    en gris; si quitaste la protección, con los ojos en cruz y en rojo. Los días de antes de
-    activar la protección por primera vez salen en gris con un guion: aún no contaban.
-  - **Mis logros:** el recuadro verde abre tus estadísticas y el negro enseña tus días de racha
-    con un fuego.
-- **Primer acceso del día.** La primera vez que abres la app cada día, salen las caras de los
-  días que aún no habías visto y una frase sobre ayer. Si quitaste la protección, te lo
-  recuerda y, si sigue quitada, te ofrece activarla.
-- **Pedir tiempo**, en Inicio, abre una pantalla en la que eliges la app y después los minutos
-  (atajos de 5 a 60 o − / +, nunca más de los que quedan hoy) y para qué los quieres. El saldo es el mismo para
-  todas las apps y solo hay un desbloqueo a la vez. Los minutos se restan al pedirlos y corren
-  aunque salgas de la app. Al acabar vuelve el bloqueo. Si terminas antes desde Inicio, se
-  devuelve lo que sobra en múltiplos de 5 minutos.
-- **Pantalla de bloqueo.** Verde, con el logo negando con la cabeza, «Respira.» y una línea que
-  te recuerda que el scroll está bloqueado. Un segundo después sale *Volver atrás*, que te saca
-  del scroll. Un segundo más tarde, encima y más discreto, el enlace *Pedir más minutos*, que
-  abre TouchGrass en Inicio para pedirlos desde ahí.
-- **Qué se bloquea:** en Instagram, los Reels: la pestaña y el visor, salvo el reel que abres
-  desde un perfil, un chat, Inicio o Guardados. En TikTok, las pestañas **Para ti** y
-  **Comunidad**; *Volver atrás* te lleva a Mensajes. Siguiendo, Amigos, Buscar, los perfiles
-  y los chats quedan libres.
-- **Motivo.** Antes de pedir tiempo eliges para qué: Baño, Comer, Bus, Pasatiempo, Dormir u
-  Otro (con un texto corto).
-- **Estadísticas** (desde *Mis logros*), mes a mes:
-  - un **calendario** con la cara y el color de cada día, y cuántos días hubo de cada cara;
-  - los **minutos al día** de media, la **racha actual** y la **mejor racha**, y las **veces que
-    saltó el bloqueo**, con su gráfico día a día;
-  - debajo, los minutos desbloqueados, cuántas veces pediste tiempo y volviste atrás, los días sin
-    pedir tiempo y sin agotar el saldo, el reparto por app y por motivo, la comparación con los
-    meses anteriores y el detalle de cada día.
-- **Caras.** Van según lo que te queda del límite de ese día (o de 2 h, si tu límite es mayor):
-  sin pedir tiempo, genial; si queda el 70 % o más, bien; el 45 % o más, seria; menos, medio mal;
-  y si llegas al tope, triste. Arriba de las estadísticas sale el límite que tenías ese mes.
-- **Racha.** Suma los días seguidos en que usas como mucho el 30 % de tu límite (o de 2 h), sin
-  agotarlo ni quitar la protección. Hoy cuenta mientras sigas dentro.
-- **Ajustes** (icono de la rueda) permite cambiar tu nombre y el límite diario (hasta 4 h). Bajarlo se
-  aplica al momento; subirlo, a partir del mes siguiente, y ese cambio pendiente se puede
-  cancelar. También muestra el estado de la protección y la política de privacidad.
-- Con la fecha, la hora o la zona horaria en manual, el saldo no se renueva y la app avisa
-  para activar la hora automática.
+If Android says there is a conflict with an existing package, the APK wasn't signed with the
+TouchGrass key. Don't install it: download only from this repo's Releases.
 
-## Actualizaciones
+## Privacy
 
-TouchGrass **no se actualiza sola**. No tiene permiso de Internet, a propósito, así que no
-puede comprobar si hay versiones nuevas.
+- **No internet permission** and no runtime permissions: only the accessibility service,
+  which you turn on yourself after reading what it does.
+- The service only watches Instagram, TikTok and your home screen, and only keeps button
+  IDs. It never reads messages, posts, names or passwords, and never stores what's on your
+  screen.
+- Your name, limit, unlocks (with their reason) and stats are stored only on your phone and
+  excluded from cloud backups.
 
-- **Para actualizar:** descarga la APK de la nueva Release e instálala encima de la que
-  tienes, sin desinstalar nada. Como todas las versiones van firmadas con la misma clave,
-  Android la acepta como actualización y conservas el límite y el saldo.
-- **Para enterarte de las versiones nuevas**, cualquiera de estas dos:
-  - En GitHub, en este repo: *Watch → Custom → Releases*. Te llega un aviso (y un correo)
-    con cada versión.
-  - Con [Obtainium](https://github.com/ImranR98/Obtainium), una app libre para Android:
-    añade la URL de este repo y te avisa, o actualiza, cuando sale una Release nueva.
+Full policy: [docs/PRIVACIDAD.md](docs/PRIVACIDAD.md) (in Spanish, also inside the app).
 
-Si Android dice que la app no se ha instalado o que hay un conflicto con un paquete
-existente, la APK no está firmada con la misma clave. No la instales y descárgala solo de
-las Releases de este repo.
+## Troubleshooting
 
-## Principios
+**"TouchGrass has stopped".** The system closed the service and it didn't come back within a
+minute. Your day isn't affected: only turning it off yourself in Accessibility counts as
+cheating. Check *Autostart* and the battery saver (see above). If it still doesn't come back,
+open the app's settings, tap *Reactivar en Accesibilidad* (reactivate in Accessibility), and
+turn TouchGrass **off** and **on** again.
 
-- **Privacidad total:** la app no pide permiso de Internet y ningún dato sale del móvil,
-  tampoco las estadísticas ni los motivos.
-- **Mínima intrusión:** el servicio solo observa las apps objetivo y solo lee los
-  identificadores de vista necesarios y, en TikTok, el nombre de las pestañas de arriba
-  («Para ti», «Siguiendo»…). Nunca lee el contenido de mensajes.
-- **Difícil de saltar:** subir el límite se aplica al mes siguiente, los desbloqueos se miden
-  con un reloj monotónico y, sin fecha y hora automáticas, el saldo no se renueva ni se
-  desbloquea nada. Cambiar la hora del móvil no sirve.
+**The budget doesn't reset.** Turn on automatic date, time and time zone. Without them, the
+budget freezes so the clock can't be used to cheat.
 
-## Compilar
+**Instagram or TikTok updated and the block stopped working.** The apps sometimes rename their
+internal IDs. Open an issue with the app version.
 
-Para desarrollar o para instalar desde el código en lugar de las Releases.
+## Limitations
 
-Requisitos: JDK 17 o superior y Android SDK 37 (o Android Studio, que trae ambos).
-Versión mínima de Android: 8.0 (API 26).
+- Android only: iOS doesn't allow this kind of service.
+- Instagram and TikTok only (no YouTube Shorts yet).
+- Rules depend on the internal IDs of the official apps, so a big update can break them until
+  the rules are updated.
+
+## Build from source
+
+Requirements: JDK 17+ and Android SDK 37 (Android Studio includes both).
 
 ```bash
-./gradlew assembleDebug        # APK de debug
-./gradlew installDebug         # la instala en el móvil conectado por adb
-./gradlew testDebugUnitTest    # tests unitarios
-./gradlew lintDebug            # lint de Android
-./gradlew ktlintCheck          # estilo de código (ktlintFormat lo corrige)
-./gradlew assembleRelease      # APK de release (firmada si hay clave, ver abajo)
+./gradlew assembleDebug        # debug APK
+./gradlew installDebug         # install on a phone connected with adb
+./gradlew testDebugUnitTest    # unit tests
+./gradlew ktlintCheck lintDebug
 ```
 
-## Publicar una versión
+The debug build (`io.github.russian03.touchgrass.debug`) can be installed next to the release
+build. Each one has its own accessibility service.
 
-Las APK de release van firmadas con una clave propia. Android solo deja actualizar la app
-si la versión nueva está firmada con **la misma clave**, así que si se pierde no se pueden
-publicar más actualizaciones. Guarda una copia de seguridad fuera del ordenador. La clave
-nunca entra al repo: `.gitignore` excluye `*.jks` y `keystore.properties`.
+Built with Kotlin, Jetpack Compose (Material 3 Expressive), Hilt and DataStore. The blocking
+logic (`core/`) is plain Kotlin and covered by unit tests.
 
-**1. Crear la clave (una sola vez).** Pide dos contraseñas y unos datos que pueden ir en blanco:
+## License
 
-```bash
-mkdir -p ~/keys
-keytool -genkeypair -keystore ~/keys/touchgrass.jks -alias touchgrass \
-  -keyalg RSA -keysize 4096 -validity 10000 -storetype PKCS12
-```
+© 2026 Russian03. All rights reserved. The source code is public so you can read and audit
+it, but it isn't licensed for reuse or redistribution.
 
-**2. Firmar en local.** Crea `keystore.properties` en la raíz del proyecto:
-
-```properties
-storeFile=/home/<usuario>/keys/touchgrass.jks
-storePassword=<contraseña>
-keyAlias=touchgrass
-keyPassword=<contraseña>
-```
-
-Con él, `./gradlew assembleRelease` deja la APK firmada en
-`app/build/outputs/apk/release/app-release.apk`. Sin él, la release sale sin firmar.
-
-**3. Release automática en GitHub.** En *Settings → Secrets and variables → Actions* del
-repo, crea estos secretos:
-
-| Secreto                         | Valor                                        |
-|---------------------------------|----------------------------------------------|
-| `TOUCHGRASS_KEYSTORE_BASE64`    | salida de `base64 -w0 ~/keys/touchgrass.jks` |
-| `TOUCHGRASS_KEYSTORE_PASSWORD`  | contraseña del keystore                      |
-| `TOUCHGRASS_KEY_ALIAS`          | `touchgrass`                                 |
-| `TOUCHGRASS_KEY_PASSWORD`       | contraseña de la clave                       |
-
-Al subir un tag (`git push origin v1.0.0`), la CI compila y firma la APK, comprueba la firma
-y crea una Release con `touchgrass-v1.0.0.apk` y su suma SHA-256.
-
-La APK de release (`io.github.russian03.touchgrass`) y la de debug (`.debug`) son apps
-distintas y pueden convivir en el mismo móvil, cada una con su propio servicio de
-accesibilidad.
-
-## Flujo de trabajo
-
-Trabajamos por **bloques**. Cada bloque vive en una rama `bloque-N/<nombre>`, se revisa
-en un Pull Request y se integra en `main` con *Squash and merge*. Cada integración lleva
-un tag de versión.
-El plan de bloques está en [docs/ROADMAP.md](docs/ROADMAP.md).
-
-Commits en formato [Conventional Commits](https://www.conventionalcommits.org/es/):
-`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`.
-
-Cada push y PR a `main` pasa por CI (GitHub Actions): ktlint, lint, tests y build.
-
-## Documentación
-
-- [Arquitectura](docs/ARCHITECTURE.md)
-- [Roadmap por bloques](docs/ROADMAP.md)
-- [Política de privacidad](docs/PRIVACIDAD.md)
-- [Decisiones de arquitectura (ADR)](docs/adr/)
+The app includes the [Montserrat](https://fonts.google.com/specimen/Montserrat) font, under
+the [SIL Open Font License 1.1](docs/licencias/montserrat-OFL.txt).
