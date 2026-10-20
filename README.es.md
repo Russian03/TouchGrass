@@ -65,21 +65,44 @@ poder actualizarlas cuando Instagram o TikTok cambien sus apps.
 
 ## Descargar e instalar
 
-TouchGrass no está en Play Store. Se instala desde las
+TouchGrass no está en Play Store. Se publica en las
 [Releases de GitHub](../../releases/latest).
+
+### Recomendado: con Obtainium
+
+[Obtainium](https://github.com/ImranR98/Obtainium) instala apps directamente desde sus
+Releases de GitHub y te avisa cuando hay una versión nueva. A las apps instaladas así no les
+afecta el *ajuste restringido* de Android, que si no te impide activar el servicio de
+accesibilidad (en algunos móviles, como los Xiaomi con HyperOS, no hay forma de quitarlo).
+
+1. **Instala Obtainium** desde su [página de Releases](https://github.com/ImranR98/Obtainium/releases/latest)
+   (`app-arm64-v8a-release.apk` sirve para casi cualquier móvil actual).
+2. En Obtainium, pulsa **Añadir app**, pega `https://github.com/Russian03/TouchGrass` y pulsa
+   **Añadir**.
+3. Pulsa **Instalar**. La primera vez, Android te pedirá permitir que Obtainium instale apps.
+4. Sigue con los [primeros pasos](#primeros-pasos).
+
+### Manual: descargar la APK
 
 1. **Descarga la APK.** Desde el móvil, abre la [última Release](../../releases/latest) y
    descarga `touchgrass-vX.Y.Z.apk` (en *Assets*). Ábrela y pulsa *Instalar*. Android te pedirá
    permitir instalar apps desde el navegador o el gestor de archivos.
 2. **Permite los ajustes restringidos** (Android 13 o superior). Android bloquea la
-   accesibilidad a las apps que no vienen de una tienda. Ve a *Ajustes → Aplicaciones →
-   TouchGrass → ⋮ → Permitir ajustes restringidos*. Si no aparece la opción, intenta primero
-   activar la protección (paso 4): al rechazarlo una vez, la opción aparece.
-3. **Primeros pasos.** TouchGrass te pide tu nombre (opcional), te explica cómo funciona y te
-   pide tu límite diario. Antes de activar la protección te enseña qué lee el servicio y qué no,
-   y te pide tu permiso.
-4. **Activa la protección.** Pulsa *Activar en Accesibilidad* y activa TouchGrass. Al volver a
+   accesibilidad a las apps instaladas desde el navegador o el gestor de archivos. Intenta
+   activar la protección una vez para que Android lo rechace y ve a *Ajustes → Aplicaciones →
+   TouchGrass → ⋮ → Permitir ajustes restringidos*. Si la opción no aparece nunca (pasa en
+   Xiaomi), desinstala TouchGrass e instálala con Obtainium.
+
+### Primeros pasos
+
+1. **Configúrala.** TouchGrass te pide tu nombre (opcional), te explica cómo funciona y te pide
+   tu límite diario. Antes de activar la protección te enseña qué lee el servicio y qué no, y te
+   pide tu permiso.
+2. **Activa la protección.** Pulsa *Activar en Accesibilidad* y activa TouchGrass. Al volver a
    la app debe poner *¡Listo! El scroll ya está bloqueado.*
+
+Google Play Protect puede avisarte de una app que no viene de Play Store y usa accesibilidad.
+Pulsa *Más detalles → Instalar de todas formas*.
 
 ### Xiaomi, Redmi y POCO (HyperOS / MIUI)
 
@@ -121,11 +144,12 @@ SDK).
 
 TouchGrass **no se actualiza sola**: no tiene permiso de Internet, a propósito.
 
-- **Para actualizar**, descarga la APK nueva e instálala encima de la que tienes. Como todas
-  las versiones van firmadas con la misma clave, conservas el límite, el saldo y las
-  estadísticas.
-- **Para enterarte de las versiones nuevas**, usa *Watch → Custom → Releases* en este repo, o
-  añádelo a [Obtainium](https://github.com/ImranR98/Obtainium).
+- **Con Obtainium**, te llega un aviso cuando hay una versión nueva; pulsa *Actualizar*.
+- **A mano**, descarga la APK nueva e instálala encima de la que tienes. Para enterarte de
+  las versiones nuevas, usa *Watch → Custom → Releases* en este repo.
+
+Todas las versiones van firmadas con la misma clave, así que al actualizar conservas el límite,
+el saldo y las estadísticas.
 
 Si Android dice que hay un conflicto con un paquete existente, la APK no está firmada con la
 clave de TouchGrass. No la instales: descárgala solo de las Releases de este repo.
