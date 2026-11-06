@@ -3,45 +3,30 @@ package io.github.russian03.touchgrass.ui.settings
 import com.google.common.truth.Truth.assertThat
 import io.github.russian03.touchgrass.core.budget.Denial
 import io.github.russian03.touchgrass.testing.FakeTime
+import io.github.russian03.touchgrass.testing.RealMainRule
 import io.github.russian03.touchgrass.testing.testProfile
 import io.github.russian03.touchgrass.testing.testRepository
 import io.github.russian03.touchgrass.ui.onboarding.OnboardingViewModel
 import java.io.File
-import java.util.concurrent.Executors
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.rules.TemporaryFolder
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
 
-    @get:Rule val folder = TemporaryFolder()
+    private val folder = TemporaryFolder()
 
     // DataStore escribe en hilos de verdad, así que la prueba usa tiempo real, no virtual.
-    private val main = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    private val io = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val mainRule = RealMainRule()
 
-    @Before fun setUp() = Dispatchers.setMain(main)
-
-    @After fun tearDown() {
-        io.cancel()
-        Dispatchers.resetMain()
-        main.close()
-    }
+    // La carpeta se borra después de cancelar io.
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(folder).around(mainRule)
+    private val io get() = mainRule.io
 
     private val time = FakeTime()
 
@@ -50,13 +35,13 @@ class SettingsViewModelTest {
         // Un solo DataStore por fichero: lo comparten los primeros pasos y Ajustes.
         val profile = testProfile(File(folder.root, "profile.json"), io)
         // Primeros pasos con 30 min al día.
-        val onboarding = OnboardingViewModel(repo, profile)
+        val onboarding = mainRule.track(OnboardingViewModel(repo, profile))
         onboarding.onLimitChange(30)
         // Como en la interfaz: se termina cuando el límite ya está guardado.
         onboarding.saveLimit { onboarding.finish {} }
         withTimeout(5_000) { repo.state.first { it.onboardingDone } }
 
-        val vm = SettingsViewModel(repo, profile)
+        val vm = mainRule.track(SettingsViewModel(repo, profile))
         io.launch { vm.state.collect {} }
         withTimeout(5_000) { vm.state.first { it.budget != null } }
         test(vm)

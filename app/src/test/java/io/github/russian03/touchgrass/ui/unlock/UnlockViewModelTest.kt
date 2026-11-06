@@ -11,46 +11,31 @@ import io.github.russian03.touchgrass.core.stats.UnlockReason
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.stats.StatsRepository
 import io.github.russian03.touchgrass.testing.FakeTime
+import io.github.russian03.touchgrass.testing.RealMainRule
 import io.github.russian03.touchgrass.testing.testProfile
 import io.github.russian03.touchgrass.testing.testRepository
 import io.github.russian03.touchgrass.testing.testStats
 import io.github.russian03.touchgrass.ui.onboarding.OnboardingViewModel
 import java.io.File
-import java.util.concurrent.Executors
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule as JUnitRule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.rules.TemporaryFolder
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class UnlockViewModelTest {
 
-    @get:JUnitRule val folder = TemporaryFolder()
+    private val folder = TemporaryFolder()
 
     // DataStore escribe en hilos de verdad, así que la prueba usa tiempo real, no virtual.
-    private val main = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    private val io = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val mainRule = RealMainRule()
 
-    @Before fun setUp() = Dispatchers.setMain(main)
-
-    @After fun tearDown() {
-        io.cancel()
-        Dispatchers.resetMain()
-        main.close()
-    }
+    // La carpeta se borra después de cancelar io.
+    @get:JUnitRule val rules: RuleChain = RuleChain.outerRule(folder).around(mainRule)
+    private val io get() = mainRule.io
 
     private lateinit var stats: StatsRepository
 
@@ -72,12 +57,12 @@ class UnlockViewModelTest {
         val repo = testRepository(File(folder.root, "budget.json"), io, FakeTime())
         stats = testStats(File(folder.root, "stats.json"), io, FakeTime())
         // Primeros pasos con 30 min al día.
-        val onboarding = OnboardingViewModel(repo, testProfile(File(folder.root, "profile.json"), io))
+        val onboarding = mainRule.track(OnboardingViewModel(repo, testProfile(File(folder.root, "profile.json"), io)))
         onboarding.onLimitChange(30)
         onboarding.saveLimit { onboarding.finish {} }
         withTimeout(5_000) { repo.state.first { it.onboardingDone } }
 
-        val vm = UnlockViewModel(repo, stats) { apps.toList() }
+        val vm = mainRule.track(UnlockViewModel(repo, stats) { apps.toList() })
         before(vm)
         io.launch { vm.budget.collect {} }
         withTimeout(5_000) { vm.budget.first { it != null } }
