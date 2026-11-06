@@ -14,14 +14,19 @@ import org.junit.Test
  */
 class TikTokRulesTest {
 
-    private val engine =
-        RuleEngine(listOf(RuleRepository.parse(File("src/main/assets/rules/tiktok.json").readText())))
+    private val ruleSet = RuleRepository.parse(File("src/main/assets/rules/tiktok.json").readText())
+
+    private val engine = RuleEngine(listOf(ruleSet))
 
     /** Inicio con las pestañas de arriba y [selected] elegida; el resto, identificadores sueltos. */
-    private fun home(selected: String, vararg ids: String): ScreenSnapshot {
+    private fun home(
+        selected: String,
+        vararg ids: String,
+        names: List<String> = listOf("Comunidad", "Siguiendo", "Tienda", "Para ti"),
+    ): ScreenSnapshot {
         val wanted = engine.texts(TT)[TAB].orEmpty()
         val tabs =
-            listOf("Comunidad", "Siguiendo", "Tienda", "Para ti").map {
+            names.map {
                 ViewNode(TAB, selected = it == selected, text = it.takeIf { t -> t in wanted })
             }
         return ScreenSnapshot(TT, tabs + (ids.toList() + bottomBar).map { ViewNode(it) })
@@ -50,13 +55,34 @@ class TikTokRulesTest {
     }
 
     @Test
-    fun `Volver atrás lleva a Mensajes`() {
+    fun `Following permitido`() {
+        val s = home("Following", "viewpager", "long_press_layout", names = listOf("Following", "For You"))
+        assertThat(engine.evaluate(s)).isNull()
+    }
+
+    @Test
+    fun `Volver atrás lleva a Siguiendo`() {
         listOf("Para ti", "Comunidad").forEach { tab ->
             val action = engine.evaluate(home(tab, "viewpager"))?.action
             assertThat(action).isInstanceOf(Action.Click::class.java)
-            // La pestaña Mensajes no tiene un identificador estable: se busca por su nombre.
-            assertThat((action as Action.Click).target).isNull()
-            assertThat(action.text).contains("Mensajes")
+            // La pestaña de arriba se busca por su identificador y su texto exacto.
+            assertThat((action as Action.Click).target).isEqualTo(TAB)
+            assertThat(action.text).containsExactly("Siguiendo", "Following")
+        }
+    }
+
+    @Test
+    fun `el destino de cada salida de TikTok no está bloqueado`() {
+        val destinos =
+            ruleSet.rules.flatMap { rule ->
+                val action = rule.action as? Action.Click
+                if (action?.target == TAB) action.text else emptyList()
+            }
+        assertThat(destinos).isNotEmpty()
+        destinos.forEach { destino ->
+            val tabs = listOf("Comunidad", "Siguiendo", "Tienda", "Para ti", "Following", "For You")
+            val nodes = tabs.map { ViewNode(TAB, selected = it == destino, text = it) } + ViewNode("viewpager")
+            assertThat(engine.evaluate(ScreenSnapshot(TT, nodes))).isNull()
         }
     }
 

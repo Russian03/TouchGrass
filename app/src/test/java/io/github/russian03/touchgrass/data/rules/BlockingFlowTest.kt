@@ -93,7 +93,7 @@ class BlockingFlowTest {
         return ScreenSnapshot(TT, tabNodes + ViewNode("viewpager"))
     }
 
-    private val inboxExit = Action.Click(target = null, text = listOf("Mensajes", "Bandeja de entrada", "Inbox"))
+    private val followingExit = Action.Click(target = TAB, text = listOf("Siguiendo", "Following"))
 
     // Instagram, pestaña Reels
 
@@ -179,23 +179,45 @@ class BlockingFlowTest {
     // TikTok
 
     @Test
-    fun `Para ti salta y lleva a Mensajes`() {
+    fun `Para ti salta y lleva a Siguiendo`() {
         val decision = look(home("Para ti"), at = 0)
         assertThat(ruleOf(decision)).isEqualTo("for_you_tab")
-        assertThat(exitOf(decision)).isEqualTo(inboxExit)
+        assertThat(exitOf(decision)).isEqualTo(followingExit)
     }
 
     @Test
     fun `For You en inglés salta`() {
         val decision = look(home("For You", names = listOf("Following", "For You")), at = 0)
         assertThat(ruleOf(decision)).isEqualTo("for_you_tab")
+        assertThat(exitOf(decision)).isEqualTo(followingExit)
     }
 
     @Test
-    fun `Comunidad salta y lleva a Mensajes`() {
+    fun `la salida de Para ti solo pulsa la pestaña Siguiendo`() {
+        val exit = exitOf(look(home("Para ti"), at = 0)) as Action.Click
+        listOf("Siguiendo", "Following").forEach { assertThat(BlockExit.matchesById(exit, it)).isTrue() }
+        listOf("Para ti", "Comunidad", "Tienda", "For You", "Siguiendo 12", null).forEach {
+            assertThat(BlockExit.matchesById(exit, it)).isFalse()
+        }
+    }
+
+    @Test
+    fun `Following en inglés queda libre`() {
+        val s = home("Following", names = listOf("Following", "For You"))
+        assertThat(look(s, at = 0)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `tras salir de Para ti a Siguiendo no vuelve a saltar`() {
+        assertThat(look(home("Para ti"), at = 0)).isInstanceOf(BlockDecision.Block::class.java)
+        assertThat(look(home("Siguiendo"), at = 1_500)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `Comunidad salta y lleva a Siguiendo`() {
         val decision = look(home("Comunidad"), at = 0)
         assertThat(ruleOf(decision)).isEqualTo("community_tab")
-        assertThat(exitOf(decision)).isEqualTo(inboxExit)
+        assertThat(exitOf(decision)).isEqualTo(followingExit)
     }
 
     @Test
