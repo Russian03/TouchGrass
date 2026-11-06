@@ -36,6 +36,24 @@ class TikTokRulesTest {
 
     private val bottomBar = listOf("opp", "oph", "opg", "opd", "opi", "opj")
 
+    /** Hoja de comentarios (TikTok 47.7.3): lo único que se ve; las pestañas de debajo no aparecen. */
+    private val commentsSheet =
+        screen("v3k", "pyh", "ek4", "btm", "env", "ly5", "m5h", "el7", "n13", "uac", "wqp", "wqo")
+
+    @Test
+    fun `los comentarios por si solos no bloquean pero cubren Para ti y Comunidad`() {
+        assertThat(engine.evaluate(commentsSheet)).isNull()
+        listOf("Para ti", "Comunidad").forEach {
+            assertThat(engine.covers(commentsSheet, engine.evaluate(home(it, "viewpager"))!!)).isTrue()
+        }
+    }
+
+    @Test
+    fun `los comentarios recien abiertos ya cubren la regla sin esperar a que carguen`() {
+        // Capturado al abrir (0,5 s): aún no hay lista de comentarios ni `tv_reply_comment_title`.
+        assertThat(engine.covers(commentsSheet, engine.evaluate(home("Para ti", "viewpager"))!!)).isTrue()
+    }
+
     @Test
     fun `Para ti bloqueado`() {
         val s = home("Para ti", "viewpager", "long_press_layout", "user_avatar", "title", "desc")

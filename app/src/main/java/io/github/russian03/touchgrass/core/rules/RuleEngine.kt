@@ -21,6 +21,7 @@ class RuleEngine(ruleSets: List<RuleSet>) {
      */
     fun texts(packageName: String): Map<String, Set<String>> = (
         rulesByPackage[packageName].orEmpty().map { it.match } +
+            rulesByPackage[packageName].orEmpty().mapNotNull { it.coveredBy } +
             placesByPackage[packageName].orEmpty().map { it.match }
         )
         .flatMap { it.allOf + it.noneOf }
@@ -41,6 +42,16 @@ class RuleEngine(ruleSets: List<RuleSet>) {
             snapshot.satisfies(rule.match) &&
                 rule.allowFrom.none { it.place == origin && !(it.untilScroll && scrolled) }
         }
+
+    /**
+     * Si [snapshot] es la hoja que tapa [rule] (p. ej. los comentarios sobre un reel). Solo vale
+     * para reglas de la misma app y nunca por sí sola: hace falta que [rule] casara antes. Una
+     * pantalla sin nada legible cuenta como cubierta: es la hoja abriéndose (TikTok la entrega
+     * vacía un instante) y no debe quitar la pausa.
+     */
+    fun covers(snapshot: ScreenSnapshot, rule: Rule): Boolean =
+        rule in rulesByPackage[snapshot.packageName].orEmpty() &&
+            rule.coveredBy?.let { snapshot.nodes.isEmpty() || snapshot.satisfies(it) } == true
 
     private fun ScreenSnapshot.satisfies(match: Match): Boolean =
         match.allOf.all { satisfies(it) } && match.noneOf.none { satisfies(it) }

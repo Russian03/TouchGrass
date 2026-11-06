@@ -29,6 +29,13 @@ object BlockPolicy {
     /** Tras salir a Inicio o pulsar «Volver atrás», la app aún parece estar delante un momento. */
     const val LEAVE_COOLDOWN_MS = 1_000L
 
+    /**
+     * Lo que falta para que acabe el enfriamiento tras salir ([leftAtMs], en elapsedRealtime).
+     * Sirve para volver a mirar justo entonces: tras «Volver atrás» con los comentarios abiertos,
+     * el atrás solo los cierra y el reel sigue delante sin que la app mande ningún evento.
+     */
+    fun cooldownRemainingMs(nowMs: Long, leftAtMs: Long): Long = (leftAtMs + LEAVE_COOLDOWN_MS - nowMs).coerceAtLeast(0)
+
     /** Apunta en [session] el lugar y el visor que se ven en [snapshot] (pasos 5-6 del flujo). Única función con efecto. */
     fun track(engine: RuleEngine, session: ViewerSession, snapshot: ScreenSnapshot, nowMs: Long) {
         engine.place(snapshot)?.let(session::onPlace)
@@ -38,6 +45,8 @@ object BlockPolicy {
     /**
      * Qué hacer con [snapshot] (pasos 7-9). [budget] = último saldo leído (`null` = nada desbloqueado);
      * [time] solo se consulta si una regla casa y hay saldo. [nowMs]/[leftAtMs] en elapsedRealtime.
+     * [held] = regla del último `Block`: si ahora solo se ve la hoja que la tapa (los comentarios),
+     * se sigue bloqueando con ella; sin regla anterior la hoja queda libre (comentarios de Inicio).
      */
     fun decide(
         engine: RuleEngine,
@@ -49,13 +58,30 @@ object BlockPolicy {
         overlayShowing: Boolean,
         nowMs: Long,
         leftAtMs: Long,
+        held: Rule? = null,
     ): BlockDecision {
-        val rule = engine.evaluate(snapshot, origin, scrolled) ?: return BlockDecision.Free()
+        val rule =
+            engine.evaluate(snapshot, origin, scrolled)
+                ?: held?.takeIf { engine.covers(snapshot, it) }
+                ?: return BlockDecision.Free()
         // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
         unlockRemainingMs(budget, snapshot.packageName, time)?.let { return BlockDecision.Free(it) }
         if (overlayShowing || nowMs - leftAtMs < LEAVE_COOLDOWN_MS) return BlockDecision.Keep
         return BlockDecision.Block(rule, "${snapshot.packageName}/${rule.id}")
     }
+
+    /**
+     * Si lo que se ve es solo la hoja que tapa [held] (los comentarios sobre el reel): no casa
+     * ninguna regla por sí sola y la hoja cubre la retenida. Se calcula en cada mirada para que
+     * «Volver atrás» no tenga que leer la pantalla otra vez antes de quitar la pausa.
+     */
+    fun isOverSheet(
+        engine: RuleEngine,
+        snapshot: ScreenSnapshot,
+        origin: String?,
+        scrolled: Boolean,
+        held: Rule?,
+    ): Boolean = held != null && engine.evaluate(snapshot, origin, scrolled) == null && engine.covers(snapshot, held)
 
     /** Lo que le queda al desbloqueo de [packageName] en [budget], o `null` si no tiene uno en marcha. */
     private fun unlockRemainingMs(budget: BudgetState?, packageName: String, time: TimeSource): Long? {

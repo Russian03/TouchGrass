@@ -9,6 +9,7 @@ import io.github.russian03.touchgrass.core.budget.BudgetState
 import io.github.russian03.touchgrass.core.budget.UnlockSession
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
+import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
@@ -33,6 +34,9 @@ class BlockingFlowTest {
     /** Último saldo leído; por defecto, sin nada desbloqueado. */
     private var budget = BudgetState()
 
+    /** Regla del último `Block`, como la guarda el servicio para las hojas que tapan la zona. */
+    private var held: Rule? = null
+
     /**
      * Una mirada del servicio a [snapshot] a las [at]: apunta lugar y visor, cuenta el scroll que
      * llegue a las [scrollAt] (si lo hay) y decide sin pantalla visible y lejos de cualquier salida.
@@ -41,17 +45,25 @@ class BlockingFlowTest {
         BlockPolicy.track(engine, session, snapshot, at)
         scrollAt?.let(session::onPagerScrolled)
         val now = scrollAt ?: at
-        return BlockPolicy.decide(
-            engine,
-            snapshot,
-            session.origin,
-            session.scrolled,
-            budget,
-            time,
-            overlayShowing = false,
-            nowMs = now,
-            leftAtMs = Long.MIN_VALUE / 2,
-        )
+        val decision =
+            BlockPolicy.decide(
+                engine,
+                snapshot,
+                session.origin,
+                session.scrolled,
+                budget,
+                time,
+                overlayShowing = false,
+                nowMs = now,
+                leftAtMs = Long.MIN_VALUE / 2,
+                held = held,
+            )
+        when (decision) {
+            is BlockDecision.Block -> held = decision.rule
+            is BlockDecision.Free -> held = null
+            BlockDecision.Keep -> Unit
+        }
+        return decision
     }
 
     private fun ruleOf(decision: BlockDecision) = (decision as BlockDecision.Block).rule.id
@@ -236,6 +248,131 @@ class BlockingFlowTest {
     fun `el origen de Instagram no deja libre nada en TikTok`() {
         look(profile, at = 0)
         assertThat(ruleOf(look(home("Para ti"), at = 100))).isEqualTo("for_you_tab")
+    }
+
+    // Comentarios (Instagram 454 y TikTok 47.7.3: al abrirlos, lo único que se ve es la hoja)
+
+    private val commentsIg =
+        screen(
+            "bottom_sheet_container",
+            "comment_composer_parent_updated",
+            "layout_comment_thread_edittext_multiline",
+            "main_list_view",
+            "sticky_header_list",
+        )
+
+    private val commentsTt =
+
+        ScreenSnapshot(TT, listOf("v3k", "pyh", "ek4", "btm", "env", "ly5", "m5h", "el7", "n13", "uac").map(::ViewNode))
+
+    @Test
+    fun `los comentarios de un reel de Explorar siguen bloqueados`() {
+        look(explore, at = 0)
+        look(viewer, at = 100)
+        assertThat(ruleOf(look(commentsIg, at = 200))).isEqualTo("reels_viewer")
+    }
+
+    @Test
+    fun `los comentarios en la pestaña Reels siguen bloqueados`() {
+        look(reelsTab, at = 0)
+        assertThat(ruleOf(look(commentsIg, at = 100))).isEqualTo("reels_tab")
+    }
+
+    @Test
+    fun `los comentarios de un post de Inicio quedan libres`() {
+        look(feed, at = 0)
+        assertThat(look(commentsIg, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `los comentarios sin haber visto nada antes quedan libres`() {
+        assertThat(look(commentsIg, at = 0)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `los comentarios de un reel de un perfil quedan libres aunque se pase de reel`() {
+        look(profile, at = 0)
+        look(viewer, at = 100)
+        assertThat(look(commentsIg, at = 200)).isEqualTo(BlockDecision.Free(null))
+        assertThat(look(viewer, at = 300, scrollAt = 5_000)).isEqualTo(BlockDecision.Free(null))
+        assertThat(look(commentsIg, at = 5_100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `los comentarios de un reel de Inicio quedan libres antes de pasar de reel`() {
+        look(feed, at = 0)
+        look(viewer, at = 100)
+        assertThat(look(commentsIg, at = 200)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `los comentarios de Para ti siguen bloqueados y salen a Siguiendo`() {
+        look(home("Para ti"), at = 0)
+        val decision = look(commentsTt, at = 100)
+        assertThat(ruleOf(decision)).isEqualTo("for_you_tab")
+        assertThat(exitOf(decision)).isEqualTo(followingExit)
+    }
+
+    @Test
+    fun `una pantalla vacia mientras se abren los comentarios no quita la regla`() {
+        look(home("Para ti"), at = 0)
+        assertThat(ruleOf(look(ScreenSnapshot(TT, emptyList()), at = 100))).isEqualTo("for_you_tab")
+        assertThat(ruleOf(look(commentsTt, at = 200))).isEqualTo("for_you_tab")
+    }
+
+    @Test
+    fun `una pantalla vacia sin regla anterior queda libre`() {
+        assertThat(look(ScreenSnapshot(TT, emptyList()), at = 0)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `los comentarios de Comunidad siguen bloqueados`() {
+        look(home("Comunidad"), at = 0)
+        assertThat(ruleOf(look(commentsTt, at = 100))).isEqualTo("community_tab")
+    }
+
+    @Test
+    fun `los comentarios de Siguiendo quedan libres`() {
+        look(home("Siguiendo"), at = 0)
+        assertThat(look(commentsTt, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `los comentarios de una app no heredan la regla de la otra`() {
+        look(reelsTab, at = 0)
+        assertThat(look(commentsTt, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `al cerrar los comentarios sobre una zona libre no se bloquea`() {
+        look(home("Para ti"), at = 0)
+        look(commentsTt, at = 100)
+        assertThat(look(home("Siguiendo"), at = 200)).isEqualTo(BlockDecision.Free(null))
+        assertThat(look(commentsTt, at = 300)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `con un desbloqueo los comentarios quedan libres`() {
+        look(viewer, at = 0)
+        val now = time.now()
+        val unlock =
+            UnlockSession(
+                packageName = IG,
+                minutes = 5,
+                startWallMs = now.wallMs - 60_000,
+                startElapsedMs = now.elapsedMs - 60_000,
+                bootCount = now.bootCount,
+            )
+        budget = BudgetState(limitMinutes = 10, usedMinutes = 5, unlock = unlock)
+        assertThat(
+            look(commentsIg, at = 100),
+        ).isEqualTo(BlockDecision.Free(BudgetPolicy.unlockRemainingMs(unlock, now)))
+    }
+
+    @Test
+    fun `abrir los comentarios no reinicia la confirmacion`() {
+        assertThat(confirmed(viewer, at = 0)).isFalse()
+        assertThat(confirmed(commentsIg, at = ShowConfirmation.CONFIRM_MS)).isTrue()
     }
 
     // Desbloqueo

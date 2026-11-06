@@ -29,6 +29,7 @@ class BlockPolicyTest {
             description = "Pestaña",
             match = Match(allOf = listOf(Condition("video_tab", selected = true))),
             action = Action.Click("home_tab"),
+            coveredBy = Match(allOf = listOf(Condition("sheet"))),
         )
 
     private val viewerRule =
@@ -47,6 +48,7 @@ class BlockPolicyTest {
             description = "Otra app",
             match = Match(allOf = listOf(Condition("feed"))),
             action = Action.Back,
+            coveredBy = Match(allOf = listOf(Condition("sheet"))),
         )
 
     private val places =
@@ -98,7 +100,8 @@ class BlockPolicyTest {
         overlayShowing: Boolean = false,
         nowMs: Long = NOW,
         leftAtMs: Long = NOW - 10_000,
-    ) = BlockPolicy.decide(engine, snapshot, origin, scrolled, budget, time, overlayShowing, nowMs, leftAtMs)
+        held: Rule? = null,
+    ) = BlockPolicy.decide(engine, snapshot, origin, scrolled, budget, time, overlayShowing, nowMs, leftAtMs, held)
 
     // Decisión
 
@@ -123,8 +126,15 @@ class BlockPolicyTest {
 
     @Test
     fun `justo antes de acabar el enfriamiento no cambia nada`() {
-        // Fallo conocido: Keep no programa otra mirada; si la app no emite eventos, la pausa no vuelve.
         assertThat(decide(tab, leftAtMs = NOW - (LEAVE_COOLDOWN_MS - 1))).isEqualTo(BlockDecision.Keep)
+    }
+
+    @Test
+    fun `lo que queda de enfriamiento`() {
+        assertThat(BlockPolicy.cooldownRemainingMs(nowMs = 5_000, leftAtMs = 5_000)).isEqualTo(LEAVE_COOLDOWN_MS)
+        assertThat(BlockPolicy.cooldownRemainingMs(nowMs = 5_999, leftAtMs = 5_000)).isEqualTo(1)
+        assertThat(BlockPolicy.cooldownRemainingMs(nowMs = 6_000, leftAtMs = 5_000)).isEqualTo(0)
+        assertThat(BlockPolicy.cooldownRemainingMs(nowMs = 0, leftAtMs = Long.MIN_VALUE / 2)).isEqualTo(0)
     }
 
     @Test
@@ -136,6 +146,49 @@ class BlockPolicyTest {
     fun `sin haber salido nunca bloquea sin desbordar`() {
         val decision = decide(tab, nowMs = 0, leftAtMs = Long.MIN_VALUE / 2)
         assertThat(decision).isInstanceOf(BlockDecision.Block::class.java)
+    }
+
+    // Hoja encima
+
+    private val sheet = snapshot(ViewNode("sheet"))
+
+    @Test
+    fun `la hoja sobre una regla que casaba bloquea`() {
+        assertThat(decide(sheet, held = tabRule)).isEqualTo(BlockDecision.Block(tabRule, "$APP/tab"))
+    }
+
+    @Test
+    fun `la hoja sin regla anterior queda libre`() {
+        assertThat(decide(sheet, held = null)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `la hoja con un desbloqueo queda libre`() {
+        val decision = decide(sheet, held = tabRule, budget = unlocked(APP, agoMs = 1_000))
+        assertThat(decision).isInstanceOf(BlockDecision.Free::class.java)
+    }
+
+    @Test
+    fun `la hoja de otra app no hereda la regla`() {
+        assertThat(decide(snapshot(ViewNode("sheet"), pkg = OTHER), held = tabRule)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `una hoja que no es la de la regla no la hereda`() {
+        assertThat(decide(snapshot(ViewNode("otra_hoja")), held = tabRule)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `la hoja con la pausa visible no cambia nada`() {
+        assertThat(decide(sheet, held = tabRule, overlayShowing = true)).isEqualTo(BlockDecision.Keep)
+    }
+
+    @Test
+    fun `solo se ve la hoja cuando no casa ninguna regla y la hoja cubre la retenida`() {
+        assertThat(BlockPolicy.isOverSheet(engine, sheet, null, false, held = tabRule)).isTrue()
+        assertThat(BlockPolicy.isOverSheet(engine, tab, null, false, held = tabRule)).isFalse()
+        assertThat(BlockPolicy.isOverSheet(engine, sheet, null, false, held = null)).isFalse()
+        assertThat(BlockPolicy.isOverSheet(engine, snapshot(ViewNode("otra")), null, false, held = tabRule)).isFalse()
     }
 
     // Desbloqueo

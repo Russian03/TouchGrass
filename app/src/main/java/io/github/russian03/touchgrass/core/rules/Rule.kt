@@ -28,6 +28,9 @@ data class Place(val id: String, val match: Match)
  * Zona bloqueada. Si se cumple [match], se tapa la pantalla; [action] es lo que se hace
  * cuando el usuario pulsa "Volver atrás". [allowFrom] la deja libre si el usuario llega
  * desde ciertos lugares, y [pager] es la vista paginada en la que se cuenta el scroll.
+ * [coveredBy] es una hoja que puede tapar la zona (p. ej. los comentarios, que al abrirse son
+ * lo único que se ve): si la regla casaba en la mirada anterior y ahora solo se ve esa hoja,
+ * sigue bloqueando. Por sí sola no bloquea.
  */
 @Serializable
 data class Rule(
@@ -37,6 +40,7 @@ data class Rule(
     val action: Action,
     val allowFrom: List<Allowance> = emptyList(),
     val pager: String? = null,
+    val coveredBy: Match? = null,
 )
 
 /** Permite la regla si se llega desde [place]; con [untilScroll], solo hasta pasar de página. */
