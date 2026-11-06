@@ -1,7 +1,8 @@
 name: Release
 
-# Al subir un tag de versión (v1.0.0, v1.1.0…) se compila la APK firmada y se adjunta a una
-# Release de GitHub. La clave viene de los secretos del repo y nunca se guarda en él.
+# Al subir un tag de versión (v1.0.0, v1.1.0…) se pasan el estilo, el lint y los tests y, solo si
+# pasan, se compila la APK firmada y se adjunta a una Release de GitHub. La clave viene de los
+# secretos del repo y nunca se guarda en él.
 on:
   push:
     tags: ["v*"]
@@ -25,6 +26,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
+      # Antes de tocar la clave: si algo falla, ni siquiera se decodifica.
+      - name: Lint y tests
+        run: ./gradlew ktlintCheck lintDebug testDebugUnitTest
+
       - name: Preparar la clave de firma
         env:
           KEYSTORE_BASE64: ${{ secrets.TOUCHGRASS_KEYSTORE_BASE64 }}
@@ -35,13 +40,13 @@ jobs:
           fi
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
 
-      - name: Tests y APK firmada
+      - name: APK firmada
         env:
           TOUCHGRASS_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
           TOUCHGRASS_KEYSTORE_PASSWORD: ${{ secrets.TOUCHGRASS_KEYSTORE_PASSWORD }}
           TOUCHGRASS_KEY_ALIAS: ${{ secrets.TOUCHGRASS_KEY_ALIAS }}
           TOUCHGRASS_KEY_PASSWORD: ${{ secrets.TOUCHGRASS_KEY_PASSWORD }}
-        run: ./gradlew testDebugUnitTest assembleRelease
+        run: ./gradlew assembleRelease
 
       - name: Comprobar la firma
         run: |
@@ -61,3 +66,10 @@ jobs:
       - name: Borrar la clave
         if: always()
         run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Subir informes
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reports
+          path: app/build/reports/
