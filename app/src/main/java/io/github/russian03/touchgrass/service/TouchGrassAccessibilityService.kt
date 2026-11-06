@@ -19,7 +19,9 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
-import io.github.russian03.touchgrass.core.budget.BudgetPolicy
+import io.github.russian03.touchgrass.core.blocking.BlockDecision
+import io.github.russian03.touchgrass.core.blocking.BlockExit
+import io.github.russian03.touchgrass.core.blocking.BlockPolicy
 import io.github.russian03.touchgrass.core.budget.BudgetState
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
@@ -254,34 +256,42 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         }
 
         val snapshot = SnapshotBuilder.build(root, engine.texts(root.packageName.toString()))
-        engine.place(snapshot)?.let(session::onPlace)
-        if (engine.pagers(snapshot.packageName).any { snapshot.has(it) }) {
-            session.onViewerShown(SystemClock.elapsedRealtime())
-        }
-
-        // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
-        val rule =
-            engine.evaluate(snapshot, session.origin, session.scrolled)
-                ?.takeUnless { unlocked(snapshot.packageName) }
         val now = SystemClock.elapsedRealtime()
-        when {
-            rule == null -> {
+        BlockPolicy.track(engine, session, snapshot, now)
+
+        val decision =
+            BlockPolicy.decide(
+                engine,
+                snapshot,
+                session.origin,
+                session.scrolled,
+                budgetState,
+                budget::now,
+                overlay.isShowing,
+                now,
+                leftAt,
+            )
+        when (decision) {
+            is BlockDecision.Free -> {
+                // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
+                decision.unlockRemainingMs?.let(::scheduleExpiry)
                 confirmation.reset()
                 overlay.hide()
             }
-            overlay.isShowing || now - leftAt < LEAVE_COOLDOWN_MS -> Unit
-            // Se vuelve a mirar en un momento: si sigue igual, entonces se pone.
-            !confirmation.onMatch("${snapshot.packageName}/${rule.id}", now) ->
-                scheduleEvaluation(confirmation.remainingMs(now))
-            else -> {
-                confirmation.reset()
-                val packageName = snapshot.packageName
-                overlay.show(
-                    onLeave = { leave(rule, packageName) },
-                    // Solo cuenta si ha llegado a aparecer del todo (no si se ha ido mientras aparecía).
-                    onSettled = { scope.launch { stats.recordBlock(packageName) } },
-                )
-            }
+            BlockDecision.Keep -> Unit
+            is BlockDecision.Block ->
+                // Se vuelve a mirar en un momento: si sigue igual, entonces se pone.
+                if (!confirmation.onMatch(decision.confirmationKey, now)) {
+                    scheduleEvaluation(confirmation.remainingMs(now))
+                } else {
+                    confirmation.reset()
+                    val packageName = snapshot.packageName
+                    overlay.show(
+                        onLeave = { leave(decision.rule, packageName) },
+                        // Solo cuenta si ha llegado a aparecer del todo (no si se ha ido mientras aparecía).
+                        onSettled = { scope.launch { stats.recordBlock(packageName) } },
+                    )
+                }
         }
 
         // Mientras se ve la pantalla se sigue mirando la de debajo: así se quita al salir de
@@ -289,32 +299,32 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         if (overlay.isShowing) handler.postDelayed(evaluateRunnable, OVERLAY_POLL_MS)
     }
 
-    /**
-     * Si [packageName] tiene un desbloqueo en marcha. Si lo tiene, deja programada otra
-     * evaluación para el momento en que caduca.
-     */
-    private fun unlocked(packageName: String): Boolean {
-        val state = budgetState ?: return false
-        val now = budget.now()
-        val unlock = BudgetPolicy.activeUnlock(state, now)?.takeIf { it.packageName == packageName } ?: return false
+    /** Deja programada otra evaluación para cuando caduque el desbloqueo al que le quedan [remainingMs]. */
+    private fun scheduleExpiry(remainingMs: Long) {
         handler.removeCallbacks(expiryRunnable)
-        handler.postDelayed(expiryRunnable, BudgetPolicy.unlockRemainingMs(unlock, now) + EXPIRY_MARGIN_MS)
-        return true
+        handler.postDelayed(expiryRunnable, remainingMs + EXPIRY_MARGIN_MS)
     }
 
     /** Saca al usuario de la zona bloqueada cuando lo pide desde la pantalla de bloqueo. */
     private fun leave(rule: Rule, packageName: String) {
         leftAt = SystemClock.elapsedRealtime()
         val root = rootInActiveWindow
-        when (val action = rule.action) {
-            Action.Back -> performGlobalAction(GLOBAL_ACTION_BACK)
-            // Si no encuentra a dónde ir, al menos vuelve atrás.
-            is Action.Click ->
+        // Si no encuentra a dónde ir, al menos vuelve atrás.
+        BlockExit.perform(
+            rule.action,
+            click = { action ->
                 root?.let { clickTarget(it, action) }
-                    ?.clickableSelfOrParent()
-                    ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true ||
-                    performGlobalAction(GLOBAL_ACTION_BACK)
-        }
+                    ?.let { node ->
+                        BlockExit.clickableSelfOrParent(
+                            node,
+                            parent = { it.parent },
+                            isClickable = { it.isClickable },
+                        )
+                    }
+                    ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
+            },
+            back = { performGlobalAction(GLOBAL_ACTION_BACK) },
+        )
         scope.launch { stats.recordLeave(packageName) }
     }
 
@@ -323,29 +333,23 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         val target = action.target
         if (target != null) {
             return root.findAccessibilityNodeInfosByViewId(SnapshotBuilder.resourceName("${root.packageName}", target))
-                .firstOrNull { action.text.isEmpty() || it.text?.toString() in action.text }
+                .firstOrNull { BlockExit.matchesById(action, it.text?.toString()) }
         }
         // La búsqueda por texto también encuentra vistas que solo lo contienen: se exige que sea igual.
         return action.text.asSequence()
             .flatMap { text -> root.findAccessibilityNodeInfosByText(text).asSequence().map { text to it } }
             .firstOrNull { (text, node) ->
-                node.text?.toString() == text || node.contentDescription?.toString() == text
+                BlockExit.matchesText(text, node.text?.toString(), node.contentDescription?.toString())
             }
             ?.second
     }
 
-    /** La propia vista o el primer padre que se puede pulsar (en TikTok el texto de la pestaña no lo es). */
-    private fun AccessibilityNodeInfo.clickableSelfOrParent(): AccessibilityNodeInfo? =
-        generateSequence(this) { it.parent }.take(MAX_CLICK_ANCESTORS).firstOrNull { it.isClickable }
-
     private companion object {
         const val DEBOUNCE_MS = 150L
         const val MAX_WAIT_MS = 300L
-        const val LEAVE_COOLDOWN_MS = 1_000L
         const val OVERLAY_POLL_MS = 200L
         const val CLICK_SETTLE_MS = 50L
         const val EXPIRY_MARGIN_MS = 100L
-        const val MAX_CLICK_ANCESTORS = 4
         const val UNBIND_SAVE_TIMEOUT_MS = 1_000L
 
         // Lo que usaba el aviso del resumen del mes de versiones anteriores, para borrarlo.
