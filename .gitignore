@@ -35,3 +35,15 @@ desktop.ini
 
 # Material de diseño solo local: referencias de terceros
 design/referencias/
+
+# Claves y certificados: NUNCA al repo (es público)
+*.pem
+*.p12
+*.pfx
+*.p8
+*.key
+
+# Documentación de trabajo (moc y Claude): modelo de amenazas, registro de
+# fallos y notas internas. NO se publica
+.moc/
+.claude/
