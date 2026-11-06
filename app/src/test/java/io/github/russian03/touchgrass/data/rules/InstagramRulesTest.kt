@@ -33,6 +33,24 @@ class InstagramRulesTest {
     private val viewer =
         screen("clips_viewer_view_pager", "clips_video_container", "clips_author_username", "gesture_manager")
 
+    /** Hoja de comentarios (Instagram 454.0.0.54.77): lo único que se ve; el reel de debajo no aparece. */
+    private val commentsSheet =
+        screen(
+            "bottom_sheet_container",
+            "comment_composer_parent_updated",
+            "layout_comment_thread_edittext_multiline",
+            "main_list_view",
+            "sticky_header_list",
+        )
+
+    @Test
+    fun `los comentarios por si solos no bloquean pero cubren la regla del reel`() {
+        assertThat(engine.evaluate(commentsSheet)).isNull()
+        val rule = engine.evaluate(viewer, origin = "explore")!!
+        assertThat(engine.covers(commentsSheet, rule)).isTrue()
+        assertThat(engine.covers(commentsSheet, engine.evaluate(screen(*tabs, selected = "clips_tab"))!!)).isTrue()
+    }
+
     @Test
     fun `feed de inicio permitido`() {
         val s = screen(*tabs, "row_feed_profile_header", "reels_tray_container", selected = "feed_tab")

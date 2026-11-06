@@ -67,6 +67,18 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private var launcher: String? = null
     private var leftAt = Long.MIN_VALUE / 2
 
+    /**
+     * Regla del último `Block`. Al abrir los comentarios el reel desaparece de lo que se lee y solo
+     * queda la hoja: con esta regla se sigue bloqueando. Se olvida con `Free`, al salir y al apagar.
+     */
+    private var heldRule: Rule? = null
+
+    /** Si en la última mirada solo se veía la hoja de comentarios sobre una zona bloqueada. */
+    private var sheetShown = false
+
+    /** Hay una salida pedida que aún no se ha hecho (ver [leave]). */
+    private var leavePending = false
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         engine = RuleEngine(ruleRepository.load())
@@ -116,6 +128,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                         handler.removeCallbacks(evaluateRunnable)
                         pendingSince = null
                         confirmation.reset()
+                        heldRule = null
                         overlay.hideKeepingSilence()
                     }
                     // Encendido sin pedir desbloqueo (p. ej. con retardo de bloqueo), o desbloqueado:
@@ -160,6 +173,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         handler.removeCallbacks(evaluateRunnable)
         pendingSince = null
         confirmation.reset()
+        heldRule = null
         leftAt = SystemClock.elapsedRealtime()
         overlay.hide()
     }
@@ -243,6 +257,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         // periódica lo detecta incluso antes de que llegue el aviso de pantalla apagada.
         if (!power.isInteractive || keyguard.isKeyguardLocked) {
             confirmation.reset()
+            heldRule = null
             if (overlay.isShowing) overlay.hideKeepingSilence()
             return
         }
@@ -251,11 +266,13 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         if (root.packageName?.toString() !in engine.packages) {
             // Solo recibimos eventos de Instagram: si el usuario se ha ido, la pantalla no debe quedarse.
             confirmation.reset()
+            heldRule = null
             overlay.hide()
             return
         }
 
-        val snapshot = SnapshotBuilder.build(root, engine.texts(root.packageName.toString()))
+        val packageName = root.packageName.toString()
+        val snapshot = SnapshotBuilder.build(root, engine.texts(packageName))
         val now = SystemClock.elapsedRealtime()
         BlockPolicy.track(engine, session, snapshot, now)
 
@@ -270,28 +287,35 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                 overlay.isShowing,
                 now,
                 leftAt,
+                heldRule,
             )
+        sheetShown = BlockPolicy.isOverSheet(engine, snapshot, session.origin, session.scrolled, heldRule)
         when (decision) {
             is BlockDecision.Free -> {
                 // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
                 decision.unlockRemainingMs?.let(::scheduleExpiry)
                 confirmation.reset()
+                heldRule = null
                 overlay.hide()
             }
-            BlockDecision.Keep -> Unit
-            is BlockDecision.Block ->
+            BlockDecision.Keep ->
+                // Tras «Volver atrás» con los comentarios abiertos el reel sigue delante y la app puede
+                // no mandar eventos: se vuelve a mirar cuando acabe el enfriamiento.
+                if (!overlay.isShowing) scheduleEvaluation(BlockPolicy.cooldownRemainingMs(now, leftAt))
+            is BlockDecision.Block -> {
+                heldRule = decision.rule
                 // Se vuelve a mirar en un momento: si sigue igual, entonces se pone.
                 if (!confirmation.onMatch(decision.confirmationKey, now)) {
                     scheduleEvaluation(confirmation.remainingMs(now))
                 } else {
                     confirmation.reset()
-                    val packageName = snapshot.packageName
                     overlay.show(
                         onLeave = { leave(decision.rule, packageName) },
                         // Solo cuenta si ha llegado a aparecer del todo (no si se ha ido mientras aparecía).
                         onSettled = { scope.launch { stats.recordBlock(packageName) } },
                     )
                 }
+            }
         }
 
         // Mientras se ve la pantalla se sigue mirando la de debajo: así se quita al salir de
@@ -305,9 +329,64 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         handler.postDelayed(expiryRunnable, remainingMs + EXPIRY_MARGIN_MS)
     }
 
-    /** Saca al usuario de la zona bloqueada cuando lo pide desde la pantalla de bloqueo. */
+    /**
+     * Saca al usuario de la zona bloqueada cuando lo pide desde la pantalla de bloqueo. Con los
+     * comentarios abiertos, el primer atrás solo los cierra y el reel sigue delante: se cierran y,
+     * un momento después, se hace la salida normal sobre lo que queda (un solo toque basta).
+     *
+     * La acción se hace un instante DESPUÉS: la pausa aún tiene el foco y un atrás lo recibiría
+     * ella misma (su botón atrás vuelve a llamar aquí) en lugar de la app. Se ignora una salida
+     * mientras hay otra pendiente.
+     */
     private fun leave(rule: Rule, packageName: String) {
+        if (leavePending) return
+        leavePending = true
         leftAt = SystemClock.elapsedRealtime()
+        heldRule = null
+        // Se usa lo visto en la última mirada: leer la pantalla aquí retrasaría quitar la pausa.
+        val sheetOpen = sheetShown
+        sheetShown = false
+        handler.postDelayed(
+            {
+                leavePending = false
+                leftAt = SystemClock.elapsedRealtime()
+                if (sheetOpen) {
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                    exitWhenSheetClosed(rule, packageName, startedAt = SystemClock.elapsedRealtime())
+                } else {
+                    exit(rule)
+                }
+            },
+            FOCUS_RELEASE_MS,
+        )
+        scope.launch { stats.recordLeave(packageName) }
+    }
+
+    /**
+     * Hace la salida normal cuando la hoja ya se ha cerrado, no a ciegas: un atrás durante su
+     * cierre se perdería y el usuario se quedaría en el reel. Mira cada [SHEET_POLL_MS] tras un
+     * mínimo de [SHEET_CLOSE_MS] y, como tope, sale pasados [SHEET_CLOSE_MAX_MS].
+     */
+    private fun exitWhenSheetClosed(rule: Rule, packageName: String, startedAt: Long, first: Boolean = true) {
+        val delay = if (first) SHEET_CLOSE_MS else SHEET_POLL_MS
+        handler.postDelayed(
+            {
+                val elapsed = SystemClock.elapsedRealtime() - startedAt
+                val closed =
+                    rootInActiveWindow
+                        ?.let { !engine.covers(SnapshotBuilder.build(it, engine.texts(packageName)), rule) } == true
+                if (closed || elapsed >= SHEET_CLOSE_MAX_MS) {
+                    leftAt = SystemClock.elapsedRealtime()
+                    exit(rule)
+                } else {
+                    exitWhenSheetClosed(rule, packageName, startedAt, first = false)
+                }
+            },
+            delay,
+        )
+    }
+
+    private fun exit(rule: Rule) {
         val root = rootInActiveWindow
         // Si no encuentra a dónde ir, al menos vuelve atrás.
         BlockExit.perform(
@@ -325,7 +404,6 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             },
             back = { performGlobalAction(GLOBAL_ACTION_BACK) },
         )
-        scope.launch { stats.recordLeave(packageName) }
     }
 
     /** Vista que pulsar para [action]: por identificador o, sin él, por texto o descripción exactos. */
@@ -348,6 +426,16 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val DEBOUNCE_MS = 150L
         const val MAX_WAIT_MS = 300L
         const val OVERLAY_POLL_MS = 200L
+
+        /** Mínimo que se espera tras el atrás que cierra la hoja de comentarios, antes de mirar si ya se cerró. */
+        const val SHEET_CLOSE_MS = 200L
+
+        /** Cada cuánto se mira si la hoja ya se cerró, y lo máximo que se espera. */
+        const val SHEET_POLL_MS = 50L
+        const val SHEET_CLOSE_MAX_MS = 600L
+
+        /** Lo que tarda la pausa en soltar el foco al quitarse, antes de hacer la salida. */
+        const val FOCUS_RELEASE_MS = 80L
         const val CLICK_SETTLE_MS = 50L
         const val EXPIRY_MARGIN_MS = 100L
         const val UNBIND_SAVE_TIMEOUT_MS = 1_000L

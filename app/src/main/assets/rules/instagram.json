@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "packageName": "com.instagram.android",
   "name": "Instagram",
   "blocks": "Reels",
@@ -21,7 +21,8 @@
       "match": {
         "allOf": [{ "viewId": "clips_tab", "selected": true }]
       },
-      "action": { "type": "click", "target": "feed_tab" }
+      "action": { "type": "click", "target": "feed_tab" },
+      "coveredBy": { "allOf": [{ "viewId": "bottom_sheet_container" }] }
     },
     {
       "id": "reels_viewer",
@@ -31,6 +32,7 @@
       },
       "action": { "type": "back" },
       "pager": "clips_viewer_view_pager",
+      "coveredBy": { "allOf": [{ "viewId": "bottom_sheet_container" }] },
       "allowFrom": [
         { "place": "profile" },
         { "place": "chat", "untilScroll": true },

@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 5,
   "packageName": "com.zhiliaoapp.musically",
   "name": "TikTok",
   "blocks": "Para ti y Comunidad",
@@ -10,7 +10,8 @@
       "match": {
         "allOf": [{ "viewId": "android:id/text1", "selected": true, "text": ["Para ti", "For You"] }]
       },
-      "action": { "type": "click", "target": "android:id/text1", "text": ["Siguiendo", "Following"] }
+      "action": { "type": "click", "target": "android:id/text1", "text": ["Siguiendo", "Following"] },
+      "coveredBy": { "allOf": [{ "viewId": "ek4" }, { "viewId": "btm" }] }
     },
     {
       "id": "community_tab",
@@ -18,7 +19,8 @@
       "match": {
         "allOf": [{ "viewId": "android:id/text1", "selected": true, "text": ["Comunidad"] }]
       },
-      "action": { "type": "click", "target": "android:id/text1", "text": ["Siguiendo", "Following"] }
+      "action": { "type": "click", "target": "android:id/text1", "text": ["Siguiendo", "Following"] },
+      "coveredBy": { "allOf": [{ "viewId": "ek4" }, { "viewId": "btm" }] }
     }
   ]
 }

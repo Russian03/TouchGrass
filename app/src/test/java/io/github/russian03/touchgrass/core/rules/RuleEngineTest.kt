@@ -138,6 +138,47 @@ class RuleEngineTest {
     }
 
     @Test
+    fun `una regla sin hoja que la tape nunca queda cubierta`() {
+        assertThat(engine.covers(snapshot(ViewNode("sheet")), reelsTab)).isFalse()
+    }
+
+    @Test
+    fun `la hoja de la regla la cubre solo en su app`() {
+        val covered = reelsTab.copy(coveredBy = Match(allOf = listOf(Condition("sheet"))))
+        val withSheet = RuleEngine(listOf(RuleSet(1, IG, listOf(covered))))
+
+        assertThat(withSheet.covers(snapshot(ViewNode("sheet")), covered)).isTrue()
+        assertThat(withSheet.covers(snapshot(ViewNode("otra")), covered)).isFalse()
+        assertThat(withSheet.covers(snapshot(ViewNode("sheet"), pkg = TT), covered)).isFalse()
+    }
+
+    @Test
+    fun `sin nada que leer una regla con hoja sigue cubierta pero una sin hoja no`() {
+        val covered = reelsTab.copy(coveredBy = Match(allOf = listOf(Condition("sheet"))))
+        val withSheet = RuleEngine(listOf(RuleSet(1, IG, listOf(covered, viewerFromPlaces))))
+
+        assertThat(withSheet.covers(snapshot(), covered)).isTrue()
+        assertThat(withSheet.covers(snapshot(), viewerFromPlaces)).isFalse()
+    }
+
+    @Test
+    fun `una hoja por si sola no bloquea`() {
+        val covered = reelsTab.copy(coveredBy = Match(allOf = listOf(Condition("sheet"))))
+        val withSheet = RuleEngine(listOf(RuleSet(1, IG, listOf(covered))))
+
+        assertThat(withSheet.evaluate(snapshot(ViewNode("sheet")))).isNull()
+    }
+
+    @Test
+    fun `la hoja que tapa una regla no mete textos nuevos`() {
+        val covered = reelsTab.copy(coveredBy = Match(allOf = listOf(Condition("sheet", text = listOf("Comentarios")))))
+        val withSheet = RuleEngine(listOf(RuleSet(1, IG, listOf(covered))))
+
+        assertThat(withSheet.texts(IG)).containsExactly("sheet", setOf("Comentarios"))
+        assertThat(engine.texts(IG)).isEmpty()
+    }
+
+    @Test
     fun `una regla sin condiciones no se puede crear`() {
         assertThrows(IllegalArgumentException::class.java) { Match(allOf = emptyList()) }
     }

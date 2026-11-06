@@ -1,6 +1,9 @@
 package io.github.russian03.touchgrass.data.rules
 
 import com.google.common.truth.Truth.assertThat
+import io.github.russian03.touchgrass.core.rules.RuleEngine
+import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
+import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import java.io.File
 import org.junit.Test
 
@@ -23,6 +26,21 @@ class RuleFilesTest {
             assertThat(set.places.map { it.id }).containsNoDuplicates()
             val placeIds = set.places.map { it.id }
             set.rules.flatMap { it.allowFrom }.forEach { assertThat(placeIds).contains(it.place) }
+        }
+    }
+
+    @Test
+    fun `la hoja que tapa una zona no bloquea por si sola`() {
+        // Capturas de zonas libres (Instagram 454, TikTok 47.7.3): ninguna hoja `coveredBy` casa sin la regla.
+        val engines = listOf("instagram", "tiktok").map { RuleRepository.parse(File(rulesDir, "$it.json").readText()) }
+        engines.forEach { set ->
+            val engine = RuleEngine(listOf(set))
+            val covering = set.rules.mapNotNull { it.coveredBy }
+            assertThat(covering).isNotEmpty()
+            covering.forEach { match ->
+                val sheet = ScreenSnapshot(set.packageName, match.allOf.map { ViewNode(it.viewId) })
+                assertThat(engine.evaluate(sheet)).isNull()
+            }
         }
     }
 
