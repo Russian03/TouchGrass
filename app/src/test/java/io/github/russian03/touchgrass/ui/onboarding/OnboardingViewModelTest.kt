@@ -2,49 +2,34 @@ package io.github.russian03.touchgrass.ui.onboarding
 
 import com.google.common.truth.Truth.assertThat
 import io.github.russian03.touchgrass.testing.FakeTime
+import io.github.russian03.touchgrass.testing.RealMainRule
 import io.github.russian03.touchgrass.testing.testProfile
 import io.github.russian03.touchgrass.testing.testRepository
 import java.io.File
-import java.util.concurrent.Executors
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.rules.TemporaryFolder
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest {
 
-    @get:Rule val folder = TemporaryFolder()
+    private val folder = TemporaryFolder()
 
     // DataStore escribe en hilos de verdad, así que la prueba usa tiempo real, no virtual.
-    private val main = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    private val io = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val mainRule = RealMainRule()
 
-    @Before fun setUp() = Dispatchers.setMain(main)
-
-    @After fun tearDown() {
-        io.cancel()
-        Dispatchers.resetMain()
-        main.close()
-    }
+    // La carpeta se borra después de cancelar io.
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(folder).around(mainRule)
+    private val io get() = mainRule.io
 
     private val profile by lazy { testProfile(File(folder.root, "profile.json"), io) }
 
     private fun viewModel() =
-        OnboardingViewModel(testRepository(File(folder.root, "budget.json"), io, FakeTime()), profile)
+        mainRule.track(OnboardingViewModel(testRepository(File(folder.root, "budget.json"), io, FakeTime()), profile))
 
     @Test
     fun `aceptar el aviso guarda el consentimiento`() = runBlocking {
