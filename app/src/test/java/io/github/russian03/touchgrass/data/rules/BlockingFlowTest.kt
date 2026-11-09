@@ -61,12 +61,14 @@ class BlockingFlowTest {
         when (decision) {
             is BlockDecision.Block -> held = decision.rule
             is BlockDecision.Free -> held = null
-            BlockDecision.Keep -> Unit
+            BlockDecision.Keep, is BlockDecision.SilentBack -> Unit
         }
         return decision
     }
 
     private fun ruleOf(decision: BlockDecision) = (decision as BlockDecision.Block).rule.id
+
+    private fun silentRuleOf(decision: BlockDecision) = (decision as BlockDecision.SilentBack).rule.id
 
     private fun exitOf(decision: BlockDecision) = (decision as BlockDecision.Block).rule.action
 
@@ -186,6 +188,157 @@ class BlockingFlowTest {
         look(profile, at = 0)
         look(home("Para ti"), at = 100)
         assertThat(look(viewer, at = 200, scrollAt = 5_000)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    // Instagram, mantener pulsado en Buscar
+
+    /** Vista previa de un reel en Buscar (Instagram 454.0.0.54.77): cuadrícula, pestañas y ids propios. */
+    private val peek =
+        screen(
+            *tabs,
+            "media_group",
+            "music_attribution_label_marquee",
+            "row_feed_profile_header",
+            "row_feed_photo_profile_name",
+            "explore_action_bar_right_button_stub",
+            "grid_card_layout_container",
+            "recycler_view",
+            selected = "search_tab",
+        )
+
+    private val peekOverProfile =
+        screen("media_group", "row_feed_profile_header", "profile_viewpager", "profile_tab_layout")
+
+    @Test
+    fun `mantener pulsado un reel en Buscar pide un atras silencioso sin pausa`() {
+        look(explore, at = 0)
+        val decision = look(peek, at = 100)
+        assertThat(decision).isNotInstanceOf(BlockDecision.Block::class.java)
+        assertThat(silentRuleOf(decision)).isEqualTo("explore_peek")
+    }
+
+    @Test
+    fun `al soltar la vista previa la cuadricula queda libre`() {
+        look(explore, at = 0)
+        look(peek, at = 100)
+        assertThat(look(explore, at = 200)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `tocar el reel tras la vista previa sigue bloqueado`() {
+        look(explore, at = 0)
+        look(peek, at = 100)
+        look(explore, at = 200)
+        assertThat(ruleOf(look(viewer, at = 300))).isEqualTo("reels_viewer")
+    }
+
+    @Test
+    fun `mantener pulsado en un perfil queda libre`() {
+        look(profile, at = 0)
+        assertThat(look(peekOverProfile, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `con un desbloqueo la vista previa queda libre`() {
+        look(explore, at = 0)
+        val now = time.now()
+        val unlock =
+            UnlockSession(
+                packageName = IG,
+                minutes = 5,
+                startWallMs = now.wallMs - 60_000,
+                startElapsedMs = now.elapsedMs - 60_000,
+                bootCount = now.bootCount,
+            )
+        budget = BudgetState(limitMinutes = 10, usedMinutes = 5, unlock = unlock)
+        assertThat(look(peek, at = 100)).isEqualTo(BlockDecision.Free(BudgetPolicy.unlockRemainingMs(unlock, now)))
+    }
+
+    /** Ids reales capturados en el móvil (Instagram 454.0.0.54.77); `*` marca el seleccionado. */
+    private fun captured(ids: String) = ScreenSnapshot(
+        IG,
+        ids.split(",").map { ViewNode(it.removeSuffix("*"), selected = it.endsWith("*")) },
+    )
+
+    private val realGrid = captured(
+        "profile_tab,search_tab*,direct_tab,clips_tab,feed_tab,swipeable_tab_view_pager,recycler_view," +
+            "layout_container," +
+            "image_preview,grid_card_layout_container,image_button,grid_card_layout_container,image_button",
+    )
+
+    private val realPeek = captured(
+        "media_group,indicator_container,music_attribution_label_marquee,row_feed_profile_header,secondary_label," +
+            "row_feed_photo_profile_name,profile_tab,search_tab*,direct_tab,clips_tab,feed_tab," +
+            "swipeable_tab_view_pager," +
+            "recycler_view,layout_container,image_preview,grid_card_layout_container,image_button",
+    )
+
+    /** Menú contextual que queda al soltar (snapshot real de accesibilidad: sin `context_menu` ni pestañas). */
+    private val realMenu =
+        captured(
+            "context_menu_options_list," +
+                "context_menu_item,context_menu_item_label,context_menu_item,context_menu_item_label," +
+                "context_menu_item,context_menu_item_label,context_menu_item,context_menu_item_label," +
+                "context_menu_item,context_menu_item_label",
+        )
+
+    @Test
+    fun `la secuencia real cuadricula vista previa menu bloquea la vista previa`() {
+        look(realGrid, at = 0)
+        assertThat(silentRuleOf(look(realPeek, at = 100))).isEqualTo("explore_peek")
+        assertThat(silentRuleOf(look(realPeek, at = 700))).isEqualTo("explore_peek")
+        assertThat(silentRuleOf(look(realMenu, at = 800))).isEqualTo("explore_menu")
+    }
+
+    @Test
+    fun `la vista previa y el menu tambien piden atras silencioso con el dedo o sin el`() {
+        look(realGrid, at = 0)
+        assertThat(look(realPeek, at = 100)).isInstanceOf(BlockDecision.SilentBack::class.java)
+        assertThat(look(realMenu, at = 800)).isInstanceOf(BlockDecision.SilentBack::class.java)
+    }
+
+    @Test
+    fun `la pausa del visor sigue siendo una pausa normal`() {
+        val decision = look(viewer, at = 100)
+        assertThat(ruleOf(decision)).isEqualTo("reels_viewer")
+        assertThat((decision as BlockDecision.Block).rule.silentBack).isFalse()
+    }
+
+    @Test
+    fun `el atras silencioso se pide aunque ya hubiera una pausa o una salida reciente`() {
+        look(realGrid, at = 0)
+        val decision =
+            BlockPolicy.decide(
+                engine, realPeek, session.origin, session.scrolled, budget, time,
+                overlayShowing = true, nowMs = 100, leftAtMs = Long.MIN_VALUE / 2,
+            )
+        assertThat(decision).isInstanceOf(BlockDecision.SilentBack::class.java)
+    }
+
+    @Test
+    fun `tras volver atras desde una pausa no se pide un atras silencioso durante el enfriamiento`() {
+        look(realGrid, at = 0)
+        val decision =
+            BlockPolicy.decide(
+                engine, realPeek, session.origin, session.scrolled, budget, time,
+                overlayShowing = false, nowMs = 100, leftAtMs = 0,
+            )
+        assertThat(decision).isEqualTo(BlockDecision.Keep)
+    }
+
+    @Test
+    fun `el menu contextual fuera de Buscar queda libre`() {
+        listOf(feed, profile, saved, chat, inbox).forEach { place ->
+            look(place, at = 0)
+            assertThat(look(realMenu, at = 100)).isEqualTo(BlockDecision.Free(null))
+        }
+    }
+
+    @Test
+    fun `el atras de la vista previa se confirma como el resto`() {
+        look(explore, at = 0)
+        assertThat(confirmed(peek, at = 0)).isFalse()
+        assertThat(confirmed(peek, at = ShowConfirmation.CONFIRM_MS)).isTrue()
     }
 
     // TikTok
@@ -401,8 +554,13 @@ class BlockingFlowTest {
 
     /** Si la pausa se pondría tras la mirada a [snapshot] a las [at]. */
     private fun confirmed(snapshot: ScreenSnapshot, at: Long): Boolean {
-        val decision = look(snapshot, at) as BlockDecision.Block
-        return confirmation.onMatch(decision.confirmationKey, at)
+        val key =
+            when (val decision = look(snapshot, at)) {
+                is BlockDecision.Block -> decision.confirmationKey
+                is BlockDecision.SilentBack -> decision.confirmationKey
+                else -> error("no hay nada que confirmar: $decision")
+            }
+        return confirmation.onMatch(key, at)
     }
 
     @Test

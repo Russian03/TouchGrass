@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 12,
   "packageName": "com.instagram.android",
   "name": "Instagram",
   "blocks": "Reels",
@@ -38,6 +38,32 @@
         { "place": "chat", "untilScroll": true },
         { "place": "feed", "untilScroll": true },
         { "place": "saved", "untilScroll": true }
+      ]
+    },
+    {
+      "id": "explore_peek",
+      "description": "Vista previa al mantener pulsado en Buscar",
+      "match": {
+        "allOf": [{ "viewId": "search_tab", "selected": true }, { "viewId": "media_group" }]
+      },
+      "action": { "type": "back" },
+      "silentBack": true,
+      "allowFrom": [{ "place": "profile" }, { "place": "saved" }]
+    },
+    {
+      "id": "explore_menu",
+      "description": "Menú contextual que queda tras soltar la vista previa de Buscar (solo si se viene de Buscar)",
+      "match": {
+        "allOf": [{ "viewId": "context_menu_options_list" }]
+      },
+      "action": { "type": "back" },
+      "silentBack": true,
+      "allowFrom": [
+        { "place": "profile" },
+        { "place": "saved" },
+        { "place": "chat" },
+        { "place": "feed" },
+        { "place": "inbox" }
       ]
     }
   ]

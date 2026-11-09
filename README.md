@@ -34,6 +34,7 @@ yourself. When they run out, the pause comes back.
   *Community* tabs. Everything else stays free.
   Leaving the pause on TikTok takes you to *Following*.
   Opening the comments doesn't get you past the pause.
+  Holding a reel in Search doesn't let you watch it either.
 - **Smart exceptions.** A reel opened from a profile, a chat, your feed or your saved posts
   plays normally. From a chat, your feed or your saved posts, swiping to the next reel brings
   the pause.

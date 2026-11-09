@@ -48,7 +48,7 @@ class RuleFilesTest {
     fun `instagram bloquea la pestaña y el visor de Reels`() {
         val set = RuleRepository.parse(File(rulesDir, "instagram.json").readText())
         assertThat(set.packageName).isEqualTo("com.instagram.android")
-        assertThat(set.rules.map { it.id }).containsAtLeast("reels_tab", "reels_viewer")
+        assertThat(set.rules.map { it.id }).containsAtLeast("reels_tab", "reels_viewer", "explore_peek")
     }
 
     @Test
@@ -56,5 +56,22 @@ class RuleFilesTest {
         val set = RuleRepository.parse(File(rulesDir, "tiktok.json").readText())
         assertThat(set.packageName).isEqualTo("com.zhiliaoapp.musically")
         assertThat(set.rules.map { it.id }).containsAtLeast("for_you_tab", "community_tab")
+    }
+
+    @Test
+    fun `solo la vista previa y el menu de Buscar hacen atras silencioso`() {
+        val instagram = RuleRepository.parse(File(rulesDir, "instagram.json").readText())
+        val tiktok = RuleRepository.parse(File(rulesDir, "tiktok.json").readText())
+        val silent = instagram.rules.filter { it.silentBack }.map { it.id }
+        assertThat(silent).containsExactly("explore_peek", "explore_menu")
+        assertThat(tiktok.rules.filter { it.silentBack }).isEmpty()
+    }
+
+    @Test
+    fun `una regla sin silentBack no hace atras silencioso`() {
+        val json =
+            """{"version":1,"packageName":"p","rules":[{"id":"r","description":"d",""" +
+                """"match":{"allOf":[{"viewId":"v"}]},"action":{"type":"back"}}]}"""
+        assertThat(RuleRepository.parse(json).rules.single().silentBack).isFalse()
     }
 }
