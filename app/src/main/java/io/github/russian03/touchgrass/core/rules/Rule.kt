@@ -30,7 +30,9 @@ data class Place(val id: String, val match: Match)
  * desde ciertos lugares, y [pager] es la vista paginada en la que se cuenta el scroll.
  * [coveredBy] es una hoja que puede tapar la zona (p. ej. los comentarios, que al abrirse son
  * lo único que se ve): si la regla casaba en la mirada anterior y ahora solo se ve esa hoja,
- * sigue bloqueando. Por sí sola no bloquea.
+ * sigue bloqueando. Por sí sola no bloquea. Con [silentBack] no se muestra
+ * pausa: el servicio cierra lo que haya abierto con un atrás silencioso (la vista previa al
+ * mantener pulsado, o su menú).
  */
 @Serializable
 data class Rule(
@@ -41,6 +43,7 @@ data class Rule(
     val allowFrom: List<Allowance> = emptyList(),
     val pager: String? = null,
     val coveredBy: Match? = null,
+    val silentBack: Boolean = false,
 )
 
 /** Permite la regla si se llega desde [place]; con [untilScroll], solo hasta pasar de página. */

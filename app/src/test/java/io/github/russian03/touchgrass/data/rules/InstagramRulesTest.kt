@@ -33,6 +33,62 @@ class InstagramRulesTest {
     private val viewer =
         screen("clips_viewer_view_pager", "clips_video_container", "clips_author_username", "gesture_manager")
 
+    /**
+     * Vista previa al mantener pulsado un reel en Buscar (Instagram 454.0.0.54.77): la cuadrícula
+     * y las pestañas siguen en el árbol y se suman los ids propios de la vista previa.
+     */
+    private val peekIds =
+        arrayOf(
+            "media_group",
+            "indicator_container",
+            "music_attribution_label_marquee",
+            "row_feed_profile_header",
+            "secondary_label",
+            "row_feed_photo_profile_name",
+        )
+
+    private val peekOverExplore =
+        screen(
+            *peekIds,
+            *tabs,
+            "explore_action_bar_right_button_stub",
+            "explore_action_bar_secondary_button_stub",
+            "action_bar_search_edit_text",
+            "recycler_view",
+            "grid_card_layout_container",
+            "image_button",
+            selected = "search_tab",
+        )
+
+    /** Igual, pero con una foto o post en la vista previa. */
+    private val photoPeekOverExplore =
+        screen(
+            "media_group",
+            "row_feed_profile_header",
+            "row_feed_photo_profile_name",
+            "row_feed_photo_imageview",
+            *tabs,
+            "explore_action_bar_right_button_stub",
+            "recycler_view",
+            "grid_card_layout_container",
+            "image_button",
+            selected = "search_tab",
+        )
+
+    /** Perfil abierto desde Buscar (la pestaña sigue seleccionada) con la vista previa encima. */
+    private val peekOverProfile =
+        screen(
+            *peekIds,
+            *tabs,
+            "profile_viewpager",
+            "profile_tab_layout",
+            "clips_grid_recyclerview",
+            selected = "search_tab",
+        )
+
+    private val peekOverSaved =
+        screen(*peekIds, "action_bar_button_back", "saved_tab_layout", "saved_view_pager", "recycler_view")
+
     /** Hoja de comentarios (Instagram 454.0.0.54.77): lo único que se ve; el reel de debajo no aparece. */
     private val commentsSheet =
         screen(
@@ -49,6 +105,39 @@ class InstagramRulesTest {
         val rule = engine.evaluate(viewer, origin = "explore")!!
         assertThat(engine.covers(commentsSheet, rule)).isTrue()
         assertThat(engine.covers(commentsSheet, engine.evaluate(screen(*tabs, selected = "clips_tab"))!!)).isTrue()
+    }
+
+    @Test
+    fun `mantener pulsado un reel en Buscar bloqueado`() {
+        assertThat(engine.evaluate(peekOverExplore, origin = "explore")?.id).isEqualTo("explore_peek")
+    }
+
+    @Test
+    fun `mantener pulsado un post en Buscar bloqueado`() {
+        assertThat(engine.evaluate(photoPeekOverExplore, origin = "explore")?.id).isEqualTo("explore_peek")
+    }
+
+    @Test
+    fun `mantener pulsado en un perfil permitido`() {
+        assertThat(engine.place(peekOverProfile)).isEqualTo("profile")
+        assertThat(engine.evaluate(peekOverProfile, origin = "profile")).isNull()
+    }
+
+    @Test
+    fun `mantener pulsado en Guardados permitido`() {
+        assertThat(engine.place(peekOverSaved)).isEqualTo("saved")
+        assertThat(engine.evaluate(peekOverSaved, origin = "saved")).isNull()
+    }
+
+    @Test
+    fun `la vista previa no cambia el lugar`() {
+        assertThat(engine.place(peekOverExplore)).isEqualTo(engine.place(explore))
+    }
+
+    @Test
+    fun `un post normal de Inicio con ids parecidos no bloquea`() {
+        val post = screen(*tabs, *peekIds, "row_feed_photo_imageview", selected = "feed_tab")
+        assertThat(engine.evaluate(post, origin = "feed")).isNull()
     }
 
     @Test

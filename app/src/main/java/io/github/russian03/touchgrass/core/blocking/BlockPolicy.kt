@@ -22,6 +22,12 @@ sealed interface BlockDecision {
 
     /** [rule] bloquea: ponerla tras confirmarla en dos miradas con [confirmationKey]. */
     data class Block(val rule: Rule, val confirmationKey: String) : BlockDecision
+
+    /**
+     * [rule] (con `silentBack`) casa: tras confirmarla en dos miradas con [confirmationKey], hacer
+     * un atrás sin mostrar ninguna pausa ni contar nada en las estadísticas.
+     */
+    data class SilentBack(val rule: Rule, val confirmationKey: String) : BlockDecision
 }
 
 /** Cuándo se pone la pantalla de bloqueo sobre lo que se ve de una app vigilada. */
@@ -66,8 +72,13 @@ object BlockPolicy {
                 ?: return BlockDecision.Free()
         // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
         unlockRemainingMs(budget, snapshot.packageName, time)?.let { return BlockDecision.Free(it) }
+        val key = "${snapshot.packageName}/${rule.id}"
+        // El atrás silencioso no pone pausa: solo espera si se acaba de salir.
+        if (rule.silentBack) {
+            return if (nowMs - leftAtMs < LEAVE_COOLDOWN_MS) BlockDecision.Keep else BlockDecision.SilentBack(rule, key)
+        }
         if (overlayShowing || nowMs - leftAtMs < LEAVE_COOLDOWN_MS) return BlockDecision.Keep
-        return BlockDecision.Block(rule, "${snapshot.packageName}/${rule.id}")
+        return BlockDecision.Block(rule, key)
     }
 
     /**

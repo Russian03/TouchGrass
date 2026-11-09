@@ -22,6 +22,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.russian03.touchgrass.core.blocking.BlockDecision
 import io.github.russian03.touchgrass.core.blocking.BlockExit
 import io.github.russian03.touchgrass.core.blocking.BlockPolicy
+import io.github.russian03.touchgrass.core.blocking.SilentBackGuard
 import io.github.russian03.touchgrass.core.budget.BudgetState
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
@@ -78,6 +79,9 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     /** Hay una salida pedida que aún no se ha hecho (ver [leave]). */
     private var leavePending = false
+
+    /** Límite del atrás silencioso (ver [silentBack]). */
+    private val silentBackGuard = SilentBackGuard()
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -296,6 +300,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                 decision.unlockRemainingMs?.let(::scheduleExpiry)
                 confirmation.reset()
                 heldRule = null
+                silentBackGuard.reset()
                 overlay.hide()
             }
             BlockDecision.Keep ->
@@ -316,11 +321,34 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                     )
                 }
             }
+            is BlockDecision.SilentBack -> silentBack(decision, now)
         }
 
         // Mientras se ve la pantalla se sigue mirando la de debajo: así se quita al salir de
         // Instagram o al hacer atrás, aunque el sistema no nos avise con ningún evento.
         if (overlay.isShowing) handler.postDelayed(evaluateRunnable, OVERLAY_POLL_MS)
+    }
+
+    /**
+     * Regla `silentBack` (vista previa o menú de Buscar): sin pausa, un atrás que cierra lo que
+     * haya abierto, tanto si el dedo sigue abajo como si ya soltó. Se hace solo si la regla sigue
+     * casando en una segunda mirada (la confirmación: si el usuario soltó y ya se ve la
+     * cuadrícula, no hay atrás, que lo sacaría de Buscar). [silentBackGuard] evita el bucle si la
+     * app no se cierra. No cuenta en las estadísticas.
+     */
+    private fun silentBack(decision: BlockDecision.SilentBack, now: Long) {
+        // Otra pausa o una salida pendiente tienen prioridad: no se mezcla un atrás con ellas.
+        if (overlay.isShowing || leavePending) return
+        if (!confirmation.onMatch(decision.confirmationKey, now)) {
+            scheduleEvaluation(confirmation.remainingMs(now))
+            return
+        }
+        confirmation.reset()
+        if (silentBackGuard.tryAcquire(now)) {
+            performGlobalAction(GLOBAL_ACTION_BACK)
+        }
+        // Si sigue igual tras el atrás, se vuelve a mirar cuando acabe el enfriamiento (hasta el tope).
+        if (!silentBackGuard.isExhausted) scheduleEvaluation(silentBackGuard.remainingMs(now))
     }
 
     /** Deja programada otra evaluación para cuando caduque el desbloqueo al que le quedan [remainingMs]. */
