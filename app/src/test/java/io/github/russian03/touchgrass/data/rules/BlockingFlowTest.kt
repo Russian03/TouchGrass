@@ -341,6 +341,84 @@ class BlockingFlowTest {
         assertThat(confirmed(peek, at = ShowConfirmation.CONFIRM_MS)).isTrue()
     }
 
+    // Instagram, Inicio: solo seguidos (ids reales, Instagram 454.0.0.54.77)
+
+    private val homeTop = "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab*,swipeable_tab_view_pager"
+
+    private val homeLoading =
+        captured("$homeTop,action_bar_title_view,title_text,action_bar_left_button,android:id/list,shimmer_content")
+
+    private val homeFollowed =
+        captured(
+            "$homeTop,android:id/list,row_feed_view_group_buttons,carousel_media_group,carousel_viewpager," +
+                "carousel_image_media_group,carousel_image,row_feed_profile_header,media_option_button," +
+                "row_feed_photo_profile_name,row_feed_photo_profile_imageview",
+        )
+
+    private val homeSuggested =
+        captured(
+            "$homeTop,android:id/list,row_feed_profile_header,media_option_button,inline_follow_button," +
+                "secondary_label,row_feed_photo_profile_name,row_feed_photo_profile_imageview,video_container," +
+                "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
+                "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like",
+        )
+
+    @Test
+    fun `un post sugerido en Inicio salta y sube a lo de seguidos`() {
+        val decision = look(homeSuggested, at = 0)
+        assertThat(ruleOf(decision)).isEqualTo("feed_suggested")
+        assertThat(exitOf(decision)).isEqualTo(Action.Click(target = "feed_tab", text = emptyList()))
+    }
+
+    @Test
+    fun `bajar de un post de seguido a uno sugerido salta`() {
+        assertThat(look(homeFollowed, at = 0)).isEqualTo(BlockDecision.Free(null))
+        assertThat(ruleOf(look(homeSuggested, at = 100))).isEqualTo("feed_suggested")
+    }
+
+    @Test
+    fun `el destino de la salida de Inicio no esta bloqueado`() {
+        assertThat(look(homeLoading, at = 0)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `con un desbloqueo Inicio con sugeridos queda libre`() {
+        look(homeFollowed, at = 0)
+        val now = time.now()
+        val unlock =
+            UnlockSession(
+                packageName = IG,
+                minutes = 5,
+                startWallMs = now.wallMs - 60_000,
+                startElapsedMs = now.elapsedMs - 60_000,
+                bootCount = now.bootCount,
+            )
+        budget = BudgetState(limitMinutes = 10, usedMinutes = 5, unlock = unlock)
+        assertThat(look(homeSuggested, at = 100))
+            .isEqualTo(BlockDecision.Free(BudgetPolicy.unlockRemainingMs(unlock, now)))
+    }
+
+    @Test
+    fun `los comentarios de un post sugerido siguen bloqueados`() {
+        look(homeSuggested, at = 0)
+        assertThat(ruleOf(look(commentsIg, at = 100))).isEqualTo("feed_suggested")
+    }
+
+    @Test
+    fun `los comentarios de un post de seguido quedan libres`() {
+        look(homeFollowed, at = 0)
+        assertThat(look(commentsIg, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `un reel abierto desde Inicio sigue libre hasta pasar de reel`() = assertFreeUntilScroll(homeFollowed)
+
+    @Test
+    fun `Inicio con sugeridos se confirma como el resto`() {
+        assertThat(confirmed(homeSuggested, at = 0)).isFalse()
+        assertThat(confirmed(homeSuggested, at = ShowConfirmation.CONFIRM_MS)).isTrue()
+    }
+
     // TikTok
 
     @Test

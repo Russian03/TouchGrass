@@ -99,6 +99,99 @@ class InstagramRulesTest {
             "sticky_header_list",
         )
 
+    /** Ids reales de Inicio (Instagram 454.0.0.54.77); `*` marca el seleccionado. */
+    private fun captured(ids: String) = ScreenSnapshot(
+        IG,
+        ids.split(",").map { ViewNode(it.removeSuffix("*"), selected = it.endsWith("*")) },
+    )
+
+    private val homeTop = "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab*,swipeable_tab_view_pager"
+
+    /** Inicio, arriba del todo tras pulsar la pestaña (el feed se recarga): sin ningún post todavía. */
+    private val homeLoading =
+        captured("$homeTop,action_bar_title_view,title_text,action_bar_left_button,android:id/list,shimmer_content")
+
+    /** Post de alguien que sigues: cabecera sin botón «Seguir». */
+    private val homeFollowed =
+        captured(
+            "$homeTop,android:id/list,row_feed_view_group_buttons,carousel_media_group,carousel_viewpager," +
+                "carousel_image_media_group,carousel_image,row_feed_profile_header,media_option_button," +
+                "row_feed_photo_profile_name,row_feed_photo_profile_imageview",
+        )
+
+    /** Post sugerido mezclado entre seguidos: la cabecera lleva `inline_follow_button` («Seguir»). */
+    private val homeSuggested =
+        captured(
+            "$homeTop,android:id/list,row_feed_profile_header,media_option_button,inline_follow_button," +
+                "secondary_label,row_feed_photo_profile_name,row_feed_photo_profile_imageview,video_container," +
+                "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
+                "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like",
+        )
+
+    /** Mitad de un post sugerido: la cabecera ya no se ve, pero el botón «Seguir» sigue en pantalla. */
+    private val homeSuggestedMiddle =
+        captured(
+            "$homeTop,android:id/list,inline_follow_button,row_feed_view_group_buttons,row_feed_button_save," +
+                "row_feed_button_share,row_feed_button_comment,row_feed_button_like,video_container,media_group",
+        )
+
+    /** Anuncio (`secondary_label` «Publicidad»): lleva el mismo botón «Seguir». */
+    private val homeAd =
+        captured(
+            "$homeTop,android:id/list,row_feed_profile_header,media_option_button,inline_follow_button," +
+                "secondary_label,row_feed_photo_profile_name,row_feed_photo_profile_imageview,video_container," +
+                "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
+                "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like,carousel_media_group," +
+                "carousel_viewpager,carousel_image_media_group,carousel_image",
+        )
+
+    /** Perfil (`profile_viewpager`, de otras capturas) con Inicio seleccionado debajo y el botón «Seguir». */
+    private val profileFromHome =
+        captured("$homeTop,profile_viewpager,profile_tab_layout,clips_grid_recyclerview,inline_follow_button")
+
+    @Test
+    fun `un post sugerido en Inicio bloqueado`() {
+        assertThat(engine.evaluate(homeSuggested, origin = "feed")?.id).isEqualTo("feed_suggested")
+    }
+
+    @Test
+    fun `un post sugerido sin su cabecera en pantalla sigue bloqueado`() {
+        assertThat(engine.evaluate(homeSuggestedMiddle, origin = "feed")?.id).isEqualTo("feed_suggested")
+    }
+
+    @Test
+    fun `un anuncio en Inicio bloqueado`() {
+        assertThat(engine.evaluate(homeAd, origin = "feed")?.id).isEqualTo("feed_suggested")
+    }
+
+    @Test
+    fun `Inicio con solo seguidos permitido`() {
+        assertThat(engine.evaluate(homeFollowed, origin = "feed")).isNull()
+        assertThat(engine.evaluate(homeLoading, origin = "feed")).isNull()
+    }
+
+    @Test
+    fun `el perfil de alguien que no sigues abierto desde Inicio permitido`() {
+        assertThat(engine.evaluate(profileFromHome, origin = "feed")).isNull()
+    }
+
+    @Test
+    fun `un reel abierto desde Inicio no lo bloquea la regla de sugeridos`() {
+        val viewerOverHome = captured("$homeTop,clips_viewer_view_pager,clips_video_container,inline_follow_button")
+        assertThat(engine.evaluate(viewerOverHome, origin = "feed", scrolled = false)).isNull()
+    }
+
+    @Test
+    fun `Inicio sigue siendo el lugar feed`() {
+        assertThat(engine.place(homeSuggested)).isEqualTo("feed")
+    }
+
+    @Test
+    fun `el boton Seguir fuera de Inicio no bloquea`() {
+        val followOutsideHome = captured("profile_tab,search_tab*,direct_tab,clips_tab,feed_tab,inline_follow_button")
+        assertThat(engine.evaluate(followOutsideHome, origin = "explore")).isNull()
+    }
+
     @Test
     fun `los comentarios por si solos no bloquean pero cubren la regla del reel`() {
         assertThat(engine.evaluate(commentsSheet)).isNull()

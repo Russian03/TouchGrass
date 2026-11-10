@@ -48,7 +48,11 @@ class RuleFilesTest {
     fun `instagram bloquea la pestaña y el visor de Reels`() {
         val set = RuleRepository.parse(File(rulesDir, "instagram.json").readText())
         assertThat(set.packageName).isEqualTo("com.instagram.android")
-        assertThat(set.rules.map { it.id }).containsAtLeast("reels_tab", "reels_viewer", "explore_peek")
+        assertThat(
+            set.rules.map {
+                it.id
+            },
+        ).containsAtLeast("reels_tab", "reels_viewer", "explore_peek", "feed_suggested")
     }
 
     @Test

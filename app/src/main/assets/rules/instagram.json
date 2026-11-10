@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "packageName": "com.instagram.android",
   "name": "Instagram",
   "blocks": "Reels",
@@ -65,6 +65,16 @@
         { "place": "feed" },
         { "place": "inbox" }
       ]
+    },
+    {
+      "id": "feed_suggested",
+      "description": "Inicio con algo de gente que no sigues (posts, reels, anuncios o cuentas sugeridas)",
+      "match": {
+        "allOf": [{ "viewId": "feed_tab", "selected": true }, { "viewId": "inline_follow_button" }],
+        "noneOf": [{ "viewId": "clips_viewer_view_pager" }, { "viewId": "profile_viewpager" }]
+      },
+      "action": { "type": "click", "target": "feed_tab" },
+      "coveredBy": { "allOf": [{ "viewId": "bottom_sheet_container" }] }
     }
   ]
 }
