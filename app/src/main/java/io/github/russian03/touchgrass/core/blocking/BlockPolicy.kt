@@ -6,6 +6,7 @@ import io.github.russian03.touchgrass.core.budget.TimeSource
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
+import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 
 /** Lo que el servicio debe hacer con la pantalla de bloqueo tras mirar la de debajo. */
@@ -28,6 +29,12 @@ sealed interface BlockDecision {
      * un atrás sin mostrar ninguna pausa ni contar nada en las estadísticas.
      */
     data class SilentBack(val rule: Rule, val confirmationKey: String) : BlockDecision
+
+    /**
+     * [rule] (con `mask`) casa y hay posts que tapar: una capa sobre cada una de [zones], sin pausa,
+     * sin confirmar ni esperar al enfriamiento, y sin contar nada en las estadísticas.
+     */
+    data class Mask(val rule: Rule, val zones: List<Bounds>) : BlockDecision
 }
 
 /** Cuándo se pone la pantalla de bloqueo sobre lo que se ve de una app vigilada. */
@@ -53,6 +60,7 @@ object BlockPolicy {
      * [time] solo se consulta si una regla casa y hay saldo. [nowMs]/[leftAtMs] en elapsedRealtime.
      * [held] = regla del último `Block`: si ahora solo se ve la hoja que la tapa (los comentarios),
      * se sigue bloqueando con ella; sin regla anterior la hoja queda libre (comentarios de Inicio).
+     * [leadingMarked] = si el post que asoma por arriba, sin su cabecera, era de alguien que no sigues.
      */
     fun decide(
         engine: RuleEngine,
@@ -65,6 +73,7 @@ object BlockPolicy {
         nowMs: Long,
         leftAtMs: Long,
         held: Rule? = null,
+        leadingMarked: Boolean = false,
     ): BlockDecision {
         val rule =
             engine.evaluate(snapshot, origin, scrolled)
@@ -72,6 +81,11 @@ object BlockPolicy {
                 ?: return BlockDecision.Free()
         // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
         unlockRemainingMs(budget, snapshot.packageName, time)?.let { return BlockDecision.Free(it) }
+        // Con mask no hay pausa: solo se tapan los posts marcados (ninguno = libre).
+        rule.mask?.let {
+            val zones = PostMask.zones(snapshot.rows, snapshot.listBounds, leadingMarked)
+            return if (zones.isEmpty()) BlockDecision.Free() else BlockDecision.Mask(rule, zones)
+        }
         val key = "${snapshot.packageName}/${rule.id}"
         // El atrás silencioso no pone pausa: solo espera si se acaba de salir.
         if (rule.silentBack) {

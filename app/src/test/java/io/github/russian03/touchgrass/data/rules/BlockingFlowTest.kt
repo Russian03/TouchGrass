@@ -11,6 +11,8 @@ import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
+import io.github.russian03.touchgrass.core.snapshot.Bounds
+import io.github.russian03.touchgrass.core.snapshot.ListRow
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import io.github.russian03.touchgrass.service.ShowConfirmation
@@ -60,7 +62,7 @@ class BlockingFlowTest {
             )
         when (decision) {
             is BlockDecision.Block -> held = decision.rule
-            is BlockDecision.Free -> held = null
+            is BlockDecision.Free, is BlockDecision.Mask -> held = null
             BlockDecision.Keep, is BlockDecision.SilentBack -> Unit
         }
         return decision
@@ -348,12 +350,24 @@ class BlockingFlowTest {
     private val homeLoading =
         captured("$homeTop,action_bar_title_view,title_text,action_bar_left_button,android:id/list,shimmer_content")
 
+    /** Filas de la lista de Inicio (caso R2, Instagram 454.0.0.54.77): solo la cabecera lleva `header`. */
+    private fun rows(vararg rows: ListRow) = rows.toList()
+
+    private val homeList = Bounds(0, 118, 1220, 2504)
+
+    private fun row(top: Int, bottom: Int, header: Boolean = false, marked: Boolean = false) =
+        ListRow(Bounds(0, top, 1220, bottom), header, marked)
+
+    private fun ScreenSnapshot.withRows(rows: List<ListRow>) = copy(listBounds = homeList, rows = rows)
+
+    private fun zonesOf(decision: BlockDecision) = (decision as BlockDecision.Mask).zones
+
     private val homeFollowed =
         captured(
             "$homeTop,android:id/list,row_feed_view_group_buttons,carousel_media_group,carousel_viewpager," +
                 "carousel_image_media_group,carousel_image,row_feed_profile_header,media_option_button," +
                 "row_feed_photo_profile_name,row_feed_photo_profile_imageview",
-        )
+        ).withRows(rows(row(300, 469, header = true), row(469, 1300)))
 
     private val homeSuggested =
         captured(
@@ -361,19 +375,20 @@ class BlockingFlowTest {
                 "secondary_label,row_feed_photo_profile_name,row_feed_photo_profile_imageview,video_container," +
                 "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
                 "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like",
-        )
+        ).withRows(rows(row(300, 469, header = true), row(469, 1300, header = true, marked = true), row(1300, 2000)))
 
     @Test
-    fun `un post sugerido en Inicio salta y sube a lo de seguidos`() {
+    fun `un post sugerido en Inicio se tapa sin pausa`() {
         val decision = look(homeSuggested, at = 0)
-        assertThat(ruleOf(decision)).isEqualTo("feed_suggested")
-        assertThat(exitOf(decision)).isEqualTo(Action.Click(target = "feed_tab", text = emptyList()))
+
+        assertThat(decision).isInstanceOf(BlockDecision.Mask::class.java)
+        assertThat(zonesOf(decision)).containsExactly(Bounds(0, 469, 1220, 2000))
     }
 
     @Test
-    fun `bajar de un post de seguido a uno sugerido salta`() {
+    fun `bajar de un post de seguido a uno sugerido lo tapa`() {
         assertThat(look(homeFollowed, at = 0)).isEqualTo(BlockDecision.Free(null))
-        assertThat(ruleOf(look(homeSuggested, at = 100))).isEqualTo("feed_suggested")
+        assertThat(look(homeSuggested, at = 100)).isInstanceOf(BlockDecision.Mask::class.java)
     }
 
     @Test
@@ -399,9 +414,9 @@ class BlockingFlowTest {
     }
 
     @Test
-    fun `los comentarios de un post sugerido siguen bloqueados`() {
+    fun `los comentarios abiertos desde Inicio quedan libres`() {
         look(homeSuggested, at = 0)
-        assertThat(ruleOf(look(commentsIg, at = 100))).isEqualTo("feed_suggested")
+        assertThat(look(commentsIg, at = 100)).isEqualTo(BlockDecision.Free(null))
     }
 
     @Test
@@ -414,9 +429,14 @@ class BlockingFlowTest {
     fun `un reel abierto desde Inicio sigue libre hasta pasar de reel`() = assertFreeUntilScroll(homeFollowed)
 
     @Test
-    fun `Inicio con sugeridos se confirma como el resto`() {
-        assertThat(confirmed(homeSuggested, at = 0)).isFalse()
-        assertThat(confirmed(homeSuggested, at = ShowConfirmation.CONFIRM_MS)).isTrue()
+    fun `el tapado de Inicio no espera confirmacion`() {
+        assertThat(look(homeSuggested, at = 0)).isInstanceOf(BlockDecision.Mask::class.java)
+    }
+
+    @Test
+    fun `la pestaña Reels con sugeridos arriba no entra en bucle con la salida`() {
+        assertThat(ruleOf(look(reelsTab, at = 0))).isEqualTo("reels_tab")
+        assertThat(look(homeSuggested, at = 100)).isInstanceOf(BlockDecision.Mask::class.java)
     }
 
     // TikTok

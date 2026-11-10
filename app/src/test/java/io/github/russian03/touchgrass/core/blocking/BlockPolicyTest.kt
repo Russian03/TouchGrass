@@ -13,9 +13,12 @@ import io.github.russian03.touchgrass.core.rules.Allowance
 import io.github.russian03.touchgrass.core.rules.Condition
 import io.github.russian03.touchgrass.core.rules.Match
 import io.github.russian03.touchgrass.core.rules.Place
+import io.github.russian03.touchgrass.core.rules.PostMaskSpec
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.rules.RuleSet
+import io.github.russian03.touchgrass.core.snapshot.Bounds
+import io.github.russian03.touchgrass.core.snapshot.ListRow
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import io.github.russian03.touchgrass.testing.FakeTime
@@ -288,6 +291,70 @@ class BlockPolicyTest {
         BlockPolicy.track(engine, session, snapshot(ViewNode("feed"), pkg = OTHER), nowMs = 100)
         assertThat(session.origin).isEqualTo("profile")
         assertThat(decide(viewer, origin = session.origin, scrolled = true)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    // Regla con mask (tapar posts uno a uno, sin pausa)
+
+    private val maskRule =
+        Rule(
+            id = "suggested",
+            description = "Posts sugeridos",
+            match = Match(allOf = listOf(Condition("home_tab", selected = true), Condition("list"))),
+            action = Action.Click("home_tab"),
+            mask = PostMaskSpec(list = "list", header = "header", anchor = "follow"),
+        )
+
+    private val maskEngine = RuleEngine(listOf(RuleSet(1, APP, listOf(maskRule))))
+    private val feedList = Bounds(0, 118, 1220, 2504)
+    private val suggestedRows = listOf(ListRow(Bounds(0, 300, 1220, 1300), header = true, marked = true))
+    private val followedRows = listOf(ListRow(Bounds(0, 300, 1220, 1300), header = true, marked = false))
+
+    private fun homeWith(rows: List<ListRow>) =
+        ScreenSnapshot(APP, listOf(ViewNode("home_tab", selected = true), ViewNode("list")), feedList, rows)
+
+    private fun decideMask(
+        snapshot: ScreenSnapshot,
+        budget: BudgetState? = BudgetState(),
+        overlayShowing: Boolean = false,
+        leftAtMs: Long = NOW - 10_000,
+        leadingMarked: Boolean = false,
+    ) = BlockPolicy.decide(
+        maskEngine, snapshot, null, false, budget, time, overlayShowing, NOW, leftAtMs, leadingMarked = leadingMarked,
+    )
+
+    @Test
+    fun `una regla con mask da Mask con sus zonas`() {
+        val decision = decideMask(homeWith(suggestedRows))
+
+        assertThat(decision).isEqualTo(BlockDecision.Mask(maskRule, listOf(Bounds(0, 300, 1220, 1300))))
+    }
+
+    @Test
+    fun `una regla con mask sin zonas deja libre`() {
+        assertThat(decideMask(homeWith(followedRows))).isEqualTo(BlockDecision.Free(null))
+        assertThat(decideMask(homeWith(emptyList()))).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `con un desbloqueo de la app una regla con mask deja libre con lo que queda`() {
+        val budget = unlocked(APP, agoMs = 20_000)
+
+        assertThat(decideMask(homeWith(suggestedRows), budget = budget)).isEqualTo(BlockDecision.Free(40_000))
+    }
+
+    @Test
+    fun `una regla con mask no espera al enfriamiento ni a la pausa visible`() {
+        val decision = decideMask(homeWith(suggestedRows), overlayShowing = true, leftAtMs = NOW - 10)
+
+        assertThat(decision).isInstanceOf(BlockDecision.Mask::class.java)
+    }
+
+    @Test
+    fun `con el post de arriba sugerido la parte que queda a la vista se tapa`() {
+        val rows = listOf(ListRow(Bounds(0, 118, 1220, 480), header = false, marked = false))
+
+        assertThat(decideMask(homeWith(rows), leadingMarked = true))
+            .isEqualTo(BlockDecision.Mask(maskRule, listOf(Bounds(0, 118, 1220, 480))))
     }
 
     private companion object {

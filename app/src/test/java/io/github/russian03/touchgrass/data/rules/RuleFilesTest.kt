@@ -78,4 +78,31 @@ class RuleFilesTest {
                 """"match":{"allOf":[{"viewId":"v"}]},"action":{"type":"back"}}]}"""
         assertThat(RuleRepository.parse(json).rules.single().silentBack).isFalse()
     }
+
+    @Test
+    fun `una regla sin mask no tapa por posts`() {
+        val json =
+            """{"version":1,"packageName":"p","rules":[{"id":"r","description":"d",""" +
+                """"match":{"allOf":[{"viewId":"v"}]},"action":{"type":"back"}}]}"""
+        assertThat(RuleRepository.parse(json).rules.single().mask).isNull()
+    }
+
+    @Test
+    fun `solo feed_suggested tapa por posts`() {
+        val instagram = RuleRepository.parse(File(rulesDir, "instagram.json").readText())
+        val tiktok = RuleRepository.parse(File(rulesDir, "tiktok.json").readText())
+        assertThat(instagram.rules.filter { it.mask != null }.map { it.id }).containsExactly("feed_suggested")
+        assertThat(tiktok.rules.filter { it.mask != null }).isEmpty()
+    }
+
+    @Test
+    fun `feed_suggested no usa su salida`() {
+        val rule = RuleRepository.parse(File(rulesDir, "instagram.json").readText()).rules.single {
+            it.id ==
+                "feed_suggested"
+        }
+        assertThat(rule.mask).isNotNull()
+        assertThat(rule.silentBack).isFalse()
+        assertThat(rule.coveredBy).isNull()
+    }
 }

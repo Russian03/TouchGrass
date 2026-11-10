@@ -276,7 +276,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         }
 
         val packageName = root.packageName.toString()
-        val snapshot = SnapshotBuilder.build(root, engine.texts(packageName))
+        val snapshot = SnapshotBuilder.build(root, engine.texts(packageName), engine.masks(packageName))
         val now = SystemClock.elapsedRealtime()
         BlockPolicy.track(engine, session, snapshot, now)
 
@@ -298,6 +298,13 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             is BlockDecision.Free -> {
                 // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
                 decision.unlockRemainingMs?.let(::scheduleExpiry)
+                confirmation.reset()
+                heldRule = null
+                silentBackGuard.reset()
+                overlay.hide()
+            }
+            is BlockDecision.Mask -> {
+                // La capa llega en A3: por ahora Inicio se trata como libre (sin pausa ni caducidad).
                 confirmation.reset()
                 heldRule = null
                 silentBackGuard.reset()

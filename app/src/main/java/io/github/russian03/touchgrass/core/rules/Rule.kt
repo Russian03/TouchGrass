@@ -32,7 +32,8 @@ data class Place(val id: String, val match: Match)
  * lo único que se ve): si la regla casaba en la mirada anterior y ahora solo se ve esa hoja,
  * sigue bloqueando. Por sí sola no bloquea. Con [silentBack] no se muestra
  * pausa: el servicio cierra lo que haya abierto con un atrás silencioso (la vista previa al
- * mantener pulsado, o su menú).
+ * mantener pulsado, o su menú). Con [mask] no hay pausa ni salida (aunque [action] es obligatoria):
+ * se tapa solo cada post de la lista que lo pide (ver [PostMaskSpec]).
  */
 @Serializable
 data class Rule(
@@ -44,7 +45,15 @@ data class Rule(
     val pager: String? = null,
     val coveredBy: Match? = null,
     val silentBack: Boolean = false,
+    val mask: PostMaskSpec? = null,
 )
+
+/**
+ * Cómo leer los posts de una lista para taparlos uno a uno: [list] es el id de la lista, [header] el
+ * de la cabecera de cada post y [anchor] el de la vista que marca un post de quien no sigues.
+ */
+@Serializable
+data class PostMaskSpec(val list: String, val header: String, val anchor: String)
 
 /** Permite la regla si se llega desde [place]; con [untilScroll], solo hasta pasar de página. */
 @Serializable

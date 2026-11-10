@@ -29,6 +29,9 @@ class RuleEngine(ruleSets: List<RuleSet>) {
         .groupBy({ it.viewId }, { it.text })
         .mapValues { (_, lists) -> lists.flatten().toSet() }
 
+    /** Listas de posts que las reglas con `mask` piden leer en [packageName]; sin ellas no se leen posiciones. */
+    fun masks(packageName: String): List<PostMaskSpec> = rulesByPackage[packageName].orEmpty().mapNotNull { it.mask }
+
     /** Primer lugar que se reconoce en [snapshot], o `null` si no es ninguno. */
     fun place(snapshot: ScreenSnapshot): String? =
         placesByPackage[snapshot.packageName].orEmpty().firstOrNull { snapshot.satisfies(it.match) }?.id

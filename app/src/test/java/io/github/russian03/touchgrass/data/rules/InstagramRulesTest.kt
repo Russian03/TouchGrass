@@ -1,7 +1,10 @@
 package io.github.russian03.touchgrass.data.rules
 
 import com.google.common.truth.Truth.assertThat
+import io.github.russian03.touchgrass.core.blocking.PostMask
 import io.github.russian03.touchgrass.core.rules.RuleEngine
+import io.github.russian03.touchgrass.core.snapshot.Bounds
+import io.github.russian03.touchgrass.core.snapshot.ListRow
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import java.io.File
@@ -105,6 +108,17 @@ class InstagramRulesTest {
         ids.split(",").map { ViewNode(it.removeSuffix("*"), selected = it.endsWith("*")) },
     )
 
+    private val homeList = Bounds(0, 118, 1220, 2504)
+
+    private fun row(top: Int, bottom: Int, header: Boolean = false, marked: Boolean = false) =
+        ListRow(Bounds(0, top, 1220, bottom), header, marked)
+
+    /** Filas de la lista (caso R2, Instagram 454.0.0.54.77): solo la cabecera lleva `header`. */
+    private fun ScreenSnapshot.withRows(vararg rows: ListRow) = copy(listBounds = homeList, rows = rows.toList())
+
+    private fun zones(snapshot: ScreenSnapshot, leadingMarked: Boolean = false) =
+        PostMask.zones(snapshot.rows, snapshot.listBounds, leadingMarked)
+
     private val homeTop = "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab*,swipeable_tab_view_pager"
 
     /** Inicio, arriba del todo tras pulsar la pestaña (el feed se recarga): sin ningún post todavía. */
@@ -117,7 +131,7 @@ class InstagramRulesTest {
             "$homeTop,android:id/list,row_feed_view_group_buttons,carousel_media_group,carousel_viewpager," +
                 "carousel_image_media_group,carousel_image,row_feed_profile_header,media_option_button," +
                 "row_feed_photo_profile_name,row_feed_photo_profile_imageview",
-        )
+        ).withRows(row(300, 469, header = true), row(469, 1300))
 
     /** Post sugerido mezclado entre seguidos: la cabecera lleva `inline_follow_button` («Seguir»). */
     private val homeSuggested =
@@ -126,14 +140,14 @@ class InstagramRulesTest {
                 "secondary_label,row_feed_photo_profile_name,row_feed_photo_profile_imageview,video_container," +
                 "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
                 "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like",
-        )
+        ).withRows(row(300, 469, header = true), row(469, 800, header = true, marked = true), row(800, 1300))
 
     /** Mitad de un post sugerido: la cabecera ya no se ve, pero el botón «Seguir» sigue en pantalla. */
     private val homeSuggestedMiddle =
         captured(
             "$homeTop,android:id/list,inline_follow_button,row_feed_view_group_buttons,row_feed_button_save," +
                 "row_feed_button_share,row_feed_button_comment,row_feed_button_like,video_container,media_group",
-        )
+        ).withRows(row(118, 900), row(900, 1069, header = true))
 
     /** Anuncio (`secondary_label` «Publicidad»): lleva el mismo botón «Seguir». */
     private val homeAd =
@@ -143,31 +157,35 @@ class InstagramRulesTest {
                 "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
                 "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like,carousel_media_group," +
                 "carousel_viewpager,carousel_image_media_group,carousel_image",
-        )
+        ).withRows(row(300, 600, header = true, marked = true), row(600, 1300), row(1300, 1469, header = true))
 
     /** Perfil (`profile_viewpager`, de otras capturas) con Inicio seleccionado debajo y el botón «Seguir». */
     private val profileFromHome =
         captured("$homeTop,profile_viewpager,profile_tab_layout,clips_grid_recyclerview,inline_follow_button")
 
     @Test
-    fun `un post sugerido en Inicio bloqueado`() {
+    fun `un post sugerido en Inicio se tapa`() {
         assertThat(engine.evaluate(homeSuggested, origin = "feed")?.id).isEqualTo("feed_suggested")
+        assertThat(zones(homeSuggested)).containsExactly(Bounds(0, 469, 1220, 1300))
     }
 
     @Test
-    fun `un post sugerido sin su cabecera en pantalla sigue bloqueado`() {
+    fun `un post sugerido sin su cabecera en pantalla sigue tapado si se recuerda`() {
         assertThat(engine.evaluate(homeSuggestedMiddle, origin = "feed")?.id).isEqualTo("feed_suggested")
+        assertThat(zones(homeSuggestedMiddle)).isEmpty()
+        assertThat(zones(homeSuggestedMiddle, leadingMarked = true)).containsExactly(Bounds(0, 118, 1220, 900))
     }
 
     @Test
-    fun `un anuncio en Inicio bloqueado`() {
+    fun `un anuncio en Inicio se tapa`() {
         assertThat(engine.evaluate(homeAd, origin = "feed")?.id).isEqualTo("feed_suggested")
+        assertThat(zones(homeAd)).containsExactly(Bounds(0, 300, 1220, 1300))
     }
 
     @Test
-    fun `Inicio con solo seguidos permitido`() {
-        assertThat(engine.evaluate(homeFollowed, origin = "feed")).isNull()
-        assertThat(engine.evaluate(homeLoading, origin = "feed")).isNull()
+    fun `Inicio con solo seguidos no tapa nada`() {
+        assertThat(zones(homeFollowed)).isEmpty()
+        assertThat(zones(homeLoading)).isEmpty()
     }
 
     @Test

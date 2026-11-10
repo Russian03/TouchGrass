@@ -179,6 +179,21 @@ class RuleEngineTest {
     }
 
     @Test
+    fun `masks devuelve las listas y anclas de las reglas con mask`() {
+        val spec = PostMaskSpec(list = "list", header = "header", anchor = "follow")
+        val masked = reelsTab.copy(id = "masked", mask = spec)
+        val withMask = RuleEngine(listOf(RuleSet(1, IG, listOf(reelsTab, masked))))
+
+        assertThat(withMask.masks(IG)).containsExactly(spec)
+    }
+
+    @Test
+    fun `una app sin reglas con mask no lee posiciones`() {
+        assertThat(engine.masks(IG)).isEmpty()
+        assertThat(engine.masks("otra.app")).isEmpty()
+    }
+
+    @Test
     fun `una regla sin condiciones no se puede crear`() {
         assertThrows(IllegalArgumentException::class.java) { Match(allOf = emptyList()) }
     }
