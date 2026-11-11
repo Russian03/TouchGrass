@@ -11,6 +11,7 @@ import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
+import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import io.github.russian03.touchgrass.service.ShowConfirmation
@@ -60,7 +61,7 @@ class BlockingFlowTest {
             )
         when (decision) {
             is BlockDecision.Block -> held = decision.rule
-            is BlockDecision.Free -> held = null
+            is BlockDecision.Free, is BlockDecision.Cover -> held = null
             BlockDecision.Keep, is BlockDecision.SilentBack -> Unit
         }
         return decision
@@ -339,6 +340,129 @@ class BlockingFlowTest {
         look(explore, at = 0)
         assertThat(confirmed(peek, at = 0)).isFalse()
         assertThat(confirmed(peek, at = ShowConfirmation.CONFIRM_MS)).isTrue()
+    }
+
+    // Instagram, Inicio en «Para ti»: pantalla verde (ids y posiciones reales, Instagram 454.0.0.54.77, caso S1)
+
+    private val homeTop = "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab*,swipeable_tab_view_pager"
+
+    private val screenBounds = Bounds(0, 0, 1220, 2712)
+
+    private fun ScreenSnapshot.withPositions() = copy(
+        screen = screenBounds,
+        headerBottom = 300,
+        listTop = 118,
+        navLeft = 78,
+        navTop = 2491,
+        navBottom = 2647,
+        titleLeft = 156,
+        titleRight = 1064,
+    )
+
+    private fun zoneOf(decision: BlockDecision) = (decision as BlockDecision.Cover).zone
+
+    private val homeParaTi =
+        captured(
+            "$homeTop,action_bar_left_button,action_bar_title_view,title_text,android:id/list,outer_container," +
+                "avatar_image_view,row_feed_profile_header,row_feed_photo_profile_name,media_option_button",
+        ).withPositions()
+
+    /** «Siguiendo»: pantalla aparte, con flecha de volver y sin barra de navegación. */
+    private val homeFollowing =
+        captured(
+            "swipeable_tab_view_pager,android:id/list,action_bar_new_title_container,action_bar_button_back," +
+                "action_bar_title,video_container,row_feed_profile_header",
+        )
+
+    @Test
+    fun `Inicio en Para ti se cubre sin pausa`() {
+        val decision = look(homeParaTi, at = 0)
+
+        assertThat(decision).isInstanceOf(BlockDecision.Cover::class.java)
+        assertThat(zoneOf(decision)).isEqualTo(Bounds(0, 300, 1220, 2491))
+        assertThat((decision as BlockDecision.Cover).shields)
+            .containsExactly(Bounds(0, 0, 1220, 118), Bounds(156, 118, 1064, 300))
+            .inOrder()
+    }
+
+    @Test
+    fun `Inicio recien abierto sin pestaña marcada se cubre`() {
+        val cold =
+            captured(
+                "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab,swipeable_tab_view_pager," +
+                    "action_bar_left_button,action_bar_title_view,android:id/list,outer_container",
+            ).withPositions()
+
+        assertThat(look(cold, at = 0)).isInstanceOf(BlockDecision.Cover::class.java)
+    }
+
+    @Test
+    fun `Inicio en Siguiendo queda libre`() {
+        assertThat(look(homeFollowing, at = 0)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `pasar de Para ti a Siguiendo quita la capa`() {
+        assertThat(look(homeParaTi, at = 0)).isInstanceOf(BlockDecision.Cover::class.java)
+        assertThat(look(homeFollowing, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `volver de Siguiendo a Para ti vuelve a cubrir`() {
+        look(homeFollowing, at = 0)
+        assertThat(look(homeParaTi, at = 100)).isInstanceOf(BlockDecision.Cover::class.java)
+    }
+
+    @Test
+    fun `la capa no espera confirmacion`() {
+        assertThat(look(homeParaTi, at = 0)).isInstanceOf(BlockDecision.Cover::class.java)
+    }
+
+    @Test
+    fun `con un desbloqueo Inicio en Para ti queda libre`() {
+        look(homeFollowing, at = 0)
+        val now = time.now()
+        val unlock =
+            UnlockSession(
+                packageName = IG,
+                minutes = 5,
+                startWallMs = now.wallMs - 60_000,
+                startElapsedMs = now.elapsedMs - 60_000,
+                bootCount = now.bootCount,
+            )
+        budget = BudgetState(limitMinutes = 10, usedMinutes = 5, unlock = unlock)
+        assertThat(look(homeParaTi, at = 100))
+            .isEqualTo(BlockDecision.Free(BudgetPolicy.unlockRemainingMs(unlock, now)))
+    }
+
+    @Test
+    fun `los comentarios abiertos desde Inicio quedan libres`() {
+        look(homeParaTi, at = 0)
+        assertThat(look(commentsIg, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `una historia abierta desde Inicio queda libre`() {
+        val story =
+            captured("swipeable_tab_view_pager,reel_viewer_root,gesture_manager,message_composer_container")
+        look(homeParaTi, at = 0)
+        assertThat(look(story, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `el menu del selector de Inicio queda libre`() {
+        val menu = captured("context_menu_options_list,context_menu_item,context_menu_item_label")
+        look(homeParaTi, at = 0)
+        assertThat(look(menu, at = 100)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `un reel abierto desde Inicio sigue libre hasta pasar de reel`() = assertFreeUntilScroll(homeParaTi)
+
+    @Test
+    fun `la pestaña Reels con Inicio en Para ti no entra en bucle con la salida`() {
+        assertThat(ruleOf(look(reelsTab, at = 0))).isEqualTo("reels_tab")
+        assertThat(look(homeParaTi, at = 100)).isInstanceOf(BlockDecision.Cover::class.java)
     }
 
     // TikTok

@@ -48,7 +48,11 @@ class RuleFilesTest {
     fun `instagram bloquea la pestaña y el visor de Reels`() {
         val set = RuleRepository.parse(File(rulesDir, "instagram.json").readText())
         assertThat(set.packageName).isEqualTo("com.instagram.android")
-        assertThat(set.rules.map { it.id }).containsAtLeast("reels_tab", "reels_viewer", "explore_peek")
+        assertThat(
+            set.rules.map {
+                it.id
+            },
+        ).containsAtLeast("reels_tab", "reels_viewer", "explore_peek", "feed_cover")
     }
 
     @Test
@@ -73,5 +77,32 @@ class RuleFilesTest {
             """{"version":1,"packageName":"p","rules":[{"id":"r","description":"d",""" +
                 """"match":{"allOf":[{"viewId":"v"}]},"action":{"type":"back"}}]}"""
         assertThat(RuleRepository.parse(json).rules.single().silentBack).isFalse()
+    }
+
+    @Test
+    fun `una regla sin cover no tapa nada`() {
+        val json =
+            """{"version":1,"packageName":"p","rules":[{"id":"r","description":"d",""" +
+                """"match":{"allOf":[{"viewId":"v"}]},"action":{"type":"back"}}]}"""
+        assertThat(RuleRepository.parse(json).rules.single().cover).isNull()
+    }
+
+    @Test
+    fun `solo feed_cover tapa la pantalla`() {
+        val instagram = RuleRepository.parse(File(rulesDir, "instagram.json").readText())
+        val tiktok = RuleRepository.parse(File(rulesDir, "tiktok.json").readText())
+        assertThat(instagram.rules.filter { it.cover != null }.map { it.id }).containsExactly("feed_cover")
+        assertThat(tiktok.rules.filter { it.cover != null }).isEmpty()
+    }
+
+    @Test
+    fun `feed_cover no usa su salida`() {
+        val rule = RuleRepository.parse(File(rulesDir, "instagram.json").readText()).rules.single {
+            it.id ==
+                "feed_cover"
+        }
+        assertThat(rule.cover).isNotNull()
+        assertThat(rule.silentBack).isFalse()
+        assertThat(rule.coveredBy).isNull()
     }
 }

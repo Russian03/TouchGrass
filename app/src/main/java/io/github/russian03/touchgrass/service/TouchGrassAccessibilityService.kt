@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.service
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.AlarmManager
 import android.app.KeyguardManager
 import android.app.NotificationManager
@@ -11,17 +12,20 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.russian03.touchgrass.core.blocking.BlockDecision
 import io.github.russian03.touchgrass.core.blocking.BlockExit
 import io.github.russian03.touchgrass.core.blocking.BlockPolicy
+import io.github.russian03.touchgrass.core.blocking.FeedSwitch
 import io.github.russian03.touchgrass.core.blocking.SilentBackGuard
 import io.github.russian03.touchgrass.core.budget.BudgetState
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
@@ -31,7 +35,10 @@ import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleRepository
 import io.github.russian03.touchgrass.data.stats.StatsRepository
+import io.github.russian03.touchgrass.overlay.AudioSilencer
 import io.github.russian03.touchgrass.overlay.BlockOverlay
+import io.github.russian03.touchgrass.overlay.FeedCoverOverlay
+import io.github.russian03.touchgrass.overlay.openTouchGrass
 import javax.inject.Inject
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -50,12 +57,17 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     private lateinit var engine: RuleEngine
     private lateinit var overlay: BlockOverlay
+    private lateinit var feedCover: FeedCoverOverlay
     private val session = ViewerSession()
     private val keyguard by lazy { getSystemService(KeyguardManager::class.java) }
     private val power by lazy { getSystemService(PowerManager::class.java) }
     private val confirmation = ShowConfirmation()
     private val handler = Handler(Looper.getMainLooper())
     private val evaluateRunnable = Runnable { evaluateCurrentScreen() }
+
+    // Tras un cambio de pantalla el árbol de Instagram tarda un poco en actualizarse: se vuelve a mirar.
+    private val followUpRunnable = Runnable { evaluateCurrentScreen() }
+    private val followUpLateRunnable = Runnable { evaluateCurrentScreen() }
 
     // Al caducar un desbloqueo se vuelve a mirar la pantalla aunque Instagram no mande eventos.
     private val expiryRunnable = Runnable { scheduleEvaluation(0) }
@@ -83,14 +95,37 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     /** Límite del atrás silencioso (ver [silentBack]). */
     private val silentBackGuard = SilentBackGuard()
 
+    /** «Ir a Siguiendo» en dos pasos (ver [advanceFeedSwitch]). */
+    private val feedSwitch = FeedSwitch()
+    private val feedSwitchRunnable = Runnable { advanceFeedSwitch() }
+
+    /** Miradas seguidas sin ventana activa mientras hay capa (ver [evaluateCurrentScreen]). */
+    private var nullRoots = 0
+
+    /** El panel de notificaciones está abierto: la capa no debe verse encima (ver [checkShade]). */
+    private var shadeOpen = false
+    private val shadeRunnable = Runnable { checkShade() }
+    private var lastScrollBackAt = 0L
+    private var lastTabClickAt = 0L
+    private var feedBackTries = 0
+
+    private var lastEvalAt = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         engine = RuleEngine(ruleRepository.load())
-        overlay = BlockOverlay(this)
+        val silencer = AudioSilencer(this)
+        overlay = BlockOverlay(this, silencer)
+        feedCover = FeedCoverOverlay(this, silencer)
         launcher = defaultLauncher()
         // Además de Instagram se escucha al launcher, solo para saber al momento que el usuario
         // ha salido a Inicio o a Recientes: de su pantalla no se lee nada.
-        serviceInfo = serviceInfo.apply { packageNames = (engine.packages + listOfNotNull(launcher)).toTypedArray() }
+        serviceInfo =
+            serviceInfo.apply {
+                // Para saber si el panel de notificaciones está abierto aunque no sea la ventana activa.
+                flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                packageNames = (engine.packages + listOfNotNull(launcher, SYSTEM_UI)).toTypedArray()
+            }
         ContextCompat.registerReceiver(
             this,
             screenReceiver,
@@ -134,6 +169,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                         confirmation.reset()
                         heldRule = null
                         overlay.hideKeepingSilence()
+                        hideCover(keepSilence = true)
                     }
                     // Encendido sin pedir desbloqueo (p. ej. con retardo de bloqueo), o desbloqueado:
                     // si sigue el reel, la pantalla vuelve; si no, vuelve el sonido.
@@ -148,7 +184,25 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) onLeftApp()
             return
         }
+        if (packageName == SYSTEM_UI) {
+            // Panel de notificaciones o ajustes rápidos: de su pantalla no se lee nada, solo se mira de nuevo.
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+                ::feedCover.isInitialized &&
+                (feedCover.isShowing || shadeOpen)
+            ) {
+                checkShade()
+            }
+            return
+        }
         if (!::engine.isInitialized || packageName !in engine.packages) return
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED &&
+            !overlay.isShowing &&
+            isPauseTab(event, packageName!!)
+        ) {
+            // El usuario acaba de tocar una pestaña bloqueada (p. ej. Reels): el vídeo empieza a sonar ya, y
+            // la pausa tarda un momento. Se silencia al instante; si no resulta bloqueada, vuelve el sonido.
+            overlay.silenceEarly()
+        }
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED && overlay.isShowing) {
             // Solo llegan toques a la app mientras la pantalla aparece: el usuario se está yendo
             // (p. ej. a otra pestaña). Se mira enseguida para quitarla antes de que se vea más.
@@ -158,6 +212,36 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED && trackPager(event, packageName!!)) {
             // El usuario acaba de pasar al siguiente reel: no se espera a que la pantalla se calme.
             scheduleEvaluation(0)
+            return
+        }
+        if (feedCover.isShowing) {
+            // Con la capa puesta no se espera a que se calme: debe irse al momento al cambiar de pantalla.
+            when (event.eventType) {
+                // Un toque fuera de la capa (cabecera u otra pestaña): casi seguro se sale de «Para ti».
+                // Se quita ya y se mira otra vez cuando la pantalla haya cambiado. Tocar la pestaña de
+                // Inicio no sale de ahí: no se quita.
+                AccessibilityEvent.TYPE_VIEW_CLICKED ->
+                    if (!isCoverNav(event, packageName!!)) {
+                        hideCover()
+                        scheduleEvaluation(COVER_RECHECK_MS)
+                        return
+                    }
+            }
+            val sinceLast = SystemClock.elapsedRealtime() - lastEvalAt
+            scheduleEvaluation((COVER_EVAL_MIN_MS - sinceLast).coerceAtLeast(0))
+            return
+        }
+        if (event.eventType != AccessibilityEvent.TYPE_VIEW_SCROLLED && engine.coverSpecs(packageName!!).isNotEmpty()) {
+            // «Para ti» debe taparse al momento, sin esperar a que la pantalla se calme: si no, hay unos
+            // instantes en los que el feed se puede mover. La primera mirada tras un rato sin eventos es
+            // inmediata; con eventos seguidos, como mucho una cada LEADING_EVAL_MIN_MS.
+            val sinceLast = SystemClock.elapsedRealtime() - lastEvalAt
+            scheduleEvaluation((LEADING_EVAL_MIN_MS - sinceLast).coerceAtLeast(0))
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+                event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
+            ) {
+                scheduleFollowUps()
+            }
             return
         }
         // Instagram emite decenas de eventos por segundo: se evalúa cuando la pantalla se calma,
@@ -180,6 +264,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         heldRule = null
         leftAt = SystemClock.elapsedRealtime()
         overlay.hide()
+        hideCover()
     }
 
     /** App de inicio del móvil (la que también muestra Recientes), o `null` si no se encuentra. */
@@ -235,9 +320,14 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         scope.cancel()
         handler.removeCallbacks(evaluateRunnable)
         handler.removeCallbacks(expiryRunnable)
+        handler.removeCallbacks(feedSwitchRunnable)
+        handler.removeCallbacks(shadeRunnable)
+        handler.removeCallbacks(followUpRunnable)
+        handler.removeCallbacks(followUpLateRunnable)
         if (::overlay.isInitialized) {
             unregisterReceiver(screenReceiver)
             overlay.release()
+            feedCover.release()
         }
         super.onDestroy()
     }
@@ -256,6 +346,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     private fun evaluateCurrentScreen() {
         pendingSince = null
+        lastEvalAt = SystemClock.elapsedRealtime()
         // Con la pantalla apagada o el móvil bloqueado no se pone nada (taparía la pantalla de
         // bloqueo del móvil) y, si estaba puesta, se quita sin devolver el sonido. La mirada
         // periódica lo detecta incluso antes de que llegue el aviso de pantalla apagada.
@@ -263,20 +354,46 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             confirmation.reset()
             heldRule = null
             if (overlay.isShowing) overlay.hideKeepingSilence()
+            hideCover(keepSilence = true)
+            return
+        }
+        if (shadeOpen) {
+            // Con el panel de notificaciones abierto no hay capa (ni se vuelve a poner por encima), pero el
+            // vídeo de debajo sigue en silencio hasta que el panel se cierre.
+            hideCover(keepSilence = true)
             return
         }
         // A veces la ventana activa no está disponible un instante: entonces no se cambia nada.
-        val root = rootInActiveWindow ?: return
+        val root = appRoot()
+        if (root == null) {
+            // Con la capa puesta no puede quedarse congelada: se sigue mirando y, si la ventana no
+            // vuelve en un momento, se quita.
+            if (feedCover.isShowing) {
+                if (++nullRoots >= MAX_NULL_ROOTS) hideCover() else scheduleEvaluation(COVER_POLL_MS)
+            }
+            return
+        }
+        nullRoots = 0
+        if (root.packageName?.toString() !in engine.packages && isVolumePanel(root)) {
+            // El panel de volumen es una ventana del sistema (en Xiaomi, `miui.systemui.plugin`, a pantalla
+            // completa): no es salir de la app. La capa y la pausa se quedan, y el silencio también.
+            if (feedCover.isShowing) {
+                feedCover.enforceSilence()
+                scheduleEvaluation(COVER_POLL_MS)
+            }
+            return
+        }
         if (root.packageName?.toString() !in engine.packages) {
             // Solo recibimos eventos de Instagram: si el usuario se ha ido, la pantalla no debe quedarse.
             confirmation.reset()
             heldRule = null
             overlay.hide()
+            hideCover()
             return
         }
 
         val packageName = root.packageName.toString()
-        val snapshot = SnapshotBuilder.build(root, engine.texts(packageName))
+        val snapshot = SnapshotBuilder.build(root, engine.texts(packageName), engine.coverSpecs(packageName))
         val now = SystemClock.elapsedRealtime()
         BlockPolicy.track(engine, session, snapshot, now)
 
@@ -294,6 +411,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                 heldRule,
             )
         sheetShown = BlockPolicy.isOverSheet(engine, snapshot, session.origin, session.scrolled, heldRule)
+        if (decision !is BlockDecision.Cover) hideCover()
         when (decision) {
             is BlockDecision.Free -> {
                 // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
@@ -303,12 +421,37 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                 silentBackGuard.reset()
                 overlay.hide()
             }
-            BlockDecision.Keep ->
+            is BlockDecision.Cover -> {
+                // Sin pausa, sin caducidad y sin estadísticas: solo la capa sobre el feed.
+                confirmation.reset()
+                heldRule = null
+                silentBackGuard.reset()
+                overlay.hide()
+                feedCover.show(
+                    decision.zone,
+                    decision.edges,
+                    decision.shields,
+                    onFollowing = ::goFollowing,
+                    onAskTime = {
+                        openTouchGrass(this)
+                        hideCover()
+                    },
+                    onExit = ::exitApp,
+                    onBack = ::coverBack,
+                )
+                // «Para ti» se queda arriba del todo: con la cabecera escondida el feed se ha movido (p. ej.
+                // desde un hueco que la capa no cubre) y se devuelve arriba, sin que se vea bajo la capa.
+                if (snapshot.headerBottom == null) bringFeedToTop(root, packageName) else feedBackTries = 0
+            }
+            BlockDecision.Keep -> {
                 // Tras «Volver atrás» con los comentarios abiertos el reel sigue delante y la app puede
                 // no mandar eventos: se vuelve a mirar cuando acabe el enfriamiento.
                 if (!overlay.isShowing) scheduleEvaluation(BlockPolicy.cooldownRemainingMs(now, leftAt))
+            }
             is BlockDecision.Block -> {
                 heldRule = decision.rule
+                // El reel no debe oírse mientras se confirma: se silencia ya (si no se confirma, vuelve el sonido).
+                overlay.silenceEarly()
                 // Se vuelve a mirar en un momento: si sigue igual, entonces se pone.
                 if (!confirmation.onMatch(decision.confirmationKey, now)) {
                     scheduleEvaluation(confirmation.remainingMs(now))
@@ -326,7 +469,167 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
         // Mientras se ve la pantalla se sigue mirando la de debajo: así se quita al salir de
         // Instagram o al hacer atrás, aunque el sistema no nos avise con ningún evento.
-        if (overlay.isShowing) handler.postDelayed(evaluateRunnable, OVERLAY_POLL_MS)
+        if (overlay.isShowing) {
+            handler.postDelayed(evaluateRunnable, OVERLAY_POLL_MS)
+        } else if (feedCover.isShowing) {
+            // Si el usuario toca el volumen, el vídeo de debajo no debe volver a oírse.
+            feedCover.enforceSilence()
+            handler.postDelayed(evaluateRunnable, COVER_POLL_MS)
+        }
+    }
+
+    /** Programa dos miradas más tras un cambio de pantalla, por si la primera ve aún el árbol viejo. */
+    private fun scheduleFollowUps() {
+        handler.removeCallbacks(followUpRunnable)
+        handler.removeCallbacks(followUpLateRunnable)
+        handler.postDelayed(followUpRunnable, FOLLOW_UP_MS)
+        handler.postDelayed(followUpLateRunnable, FOLLOW_UP_LATE_MS)
+    }
+
+    /**
+     * Devuelve el feed arriba del todo: primero desplazando la lista hacia atrás y, si tras varios
+     * intentos sigue abajo, tocando la pestaña de Inicio (que sube de golpe y recarga, por eso con un
+     * respiro largo entre toques).
+     */
+    private fun bringFeedToTop(root: AccessibilityNodeInfo, packageName: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastScrollBackAt < SCROLL_BACK_GAP_MS) return
+        val spec = engine.coverSpecs(packageName).firstOrNull() ?: return
+        lastScrollBackAt = now
+        if (++feedBackTries > SCROLL_BACK_TRIES &&
+            now - lastTabClickAt >= TAB_CLICK_GAP_MS &&
+            clickNode(root, Action.Click(target = spec.nav))
+        ) {
+            lastTabClickAt = now
+            feedBackTries = 0
+            return
+        }
+        val list =
+            spec.list
+                ?.let { SnapshotBuilder.resourceName(packageName, it) }
+                ?.let(root::findAccessibilityNodeInfosByViewId)
+                ?.firstOrNull { it.isScrollable } ?: return
+        list.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
+    }
+
+    /** Si [event] es el toque de una pestaña que bloquea con pausa (la que mira alguna regla marcada como seleccionada). */
+    private fun isPauseTab(event: AccessibilityEvent, packageName: String): Boolean {
+        val id = event.source?.viewIdResourceName ?: return false
+        return engine.pauseTabIds(packageName).any { id.endsWith(":id/$it") }
+    }
+
+    /**
+     * Raíz de la ventana de la app que hay debajo: la ventana de aplicación de más arriba (Instagram, su menú
+     * emergente, o la de otra app si el usuario se ha ido a otra). Las ventanas del sistema (notificaciones
+     * emergentes, panel de volumen, la propia capa o pausa de TouchGrass) no cuentan: con la lista de ventanas
+     * activada pueden ser la «ventana activa» sin que el usuario haya salido de la app. El panel de
+     * notificaciones se vigila aparte ([checkShade]).
+     */
+    private fun appRoot(): AccessibilityNodeInfo? =
+        windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }?.root ?: rootInActiveWindow
+
+    /**
+     * Mira si el panel de notificaciones está abierto y, si lo está, quita la capa y vuelve a mirar cada
+     * [SHADE_POLL_MS] hasta que se cierre. Con la capa puesta (que tiene el foco) el panel no pasa a ser la
+     * ventana activa, así que no basta con mirar la ventana activa. No lee nada del panel: solo si su vista
+     * `notification_panel` se ve.
+     */
+    private fun checkShade() {
+        handler.removeCallbacks(shadeRunnable)
+        val coverWasShowing = feedCover.isShowing
+        shadeOpen = isShadeVisible()
+        if (shadeOpen) {
+            // Con la capa puesta no se puede dejar abierto el panel (la barra de estado está tapada, pero por si
+            // acaso se abre de otra forma): se cierra. Android 12+.
+            if (coverWasShowing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                performGlobalAction(GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE)
+            }
+            // La capa se quita, pero el silencio se mantiene: debajo del panel el vídeo sigue.
+            hideCover(keepSilence = true)
+            feedCover.enforceSilence()
+            handler.postDelayed(shadeRunnable, SHADE_POLL_MS)
+        } else {
+            scheduleEvaluation(0)
+        }
+    }
+
+    private fun isShadeVisible(): Boolean = windows.any { window ->
+        window.type == AccessibilityWindowInfo.TYPE_SYSTEM &&
+            window.root?.let { root ->
+                root.packageName?.toString() == SYSTEM_UI &&
+                    root.findAccessibilityNodeInfosByViewId("$SYSTEM_UI:id/$SHADE_PANEL_ID").any { it.isVisibleToUser }
+            } == true
+    }
+
+    /** Si [root] es el panel de volumen del sistema (tiene su vista `volume_dialog`, en AOSP y en MIUI). */
+    private fun isVolumePanel(root: AccessibilityNodeInfo): Boolean =
+        root.findAccessibilityNodeInfosByViewId("${root.packageName}:id/$VOLUME_DIALOG_ID").isNotEmpty()
+
+    /** Si [event] viene de la pestaña de Inicio (la barra de navegación de la capa). */
+    private fun isCoverNav(event: AccessibilityEvent, packageName: String): Boolean {
+        val nav = engine.coverSpecs(packageName).firstOrNull()?.nav ?: return false
+        return event.source?.viewIdResourceName?.endsWith(":id/$nav") == true
+    }
+
+    /** Quita la capa de Inicio. Con [keepSilence], el sonido vuelve al siguiente quitar. */
+    private fun hideCover(keepSilence: Boolean = false) {
+        if (keepSilence) feedCover.hideKeepingSilence() else feedCover.hide()
+    }
+
+    /**
+     * Atrás con la capa puesta (la capa tiene el foco): se quita para soltarlo y, un instante después, se hace el
+     * atrás sobre Instagram, que es lo que habría pasado sin la capa. Si sigue en «Para ti», la capa vuelve.
+     */
+    private fun coverBack() {
+        hideCover()
+        handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, FOCUS_RELEASE_MS)
+    }
+
+    /** «Salir de la app»: lleva al usuario a la pantalla de inicio del móvil. No cuenta en las estadísticas. */
+    private fun exitApp() {
+        hideCover()
+        performGlobalAction(GLOBAL_ACTION_HOME)
+    }
+
+    /** «Ir a Siguiendo»: empieza la salida en dos pasos desde la capa (ver [advanceFeedSwitch]). */
+    private fun goFollowing() {
+        feedSwitch.start(SystemClock.elapsedRealtime())
+        advanceFeedSwitch()
+    }
+
+    /**
+     * Cambia Inicio de «Para ti» a «Siguiendo» (Instagram 454): pulsa el selector de la cabecera y,
+     * cuando sale el menú (otra ventana, que pasa a ser la activa), pulsa «Siguiendo». Se mira cada
+     * [FEED_SWITCH_POLL_MS] mientras haya salida en marcha. No cuenta en las estadísticas.
+     */
+    private fun advanceFeedSwitch() {
+        handler.removeCallbacks(feedSwitchRunnable)
+        if (!feedSwitch.isActive) return
+        val root = appRoot()
+        if (root != null) {
+            val pkg = root.packageName.toString()
+            val menuShown = root.findAccessibilityNodeInfosByViewId(
+                SnapshotBuilder.resourceName(pkg, FEED_MENU_ID),
+            ).isNotEmpty()
+            when (feedSwitch.next(SystemClock.elapsedRealtime(), menuShown)) {
+                FeedSwitch.Step.OpenMenu -> clickNode(root, Action.Click(target = FEED_SELECTOR_ID))
+                FeedSwitch.Step.PickFollowing -> pickFollowing(root, pkg)
+                FeedSwitch.Step.None -> Unit
+            }
+        }
+        if (feedSwitch.isActive) handler.postDelayed(feedSwitchRunnable, FEED_SWITCH_POLL_MS)
+    }
+
+    /** Pulsa «Siguiendo» en el menú del selector (texto exacto, no «contiene»). */
+    private fun pickFollowing(root: AccessibilityNodeInfo, packageName: String) {
+        root.findAccessibilityNodeInfosByViewId(SnapshotBuilder.resourceName(packageName, FEED_MENU_ITEM_ID))
+            .firstOrNull { item ->
+                FOLLOWING_LABELS.any {
+                    BlockExit.matchesText(it, item.text?.toString(), item.contentDescription?.toString())
+                }
+            }
+            ?.let(::clickableSelfOrParent)
+            ?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
     }
 
     /**
@@ -401,7 +704,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             {
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
                 val closed =
-                    rootInActiveWindow
+                    appRoot()
                         ?.let { !engine.covers(SnapshotBuilder.build(it, engine.texts(packageName)), rule) } == true
                 if (closed || elapsed >= SHEET_CLOSE_MAX_MS) {
                     leftAt = SystemClock.elapsedRealtime()
@@ -415,24 +718,22 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     }
 
     private fun exit(rule: Rule) {
-        val root = rootInActiveWindow
+        val root = appRoot()
         // Si no encuentra a dónde ir, al menos vuelve atrás.
         BlockExit.perform(
             rule.action,
-            click = { action ->
-                root?.let { clickTarget(it, action) }
-                    ?.let { node ->
-                        BlockExit.clickableSelfOrParent(
-                            node,
-                            parent = { it.parent },
-                            isClickable = { it.isClickable },
-                        )
-                    }
-                    ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
-            },
+            click = { action -> root?.let { clickNode(it, action) } == true },
             back = { performGlobalAction(GLOBAL_ACTION_BACK) },
         )
     }
+
+    /** Pulsa la vista que busca [action] (o su primer padre pulsable); `false` si no la encuentra. */
+    private fun clickNode(root: AccessibilityNodeInfo, action: Action.Click): Boolean = clickTarget(root, action)
+        ?.let(::clickableSelfOrParent)
+        ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
+
+    private fun clickableSelfOrParent(node: AccessibilityNodeInfo): AccessibilityNodeInfo? =
+        BlockExit.clickableSelfOrParent(node, parent = { it.parent }, isClickable = { it.isClickable })
 
     /** Vista que pulsar para [action]: por identificador o, sin él, por texto o descripción exactos. */
     private fun clickTarget(root: AccessibilityNodeInfo, action: Action.Click): AccessibilityNodeInfo? {
@@ -454,6 +755,44 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val DEBOUNCE_MS = 150L
         const val MAX_WAIT_MS = 300L
         const val OVERLAY_POLL_MS = 200L
+
+        /** Con la capa de Inicio se mira más a menudo: debe irse al momento al cambiar de pantalla. */
+        const val COVER_POLL_MS = 100L
+        const val COVER_EVAL_MIN_MS = 50L
+
+        /** Tras quitar la capa por un toque o un cambio de ventana, cuándo se vuelve a mirar si sigue en «Para ti». */
+        const val COVER_RECHECK_MS = 150L
+
+        /** Entre miradas con eventos seguidos en una app con capa (la primera tras un rato es inmediata). */
+        const val LEADING_EVAL_MIN_MS = 80L
+        const val FOLLOW_UP_MS = 80L
+        const val FOLLOW_UP_LATE_MS = 300L
+
+        /** Entre dos desplazamientos hacia atrás para devolver el feed arriba, y cuántos antes de tocar Inicio. */
+        const val SCROLL_BACK_GAP_MS = 120L
+        const val SCROLL_BACK_TRIES = 3
+
+        /** Lo mínimo entre dos toques de la pestaña de Inicio (recarga el feed). */
+        const val TAB_CLICK_GAP_MS = 1_500L
+        const val SYSTEM_UI = "com.android.systemui"
+
+        /** Miradas seguidas sin ventana activa tras las que se quita la capa de Inicio (~0,5 s). */
+        const val MAX_NULL_ROOTS = 5
+
+        const val VOLUME_DIALOG_ID = "volume_dialog"
+
+        /** Vista del panel de notificaciones de Android y cada cuánto se mira si se ha cerrado. */
+        const val SHADE_PANEL_ID = "notification_panel"
+        const val SHADE_POLL_MS = 300L
+
+        /** Cada cuánto se mira si ya salió el menú del selector de Inicio al ir a «Siguiendo». */
+        const val FEED_SWITCH_POLL_MS = 100L
+
+        // Instagram 454: cabecera clicable de Inicio y menú del selector (capturas del plan 07, T1).
+        const val FEED_SELECTOR_ID = "action_bar_title_view"
+        const val FEED_MENU_ID = "context_menu_options_list"
+        const val FEED_MENU_ITEM_ID = "context_menu_item"
+        val FOLLOWING_LABELS = listOf("Siguiendo", "Following")
 
         /** Mínimo que se espera tras el atrás que cierra la hoja de comentarios, antes de mirar si ya se cerró. */
         const val SHEET_CLOSE_MS = 200L

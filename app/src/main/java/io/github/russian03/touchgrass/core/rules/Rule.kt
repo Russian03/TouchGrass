@@ -32,7 +32,9 @@ data class Place(val id: String, val match: Match)
  * lo único que se ve): si la regla casaba en la mirada anterior y ahora solo se ve esa hoja,
  * sigue bloqueando. Por sí sola no bloquea. Con [silentBack] no se muestra
  * pausa: el servicio cierra lo que haya abierto con un atrás silencioso (la vista previa al
- * mantener pulsado, o su menú).
+ * mantener pulsado, o su menú). Con [cover] no hay pausa: se cubre el feed con una capa sobre la zona que
+ * dibujan las posiciones de [CoverSpec], y el botón de la capa hace su propia salida ([action] solo es
+ * obligatoria por el formato).
  */
 @Serializable
 data class Rule(
@@ -44,7 +46,19 @@ data class Rule(
     val pager: String? = null,
     val coveredBy: Match? = null,
     val silentBack: Boolean = false,
+    val cover: CoverSpec? = null,
 )
+
+/**
+ * Qué posiciones se leen para saber dónde va la capa: [header] es el id de la cabecera (su borde de abajo
+ * es donde empieza la capa), [list] el de la lista del feed (donde empieza si la cabecera no se ve) y [nav]
+ * el de una pestaña de la barra de navegación (su borde de arriba es donde acaba la capa; sus lados y su
+ * parte de abajo, donde van las franjas que tapan el resto) y [title] el del título de la cabecera (entre
+ * cuyos lados va un escudo transparente que no deja tocarlo ni deslizar por ahí). La capa cubre también
+ * las historias.
+ */
+@Serializable
+data class CoverSpec(val header: String, val nav: String, val list: String? = null, val title: String? = null)
 
 /** Permite la regla si se llega desde [place]; con [untilScroll], solo hasta pasar de página. */
 @Serializable

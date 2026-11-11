@@ -1,8 +1,6 @@
 package io.github.russian03.touchgrass.overlay
 
 import android.accessibilityservice.AccessibilityService
-import android.content.Intent
-import io.github.russian03.touchgrass.MainActivity
 
 /**
  * Pantalla «El scroll está bloqueado» que aparece encima de una zona bloqueada, sin sacar al usuario
@@ -10,16 +8,15 @@ import io.github.russian03.touchgrass.MainActivity
  * toques. [show] recibe `onLeave`, que saca al usuario de la zona bloqueada cuando elige uno de
  * los botones, y `onSettled`, que avisa cuando la pantalla ya ha aparecido del todo.
  */
-class BlockOverlay(private val service: AccessibilityService) {
+class BlockOverlay(private val service: AccessibilityService, private val silencer: AudioSilencer) {
 
     private val window = OverlayWindow(service)
-    private val silencer = AudioSilencer(service)
 
     val isShowing: Boolean get() = window.isShowing
 
     fun show(onLeave: () -> Unit, onSettled: () -> Unit) {
         if (window.isShowing) return
-        silencer.silence()
+        silencer.silence(this)
         // El botón atrás hace lo mismo que «Volver atrás».
         val back = {
             onLeave()
@@ -37,9 +34,16 @@ class BlockOverlay(private val service: AccessibilityService) {
         }
     }
 
+    /**
+     * Silencia la app ya, antes de que la pausa aparezca: entre que el usuario entra en la zona bloqueada y la
+     * pausa se ve pasa un momento en el que, si no, el reel se oiría. Si la pausa no llega a ponerse,
+     * [hide] devuelve el sonido.
+     */
+    fun silenceEarly() = silencer.silence(this)
+
     fun hide() {
         window.hide()
-        silencer.restore()
+        silencer.restore(this)
     }
 
     /**
@@ -51,19 +55,11 @@ class BlockOverlay(private val service: AccessibilityService) {
     /** Quita la pantalla y devuelve el sonido al momento (p. ej. si el servicio se apaga). */
     fun release() {
         window.hide(animated = false)
-        silencer.restoreNow()
+        silencer.restoreNow(this)
     }
 
-    /**
-     * Abre TouchGrass en Inicio: desde ahí se pide tiempo y, la primera vez del día, se ve la
-     * celebración del día anterior.
-     */
     private fun openApp() {
-        service.startActivity(
-            Intent(service, MainActivity::class.java)
-                .putExtra(MainActivity.EXTRA_OPEN_HOME, true)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-        )
+        openTouchGrass(service)
         hide()
     }
 

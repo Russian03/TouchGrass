@@ -33,6 +33,9 @@ se acaban, vuelve la pausa.
 - **Bloquea solo el scroll.** Los Reels de Instagram (la pestaña y el visor) y las pestañas
   *Para ti* y *Comunidad* de TikTok. Todo lo demás queda libre.
   Al salir de la pausa en TikTok vuelves a *Siguiendo*.
+- **Un Inicio de Instagram más tranquilo.** *Para ti* se tapa con una pantalla verde (sin pausa y sin
+  contar en tus estadísticas) con botones para ir a *Siguiendo*, pedir tiempo o salir de la app.
+  *Siguiendo* queda libre.
 - **Excepciones con sentido.** Un reel que abres desde un perfil, un chat, Inicio o Guardados
   se ve con normalidad. Desde un chat, Inicio o Guardados, al pasar al siguiente reel sale la
   pausa.

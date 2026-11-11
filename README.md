@@ -35,6 +35,9 @@ yourself. When they run out, the pause comes back.
   Leaving the pause on TikTok takes you to *Following*.
   Opening the comments doesn't get you past the pause.
   Holding a reel in Search doesn't let you watch it either.
+- **A calmer Instagram Home.** The *For you* feed is covered by a green screen (no pause, and it
+  doesn't count in your stats) with buttons to go to *Following*, ask for time or leave the app.
+  *Following* stays free.
 - **Smart exceptions.** A reel opened from a profile, a chat, your feed or your saved posts
   plays normally. From a chat, your feed or your saved posts, swiping to the next reel brings
   the pause.

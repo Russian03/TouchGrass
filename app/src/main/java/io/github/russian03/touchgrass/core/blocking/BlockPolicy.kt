@@ -6,6 +6,7 @@ import io.github.russian03.touchgrass.core.budget.TimeSource
 import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
+import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 
 /** Lo que el servicio debe hacer con la pantalla de bloqueo tras mirar la de debajo. */
@@ -28,6 +29,18 @@ sealed interface BlockDecision {
      * un atrás sin mostrar ninguna pausa ni contar nada en las estadísticas.
      */
     data class SilentBack(val rule: Rule, val confirmationKey: String) : BlockDecision
+
+    /**
+     * [rule] (con `cover`) casa y hay zona que cubrir: una capa sobre [zone] y, para que el feed no se pueda
+     * mover por los lados de la barra de navegación, otras sobre [edges] y, sobre la cabecera sin tapar sus botones, un escudo transparente ([shields]), sin pausa, sin confirmar
+     * ni esperar al enfriamiento, y sin contar nada en las estadísticas.
+     */
+    data class Cover(
+        val rule: Rule,
+        val zone: Bounds,
+        val edges: List<Bounds> = emptyList(),
+        val shields: List<Bounds> = emptyList(),
+    ) : BlockDecision
 }
 
 /** Cuándo se pone la pantalla de bloqueo sobre lo que se ve de una app vigilada. */
@@ -72,6 +85,17 @@ object BlockPolicy {
                 ?: return BlockDecision.Free()
         // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
         unlockRemainingMs(budget, snapshot.packageName, time)?.let { return BlockDecision.Free(it) }
+        // Con cover no hay pausa: solo la capa sobre la zona (sin zona fiable = libre).
+        rule.cover?.let {
+            val zone = CoverZone.of(snapshot)
+            return if (zone ==
+                null
+            ) {
+                BlockDecision.Free()
+            } else {
+                BlockDecision.Cover(rule, zone, CoverZone.edges(snapshot), CoverZone.shields(snapshot))
+            }
+        }
         val key = "${snapshot.packageName}/${rule.id}"
         // El atrás silencioso no pone pausa: solo espera si se acaba de salir.
         if (rule.silentBack) {

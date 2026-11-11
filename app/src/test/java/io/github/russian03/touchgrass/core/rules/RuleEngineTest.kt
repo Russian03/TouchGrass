@@ -179,6 +179,49 @@ class RuleEngineTest {
     }
 
     @Test
+    fun `coverSpecs devuelve los ids de las reglas con cover`() {
+        val spec = CoverSpec(header = "header", nav = "nav", list = "list")
+        val covered = reelsTab.copy(id = "covered", cover = spec)
+        val withCover = RuleEngine(listOf(RuleSet(1, IG, listOf(reelsTab, covered))))
+
+        assertThat(withCover.coverSpecs(IG)).containsExactly(spec)
+    }
+
+    @Test
+    fun `una app sin reglas con cover no lee posiciones`() {
+        assertThat(engine.coverSpecs(IG)).isEmpty()
+        assertThat(engine.coverSpecs("otra.app")).isEmpty()
+    }
+
+    @Test
+    fun `pauseTabIds devuelve las pestañas seleccionadas que bloquean con pausa`() {
+        assertThat(engine.pauseTabIds(IG)).containsExactly("clips_tab")
+        assertThat(engine.pauseTabIds("otra.app")).isEmpty()
+    }
+
+    @Test
+    fun `pauseTabIds ignora el atras silencioso, la capa y las pestañas por texto`() {
+        val silent = reelsTab.copy(
+            id = "s",
+            match = Match(allOf = listOf(Condition("a_tab", selected = true))),
+            silentBack = true,
+        )
+        val covered =
+            reelsTab.copy(
+                id = "c",
+                match = Match(allOf = listOf(Condition("b_tab", selected = true))),
+                cover = CoverSpec(header = "h", nav = "n"),
+            )
+        val byText = reelsTab.copy(
+            id = "t",
+            match = Match(allOf = listOf(Condition("c_tab", selected = true, text = listOf("Para ti")))),
+        )
+        val all = RuleEngine(listOf(RuleSet(1, IG, listOf(reelsTab, silent, covered, byText))))
+
+        assertThat(all.pauseTabIds(IG)).containsExactly("clips_tab")
+    }
+
+    @Test
     fun `una regla sin condiciones no se puede crear`() {
         assertThrows(IllegalArgumentException::class.java) { Match(allOf = emptyList()) }
     }

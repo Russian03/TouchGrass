@@ -11,11 +11,13 @@ import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
 import io.github.russian03.touchgrass.core.rules.Allowance
 import io.github.russian03.touchgrass.core.rules.Condition
+import io.github.russian03.touchgrass.core.rules.CoverSpec
 import io.github.russian03.touchgrass.core.rules.Match
 import io.github.russian03.touchgrass.core.rules.Place
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.rules.RuleSet
+import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import io.github.russian03.touchgrass.testing.FakeTime
@@ -288,6 +290,70 @@ class BlockPolicyTest {
         BlockPolicy.track(engine, session, snapshot(ViewNode("feed"), pkg = OTHER), nowMs = 100)
         assertThat(session.origin).isEqualTo("profile")
         assertThat(decide(viewer, origin = session.origin, scrolled = true)).isEqualTo(BlockDecision.Free(null))
+    }
+
+    // Regla con cover (pantalla verde sobre el feed, sin pausa)
+
+    private val coverRule =
+        Rule(
+            id = "feed_cover",
+            description = "Inicio en Para ti",
+            match = Match(allOf = listOf(Condition("home_tab", selected = true), Condition("header"))),
+            action = Action.Click("home_tab"),
+            cover = CoverSpec(header = "header", nav = "home_tab"),
+        )
+
+    private val coverEngine = RuleEngine(listOf(RuleSet(1, APP, listOf(coverRule))))
+    private val screen = Bounds(0, 0, 1220, 2712)
+
+    private fun homeCover(navTop: Int? = 2491) = ScreenSnapshot(
+        APP,
+        listOf(ViewNode("home_tab", selected = true), ViewNode("header")),
+        screen,
+        headerBottom = 300,
+        navLeft = 78,
+        navTop = navTop,
+        navBottom = 2647,
+    )
+
+    private fun decideCover(
+        snapshot: ScreenSnapshot,
+        budget: BudgetState? = BudgetState(),
+        overlayShowing: Boolean = false,
+        leftAtMs: Long = NOW - 10_000,
+    ) = BlockPolicy.decide(coverEngine, snapshot, null, false, budget, time, overlayShowing, NOW, leftAtMs)
+
+    @Test
+    fun `una regla con cover da Cover con su zona`() {
+        val decision = decideCover(homeCover())
+
+        assertThat(decision)
+            .isEqualTo(
+                BlockDecision.Cover(
+                    coverRule,
+                    Bounds(0, 300, 1220, 2491),
+                    listOf(Bounds(0, 2647, 1220, 2712), Bounds(0, 2491, 78, 2647), Bounds(1142, 2491, 1220, 2647)),
+                ),
+            )
+    }
+
+    @Test
+    fun `una regla con cover sin zona deja libre`() {
+        assertThat(decideCover(homeCover(navTop = null))).isEqualTo(BlockDecision.Free(null))
+    }
+
+    @Test
+    fun `con un desbloqueo de la app una regla con cover deja libre con lo que queda`() {
+        val budget = unlocked(APP, agoMs = 20_000)
+
+        assertThat(decideCover(homeCover(), budget = budget)).isEqualTo(BlockDecision.Free(40_000))
+    }
+
+    @Test
+    fun `una regla con cover no espera al enfriamiento ni a la pausa visible`() {
+        val decision = decideCover(homeCover(), overlayShowing = true, leftAtMs = NOW - 10)
+
+        assertThat(decision).isInstanceOf(BlockDecision.Cover::class.java)
     }
 
     private companion object {

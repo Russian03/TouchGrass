@@ -1,7 +1,9 @@
 package io.github.russian03.touchgrass.data.rules
 
 import com.google.common.truth.Truth.assertThat
+import io.github.russian03.touchgrass.core.blocking.CoverZone
 import io.github.russian03.touchgrass.core.rules.RuleEngine
+import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import java.io.File
@@ -98,6 +100,144 @@ class InstagramRulesTest {
             "main_list_view",
             "sticky_header_list",
         )
+
+    /** Ids reales de Inicio (Instagram 454.0.0.54.77); `*` marca el seleccionado. */
+    private fun captured(ids: String) = ScreenSnapshot(
+        IG,
+        ids.split(",").map { ViewNode(it.removeSuffix("*"), selected = it.endsWith("*")) },
+    )
+
+    private val screenBounds = Bounds(0, 0, 1220, 2712)
+
+    /** Posiciones de Instagram 454.0.0.54.77, Android 15 (1220x2712): cabecera, lista y barra de navegación. */
+    private fun ScreenSnapshot.withPositions(headerBottom: Int? = 300) = copy(
+        screen = screenBounds,
+        headerBottom = headerBottom,
+        listTop = 118,
+        navLeft = 78,
+        navTop = 2491,
+        navBottom = 2647,
+        titleLeft = 156,
+        titleRight = 1064,
+    )
+
+    private fun zone(snapshot: ScreenSnapshot) = CoverZone.of(snapshot)
+
+    private val homeTop = "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab*,swipeable_tab_view_pager"
+
+    /** Inicio en «Para ti» (Instagram 454.0.0.54.77, caso S1): cabecera clicable `action_bar_title_view`, historias y posts. */
+    private val homeParaTi =
+        captured(
+            "$homeTop,action_bar_left_button,action_bar_title_view,title_text,android:id/list,outer_container," +
+                "avatar_image_view,row_feed_profile_header,row_feed_photo_profile_name,media_option_button," +
+                "row_feed_view_group_buttons,row_feed_button_like,row_feed_button_comment,row_feed_button_share",
+        ).withPositions()
+
+    /**
+     * Inicio recién abierto (Instagram 454.0.0.54.77, Android 15): ninguna pestaña figura como seleccionada
+     * hasta que el usuario pulsa una; sin ese estado la regla sigue cubriendo.
+     */
+    private val homeParaTiCold =
+        captured(
+            "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab,swipeable_tab_view_pager," +
+                "action_bar_left_button,action_bar_title_view,title_text,android:id/list,outer_container",
+        ).withPositions()
+
+    /** Inicio en «Para ti» ya bajado: la cabecera se esconde y la zona empieza donde la lista. */
+    private val homeParaTiScrolled =
+        captured(
+            "$homeTop,action_bar_left_button,action_bar_title_view,title_text,android:id/list,video_container," +
+                "media_group,row_feed_view_group_buttons,inline_follow_button",
+        ).withPositions(headerBottom = null)
+
+    /** «Siguiendo» (y «Favoritos»): pantalla aparte con flecha de volver y sin barra de navegación. */
+    private val followingScreen =
+        captured(
+            "swipeable_tab_view_pager,android:id/list,action_bar_new_title_container,action_bar_button_back," +
+                "action_bar_title,video_container,row_feed_profile_header",
+        )
+
+    /** Menú del selector de Inicio: ventana propia con «Siguiendo» y «Favoritos». */
+    private val feedMenu = captured("context_menu_options_list,context_menu_item,context_menu_item_label")
+
+    /** Historia abierta desde Inicio: `reel_viewer_root`, sin barra de navegación. */
+    private val storyViewer =
+        captured("swipeable_tab_view_pager,reel_viewer_root,gesture_manager,message_composer_container")
+
+    /** Perfil abierto desde Inicio: sin `feed_tab` seleccionado. */
+    private val profileScreen =
+        captured(
+            "swipeable_tab_view_pager,action_bar_username_container,action_bar_title,profile_viewpager," +
+                "profile_tab_layout,profile_header_follow_button",
+        )
+
+    /** Perfil con Inicio seleccionado debajo y la cabecera de Inicio (por si el árbol conserva las dos). */
+    private val profileFromHome =
+        captured("$homeTop,action_bar_title_view,profile_viewpager,profile_tab_layout,inline_follow_button")
+
+    @Test
+    fun `Inicio en Para ti se cubre`() {
+        assertThat(engine.evaluate(homeParaTi, origin = "feed")?.id).isEqualTo("feed_cover")
+        assertThat(zone(homeParaTi)).isEqualTo(Bounds(0, 300, 1220, 2491))
+    }
+
+    @Test
+    fun `Inicio en Para ti con el feed bajado se cubre desde la lista`() {
+        assertThat(engine.evaluate(homeParaTiScrolled, origin = "feed")?.id).isEqualTo("feed_cover")
+        assertThat(zone(homeParaTiScrolled)).isEqualTo(Bounds(0, 118, 1220, 2491))
+    }
+
+    @Test
+    fun `Inicio recien abierto sin pestaña marcada se cubre`() {
+        assertThat(engine.evaluate(homeParaTiCold, origin = null)?.id).isEqualTo("feed_cover")
+        assertThat(zone(homeParaTiCold)).isEqualTo(Bounds(0, 300, 1220, 2491))
+    }
+
+    @Test
+    fun `otra pestaña marcada con una lista debajo no se cubre`() {
+        val inbox =
+            captured("profile_tab,search_tab,direct_tab*,clips_tab,feed_tab,swipeable_tab_view_pager,android:id/list")
+        assertThat(engine.evaluate(inbox, origin = "inbox")).isNull()
+    }
+
+    @Test
+    fun `Siguiendo y Favoritos quedan libres`() {
+        assertThat(engine.evaluate(followingScreen, origin = "feed")).isNull()
+    }
+
+    @Test
+    fun `el menu del selector queda libre`() {
+        assertThat(engine.evaluate(feedMenu, origin = "feed")).isNull()
+    }
+
+    @Test
+    fun `una historia abierta desde Inicio queda libre`() {
+        assertThat(engine.evaluate(storyViewer, origin = "feed")).isNull()
+    }
+
+    @Test
+    fun `el perfil abierto desde Inicio queda libre`() {
+        assertThat(engine.evaluate(profileScreen, origin = "feed")).isNull()
+        assertThat(engine.evaluate(profileFromHome, origin = "feed")).isNull()
+    }
+
+    @Test
+    fun `un reel abierto desde Inicio no lo cubre la regla de Inicio`() {
+        val viewerOverHome =
+            captured("$homeTop,action_bar_title_view,clips_viewer_view_pager,clips_video_container")
+        assertThat(engine.evaluate(viewerOverHome, origin = "feed", scrolled = false)).isNull()
+    }
+
+    @Test
+    fun `Inicio sigue siendo el lugar feed`() {
+        assertThat(engine.place(homeParaTi)).isEqualTo("feed")
+    }
+
+    @Test
+    fun `el boton Seguir fuera de Inicio no bloquea`() {
+        val followOutsideHome = captured("profile_tab,search_tab*,direct_tab,clips_tab,feed_tab,inline_follow_button")
+        assertThat(engine.evaluate(followOutsideHome, origin = "explore")).isNull()
+    }
 
     @Test
     fun `los comentarios por si solos no bloquean pero cubren la regla del reel`() {

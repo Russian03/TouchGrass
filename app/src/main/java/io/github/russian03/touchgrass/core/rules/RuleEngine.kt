@@ -29,6 +29,21 @@ class RuleEngine(ruleSets: List<RuleSet>) {
         .groupBy({ it.viewId }, { it.text })
         .mapValues { (_, lists) -> lists.flatten().toSet() }
 
+    /** Posiciones que las reglas con `cover` piden leer en [packageName]; sin ellas no se leen posiciones. */
+    fun coverSpecs(packageName: String): List<CoverSpec> = rulesByPackage[packageName].orEmpty().mapNotNull { it.cover }
+
+    /**
+     * Ids de las pestañas que bloquean con pausa en [packageName]: las que una regla pide seleccionadas y sin
+     * texto (Reels en Instagram). Sirven para silenciar al instante cuando el usuario las toca, antes de que
+     * la pausa aparezca. No cuentan las reglas de atrás silencioso ni de capa.
+     */
+    fun pauseTabIds(packageName: String): Set<String> = rulesByPackage[packageName].orEmpty()
+        .filter { !it.silentBack && it.cover == null }
+        .flatMap { it.match.allOf }
+        .filter { it.selected == true && it.text.isEmpty() }
+        .map { it.viewId }
+        .toSet()
+
     /** Primer lugar que se reconoce en [snapshot], o `null` si no es ninguno. */
     fun place(snapshot: ScreenSnapshot): String? =
         placesByPackage[snapshot.packageName].orEmpty().firstOrNull { snapshot.satisfies(it.match) }?.id
