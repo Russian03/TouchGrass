@@ -31,10 +31,10 @@ sealed interface BlockDecision {
     data class SilentBack(val rule: Rule, val confirmationKey: String) : BlockDecision
 
     /**
-     * [rule] (con `mask`) casa y hay posts que tapar: una capa sobre cada una de [zones], sin pausa,
-     * sin confirmar ni esperar al enfriamiento, y sin contar nada en las estadísticas.
+     * [rule] (con `cover`) casa y hay zona que cubrir: una capa sobre [zone], sin pausa, sin confirmar
+     * ni esperar al enfriamiento, y sin contar nada en las estadísticas.
      */
-    data class Mask(val rule: Rule, val zones: List<Bounds>) : BlockDecision
+    data class Cover(val rule: Rule, val zone: Bounds) : BlockDecision
 }
 
 /** Cuándo se pone la pantalla de bloqueo sobre lo que se ve de una app vigilada. */
@@ -60,7 +60,6 @@ object BlockPolicy {
      * [time] solo se consulta si una regla casa y hay saldo. [nowMs]/[leftAtMs] en elapsedRealtime.
      * [held] = regla del último `Block`: si ahora solo se ve la hoja que la tapa (los comentarios),
      * se sigue bloqueando con ella; sin regla anterior la hoja queda libre (comentarios de Inicio).
-     * [leadingMarked] = si el post que asoma por arriba, sin su cabecera, era de alguien que no sigues.
      */
     fun decide(
         engine: RuleEngine,
@@ -73,7 +72,6 @@ object BlockPolicy {
         nowMs: Long,
         leftAtMs: Long,
         held: Rule? = null,
-        leadingMarked: Boolean = false,
     ): BlockDecision {
         val rule =
             engine.evaluate(snapshot, origin, scrolled)
@@ -81,10 +79,10 @@ object BlockPolicy {
                 ?: return BlockDecision.Free()
         // Con un desbloqueo en marcha se sigue la navegación, pero no se bloquea nada.
         unlockRemainingMs(budget, snapshot.packageName, time)?.let { return BlockDecision.Free(it) }
-        // Con mask no hay pausa: solo se tapan los posts marcados (ninguno = libre).
-        rule.mask?.let {
-            val zones = PostMask.zones(snapshot.rows, snapshot.listBounds, leadingMarked)
-            return if (zones.isEmpty()) BlockDecision.Free() else BlockDecision.Mask(rule, zones)
+        // Con cover no hay pausa: solo la capa sobre la zona (sin zona fiable = libre).
+        rule.cover?.let {
+            val zone = CoverZone.of(snapshot)
+            return if (zone == null) BlockDecision.Free() else BlockDecision.Cover(rule, zone)
         }
         val key = "${snapshot.packageName}/${rule.id}"
         // El atrás silencioso no pone pausa: solo espera si se acaba de salir.

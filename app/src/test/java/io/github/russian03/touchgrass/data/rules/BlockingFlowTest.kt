@@ -12,7 +12,6 @@ import io.github.russian03.touchgrass.core.rules.Action
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.snapshot.Bounds
-import io.github.russian03.touchgrass.core.snapshot.ListRow
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import io.github.russian03.touchgrass.service.ShowConfirmation
@@ -62,7 +61,7 @@ class BlockingFlowTest {
             )
         when (decision) {
             is BlockDecision.Block -> held = decision.rule
-            is BlockDecision.Free, is BlockDecision.Mask -> held = null
+            is BlockDecision.Free, is BlockDecision.Cover -> held = null
             BlockDecision.Keep, is BlockDecision.SilentBack -> Unit
         }
         return decision
@@ -343,62 +342,63 @@ class BlockingFlowTest {
         assertThat(confirmed(peek, at = ShowConfirmation.CONFIRM_MS)).isTrue()
     }
 
-    // Instagram, Inicio: solo seguidos (ids reales, Instagram 454.0.0.54.77)
+    // Instagram, Inicio en «Para ti»: pantalla verde (ids y posiciones reales, Instagram 454.0.0.54.77, caso S1)
 
     private val homeTop = "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab*,swipeable_tab_view_pager"
 
-    private val homeLoading =
-        captured("$homeTop,action_bar_title_view,title_text,action_bar_left_button,android:id/list,shimmer_content")
+    private val screenBounds = Bounds(0, 0, 1220, 2712)
 
-    /** Filas de la lista de Inicio (caso R2, Instagram 454.0.0.54.77): solo la cabecera lleva `header`. */
-    private fun rows(vararg rows: ListRow) = rows.toList()
+    private fun ScreenSnapshot.withPositions(storiesBottom: Int? = 695) =
+        copy(screen = screenBounds, storiesBottom = storiesBottom, headerBottom = 300, navTop = 2491)
 
-    private val homeList = Bounds(0, 118, 1220, 2504)
+    private fun zoneOf(decision: BlockDecision) = (decision as BlockDecision.Cover).zone
 
-    private fun row(top: Int, bottom: Int, header: Boolean = false, marked: Boolean = false) =
-        ListRow(Bounds(0, top, 1220, bottom), header, marked)
-
-    private fun ScreenSnapshot.withRows(rows: List<ListRow>) = copy(listBounds = homeList, rows = rows)
-
-    private fun zonesOf(decision: BlockDecision) = (decision as BlockDecision.Mask).zones
-
-    private val homeFollowed =
+    private val homeParaTi =
         captured(
-            "$homeTop,android:id/list,row_feed_view_group_buttons,carousel_media_group,carousel_viewpager," +
-                "carousel_image_media_group,carousel_image,row_feed_profile_header,media_option_button," +
-                "row_feed_photo_profile_name,row_feed_photo_profile_imageview",
-        ).withRows(rows(row(300, 469, header = true), row(469, 1300)))
+            "$homeTop,action_bar_left_button,action_bar_title_view,title_text,android:id/list,outer_container," +
+                "avatar_image_view,row_feed_profile_header,row_feed_photo_profile_name,media_option_button",
+        ).withPositions()
 
-    private val homeSuggested =
+    /** «Siguiendo»: pantalla aparte, con flecha de volver y sin barra de navegación. */
+    private val homeFollowing =
         captured(
-            "$homeTop,android:id/list,row_feed_profile_header,media_option_button,inline_follow_button," +
-                "secondary_label,row_feed_photo_profile_name,row_feed_photo_profile_imageview,video_container," +
-                "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
-                "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like",
-        ).withRows(rows(row(300, 469, header = true), row(469, 1300, header = true, marked = true), row(1300, 2000)))
+            "swipeable_tab_view_pager,android:id/list,action_bar_new_title_container,action_bar_button_back," +
+                "action_bar_title,video_container,row_feed_profile_header",
+        )
 
     @Test
-    fun `un post sugerido en Inicio se tapa sin pausa`() {
-        val decision = look(homeSuggested, at = 0)
+    fun `Inicio en Para ti se cubre sin pausa`() {
+        val decision = look(homeParaTi, at = 0)
 
-        assertThat(decision).isInstanceOf(BlockDecision.Mask::class.java)
-        assertThat(zonesOf(decision)).containsExactly(Bounds(0, 469, 1220, 2000))
+        assertThat(decision).isInstanceOf(BlockDecision.Cover::class.java)
+        assertThat(zoneOf(decision)).isEqualTo(Bounds(0, 695, 1220, 2491))
     }
 
     @Test
-    fun `bajar de un post de seguido a uno sugerido lo tapa`() {
-        assertThat(look(homeFollowed, at = 0)).isEqualTo(BlockDecision.Free(null))
-        assertThat(look(homeSuggested, at = 100)).isInstanceOf(BlockDecision.Mask::class.java)
+    fun `Inicio en Siguiendo queda libre`() {
+        assertThat(look(homeFollowing, at = 0)).isEqualTo(BlockDecision.Free(null))
     }
 
     @Test
-    fun `el destino de la salida de Inicio no esta bloqueado`() {
-        assertThat(look(homeLoading, at = 0)).isEqualTo(BlockDecision.Free(null))
+    fun `pasar de Para ti a Siguiendo quita la capa`() {
+        assertThat(look(homeParaTi, at = 0)).isInstanceOf(BlockDecision.Cover::class.java)
+        assertThat(look(homeFollowing, at = 100)).isEqualTo(BlockDecision.Free(null))
     }
 
     @Test
-    fun `con un desbloqueo Inicio con sugeridos queda libre`() {
-        look(homeFollowed, at = 0)
+    fun `volver de Siguiendo a Para ti vuelve a cubrir`() {
+        look(homeFollowing, at = 0)
+        assertThat(look(homeParaTi, at = 100)).isInstanceOf(BlockDecision.Cover::class.java)
+    }
+
+    @Test
+    fun `la capa no espera confirmacion`() {
+        assertThat(look(homeParaTi, at = 0)).isInstanceOf(BlockDecision.Cover::class.java)
+    }
+
+    @Test
+    fun `con un desbloqueo Inicio en Para ti queda libre`() {
+        look(homeFollowing, at = 0)
         val now = time.now()
         val unlock =
             UnlockSession(
@@ -409,34 +409,38 @@ class BlockingFlowTest {
                 bootCount = now.bootCount,
             )
         budget = BudgetState(limitMinutes = 10, usedMinutes = 5, unlock = unlock)
-        assertThat(look(homeSuggested, at = 100))
+        assertThat(look(homeParaTi, at = 100))
             .isEqualTo(BlockDecision.Free(BudgetPolicy.unlockRemainingMs(unlock, now)))
     }
 
     @Test
     fun `los comentarios abiertos desde Inicio quedan libres`() {
-        look(homeSuggested, at = 0)
+        look(homeParaTi, at = 0)
         assertThat(look(commentsIg, at = 100)).isEqualTo(BlockDecision.Free(null))
     }
 
     @Test
-    fun `los comentarios de un post de seguido quedan libres`() {
-        look(homeFollowed, at = 0)
-        assertThat(look(commentsIg, at = 100)).isEqualTo(BlockDecision.Free(null))
+    fun `una historia abierta desde Inicio queda libre`() {
+        val story =
+            captured("swipeable_tab_view_pager,reel_viewer_root,gesture_manager,message_composer_container")
+        look(homeParaTi, at = 0)
+        assertThat(look(story, at = 100)).isEqualTo(BlockDecision.Free(null))
     }
 
     @Test
-    fun `un reel abierto desde Inicio sigue libre hasta pasar de reel`() = assertFreeUntilScroll(homeFollowed)
-
-    @Test
-    fun `el tapado de Inicio no espera confirmacion`() {
-        assertThat(look(homeSuggested, at = 0)).isInstanceOf(BlockDecision.Mask::class.java)
+    fun `el menu del selector de Inicio queda libre`() {
+        val menu = captured("context_menu_options_list,context_menu_item,context_menu_item_label")
+        look(homeParaTi, at = 0)
+        assertThat(look(menu, at = 100)).isEqualTo(BlockDecision.Free(null))
     }
 
     @Test
-    fun `la pestaña Reels con sugeridos arriba no entra en bucle con la salida`() {
+    fun `un reel abierto desde Inicio sigue libre hasta pasar de reel`() = assertFreeUntilScroll(homeParaTi)
+
+    @Test
+    fun `la pestaña Reels con Inicio en Para ti no entra en bucle con la salida`() {
         assertThat(ruleOf(look(reelsTab, at = 0))).isEqualTo("reels_tab")
-        assertThat(look(homeSuggested, at = 100)).isInstanceOf(BlockDecision.Mask::class.java)
+        assertThat(look(homeParaTi, at = 100)).isInstanceOf(BlockDecision.Cover::class.java)
     }
 
     // TikTok

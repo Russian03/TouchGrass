@@ -1,10 +1,9 @@
 package io.github.russian03.touchgrass.data.rules
 
 import com.google.common.truth.Truth.assertThat
-import io.github.russian03.touchgrass.core.blocking.PostMask
+import io.github.russian03.touchgrass.core.blocking.CoverZone
 import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.snapshot.Bounds
-import io.github.russian03.touchgrass.core.snapshot.ListRow
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
 import java.io.File
@@ -108,100 +107,99 @@ class InstagramRulesTest {
         ids.split(",").map { ViewNode(it.removeSuffix("*"), selected = it.endsWith("*")) },
     )
 
-    private val homeList = Bounds(0, 118, 1220, 2504)
+    private val screenBounds = Bounds(0, 0, 1220, 2712)
 
-    private fun row(top: Int, bottom: Int, header: Boolean = false, marked: Boolean = false) =
-        ListRow(Bounds(0, top, 1220, bottom), header, marked)
+    /** Posiciones de Instagram 454.0.0.54.77, Android 15 (1220x2712): historias, cabecera y barra. */
+    private fun ScreenSnapshot.withPositions(storiesBottom: Int? = 695) =
+        copy(screen = screenBounds, storiesBottom = storiesBottom, headerBottom = 300, navTop = 2491)
 
-    /** Filas de la lista (caso R2, Instagram 454.0.0.54.77): solo la cabecera lleva `header`. */
-    private fun ScreenSnapshot.withRows(vararg rows: ListRow) = copy(listBounds = homeList, rows = rows.toList())
-
-    private fun zones(snapshot: ScreenSnapshot, leadingMarked: Boolean = false) =
-        PostMask.zones(snapshot.rows, snapshot.listBounds, leadingMarked)
+    private fun zone(snapshot: ScreenSnapshot) = CoverZone.of(snapshot)
 
     private val homeTop = "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab*,swipeable_tab_view_pager"
 
-    /** Inicio, arriba del todo tras pulsar la pestaña (el feed se recarga): sin ningún post todavía. */
-    private val homeLoading =
-        captured("$homeTop,action_bar_title_view,title_text,action_bar_left_button,android:id/list,shimmer_content")
-
-    /** Post de alguien que sigues: cabecera sin botón «Seguir». */
-    private val homeFollowed =
+    /** Inicio en «Para ti» (Instagram 454.0.0.54.77, caso S1): cabecera clicable `action_bar_title_view`, historias y posts. */
+    private val homeParaTi =
         captured(
-            "$homeTop,android:id/list,row_feed_view_group_buttons,carousel_media_group,carousel_viewpager," +
-                "carousel_image_media_group,carousel_image,row_feed_profile_header,media_option_button," +
-                "row_feed_photo_profile_name,row_feed_photo_profile_imageview",
-        ).withRows(row(300, 469, header = true), row(469, 1300))
+            "$homeTop,action_bar_left_button,action_bar_title_view,title_text,android:id/list,outer_container," +
+                "avatar_image_view,row_feed_profile_header,row_feed_photo_profile_name,media_option_button," +
+                "row_feed_view_group_buttons,row_feed_button_like,row_feed_button_comment,row_feed_button_share",
+        ).withPositions()
 
-    /** Post sugerido mezclado entre seguidos: la cabecera lleva `inline_follow_button` («Seguir»). */
-    private val homeSuggested =
+    /** Inicio en «Para ti» ya bajado: las historias salieron de pantalla. */
+    private val homeParaTiScrolled =
         captured(
-            "$homeTop,android:id/list,row_feed_profile_header,media_option_button,inline_follow_button," +
-                "secondary_label,row_feed_photo_profile_name,row_feed_photo_profile_imageview,video_container," +
-                "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
-                "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like",
-        ).withRows(row(300, 469, header = true), row(469, 800, header = true, marked = true), row(800, 1300))
+            "$homeTop,action_bar_left_button,action_bar_title_view,title_text,android:id/list,video_container," +
+                "media_group,row_feed_view_group_buttons,inline_follow_button",
+        ).withPositions(storiesBottom = null)
 
-    /** Mitad de un post sugerido: la cabecera ya no se ve, pero el botón «Seguir» sigue en pantalla. */
-    private val homeSuggestedMiddle =
+    /** «Siguiendo» (y «Favoritos»): pantalla aparte con flecha de volver y sin barra de navegación. */
+    private val followingScreen =
         captured(
-            "$homeTop,android:id/list,inline_follow_button,row_feed_view_group_buttons,row_feed_button_save," +
-                "row_feed_button_share,row_feed_button_comment,row_feed_button_like,video_container,media_group",
-        ).withRows(row(118, 900), row(900, 1069, header = true))
+            "swipeable_tab_view_pager,android:id/list,action_bar_new_title_container,action_bar_button_back," +
+                "action_bar_title,video_container,row_feed_profile_header",
+        )
 
-    /** Anuncio (`secondary_label` «Publicidad»): lleva el mismo botón «Seguir». */
-    private val homeAd =
+    /** Menú del selector de Inicio: ventana propia con «Siguiendo» y «Favoritos». */
+    private val feedMenu = captured("context_menu_options_list,context_menu_item,context_menu_item_label")
+
+    /** Historia abierta desde Inicio: `reel_viewer_root`, sin barra de navegación. */
+    private val storyViewer =
+        captured("swipeable_tab_view_pager,reel_viewer_root,gesture_manager,message_composer_container")
+
+    /** Perfil abierto desde Inicio: sin `feed_tab` seleccionado. */
+    private val profileScreen =
         captured(
-            "$homeTop,android:id/list,row_feed_profile_header,media_option_button,inline_follow_button," +
-                "secondary_label,row_feed_photo_profile_name,row_feed_photo_profile_imageview,video_container," +
-                "media_group,row_feed_view_group_buttons,row_feed_button_save,row_feed_button_share," +
-                "reposts_ufi_icon,row_feed_button_comment,row_feed_button_like,carousel_media_group," +
-                "carousel_viewpager,carousel_image_media_group,carousel_image",
-        ).withRows(row(300, 600, header = true, marked = true), row(600, 1300), row(1300, 1469, header = true))
+            "swipeable_tab_view_pager,action_bar_username_container,action_bar_title,profile_viewpager," +
+                "profile_tab_layout,profile_header_follow_button",
+        )
 
-    /** Perfil (`profile_viewpager`, de otras capturas) con Inicio seleccionado debajo y el botón «Seguir». */
+    /** Perfil con Inicio seleccionado debajo y la cabecera de Inicio (por si el árbol conserva las dos). */
     private val profileFromHome =
-        captured("$homeTop,profile_viewpager,profile_tab_layout,clips_grid_recyclerview,inline_follow_button")
+        captured("$homeTop,action_bar_title_view,profile_viewpager,profile_tab_layout,inline_follow_button")
 
     @Test
-    fun `un post sugerido en Inicio se tapa`() {
-        assertThat(engine.evaluate(homeSuggested, origin = "feed")?.id).isEqualTo("feed_suggested")
-        assertThat(zones(homeSuggested)).containsExactly(Bounds(0, 469, 1220, 1300))
+    fun `Inicio en Para ti se cubre`() {
+        assertThat(engine.evaluate(homeParaTi, origin = "feed")?.id).isEqualTo("feed_cover")
+        assertThat(zone(homeParaTi)).isEqualTo(Bounds(0, 695, 1220, 2491))
     }
 
     @Test
-    fun `un post sugerido sin su cabecera en pantalla sigue tapado si se recuerda`() {
-        assertThat(engine.evaluate(homeSuggestedMiddle, origin = "feed")?.id).isEqualTo("feed_suggested")
-        assertThat(zones(homeSuggestedMiddle)).isEmpty()
-        assertThat(zones(homeSuggestedMiddle, leadingMarked = true)).containsExactly(Bounds(0, 118, 1220, 900))
+    fun `Inicio en Para ti sin las historias a la vista se cubre desde la cabecera`() {
+        assertThat(engine.evaluate(homeParaTiScrolled, origin = "feed")?.id).isEqualTo("feed_cover")
+        assertThat(zone(homeParaTiScrolled)).isEqualTo(Bounds(0, 300, 1220, 2491))
     }
 
     @Test
-    fun `un anuncio en Inicio se tapa`() {
-        assertThat(engine.evaluate(homeAd, origin = "feed")?.id).isEqualTo("feed_suggested")
-        assertThat(zones(homeAd)).containsExactly(Bounds(0, 300, 1220, 1300))
+    fun `Siguiendo y Favoritos quedan libres`() {
+        assertThat(engine.evaluate(followingScreen, origin = "feed")).isNull()
     }
 
     @Test
-    fun `Inicio con solo seguidos no tapa nada`() {
-        assertThat(zones(homeFollowed)).isEmpty()
-        assertThat(zones(homeLoading)).isEmpty()
+    fun `el menu del selector queda libre`() {
+        assertThat(engine.evaluate(feedMenu, origin = "feed")).isNull()
     }
 
     @Test
-    fun `el perfil de alguien que no sigues abierto desde Inicio permitido`() {
+    fun `una historia abierta desde Inicio queda libre`() {
+        assertThat(engine.evaluate(storyViewer, origin = "feed")).isNull()
+    }
+
+    @Test
+    fun `el perfil abierto desde Inicio queda libre`() {
+        assertThat(engine.evaluate(profileScreen, origin = "feed")).isNull()
         assertThat(engine.evaluate(profileFromHome, origin = "feed")).isNull()
     }
 
     @Test
-    fun `un reel abierto desde Inicio no lo bloquea la regla de sugeridos`() {
-        val viewerOverHome = captured("$homeTop,clips_viewer_view_pager,clips_video_container,inline_follow_button")
+    fun `un reel abierto desde Inicio no lo cubre la regla de Inicio`() {
+        val viewerOverHome =
+            captured("$homeTop,action_bar_title_view,clips_viewer_view_pager,clips_video_container")
         assertThat(engine.evaluate(viewerOverHome, origin = "feed", scrolled = false)).isNull()
     }
 
     @Test
     fun `Inicio sigue siendo el lugar feed`() {
-        assertThat(engine.place(homeSuggested)).isEqualTo("feed")
+        assertThat(engine.place(homeParaTi)).isEqualTo("feed")
     }
 
     @Test

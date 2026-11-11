@@ -276,7 +276,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         }
 
         val packageName = root.packageName.toString()
-        val snapshot = SnapshotBuilder.build(root, engine.texts(packageName), engine.masks(packageName))
+        val snapshot = SnapshotBuilder.build(root, engine.texts(packageName), engine.coverSpecs(packageName))
         val now = SystemClock.elapsedRealtime()
         BlockPolicy.track(engine, session, snapshot, now)
 
@@ -303,8 +303,8 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                 silentBackGuard.reset()
                 overlay.hide()
             }
-            is BlockDecision.Mask -> {
-                // La capa llega en A3: por ahora Inicio se trata como libre (sin pausa ni caducidad).
+            is BlockDecision.Cover -> {
+                // La capa llega en B4: por ahora Inicio se trata como libre (sin pausa ni caducidad).
                 confirmation.reset()
                 heldRule = null
                 silentBackGuard.reset()

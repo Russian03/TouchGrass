@@ -179,18 +179,18 @@ class RuleEngineTest {
     }
 
     @Test
-    fun `masks devuelve las listas y anclas de las reglas con mask`() {
-        val spec = PostMaskSpec(list = "list", header = "header", anchor = "follow")
-        val masked = reelsTab.copy(id = "masked", mask = spec)
-        val withMask = RuleEngine(listOf(RuleSet(1, IG, listOf(reelsTab, masked))))
+    fun `coverSpecs devuelve los ids de las reglas con cover`() {
+        val spec = CoverSpec(stories = "stories", header = "header", nav = "nav")
+        val covered = reelsTab.copy(id = "covered", cover = spec)
+        val withCover = RuleEngine(listOf(RuleSet(1, IG, listOf(reelsTab, covered))))
 
-        assertThat(withMask.masks(IG)).containsExactly(spec)
+        assertThat(withCover.coverSpecs(IG)).containsExactly(spec)
     }
 
     @Test
-    fun `una app sin reglas con mask no lee posiciones`() {
-        assertThat(engine.masks(IG)).isEmpty()
-        assertThat(engine.masks("otra.app")).isEmpty()
+    fun `una app sin reglas con cover no lee posiciones`() {
+        assertThat(engine.coverSpecs(IG)).isEmpty()
+        assertThat(engine.coverSpecs("otra.app")).isEmpty()
     }
 
     @Test

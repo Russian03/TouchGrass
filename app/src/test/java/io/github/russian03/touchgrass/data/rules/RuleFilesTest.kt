@@ -52,7 +52,7 @@ class RuleFilesTest {
             set.rules.map {
                 it.id
             },
-        ).containsAtLeast("reels_tab", "reels_viewer", "explore_peek", "feed_suggested")
+        ).containsAtLeast("reels_tab", "reels_viewer", "explore_peek", "feed_cover")
     }
 
     @Test
@@ -80,28 +80,28 @@ class RuleFilesTest {
     }
 
     @Test
-    fun `una regla sin mask no tapa por posts`() {
+    fun `una regla sin cover no tapa nada`() {
         val json =
             """{"version":1,"packageName":"p","rules":[{"id":"r","description":"d",""" +
                 """"match":{"allOf":[{"viewId":"v"}]},"action":{"type":"back"}}]}"""
-        assertThat(RuleRepository.parse(json).rules.single().mask).isNull()
+        assertThat(RuleRepository.parse(json).rules.single().cover).isNull()
     }
 
     @Test
-    fun `solo feed_suggested tapa por posts`() {
+    fun `solo feed_cover tapa la pantalla`() {
         val instagram = RuleRepository.parse(File(rulesDir, "instagram.json").readText())
         val tiktok = RuleRepository.parse(File(rulesDir, "tiktok.json").readText())
-        assertThat(instagram.rules.filter { it.mask != null }.map { it.id }).containsExactly("feed_suggested")
-        assertThat(tiktok.rules.filter { it.mask != null }).isEmpty()
+        assertThat(instagram.rules.filter { it.cover != null }.map { it.id }).containsExactly("feed_cover")
+        assertThat(tiktok.rules.filter { it.cover != null }).isEmpty()
     }
 
     @Test
-    fun `feed_suggested no usa su salida`() {
+    fun `feed_cover no usa su salida`() {
         val rule = RuleRepository.parse(File(rulesDir, "instagram.json").readText()).rules.single {
             it.id ==
-                "feed_suggested"
+                "feed_cover"
         }
-        assertThat(rule.mask).isNotNull()
+        assertThat(rule.cover).isNotNull()
         assertThat(rule.silentBack).isFalse()
         assertThat(rule.coveredBy).isNull()
     }

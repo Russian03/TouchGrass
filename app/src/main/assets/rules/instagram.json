@@ -1,5 +1,5 @@
 {
-  "version": 14,
+  "version": 15,
   "packageName": "com.instagram.android",
   "name": "Instagram",
   "blocks": "Reels",
@@ -67,14 +67,19 @@
       ]
     },
     {
-      "id": "feed_suggested",
-      "description": "Posts de Inicio de gente que no sigues (se tapan uno a uno)",
+      "id": "feed_cover",
+      "description": "Inicio en «Para ti» (se cubre con una pantalla verde)",
       "match": {
-        "allOf": [{ "viewId": "feed_tab", "selected": true }, { "viewId": "android:id/list" }],
-        "noneOf": [{ "viewId": "clips_viewer_view_pager" }, { "viewId": "profile_viewpager" }]
+        "allOf": [{ "viewId": "feed_tab", "selected": true }, { "viewId": "action_bar_title_view" }],
+        "noneOf": [
+          { "viewId": "clips_viewer_view_pager" },
+          { "viewId": "profile_viewpager" },
+          { "viewId": "reel_viewer_root" },
+          { "viewId": "bottom_sheet_container" }
+        ]
       },
       "action": { "type": "click", "target": "feed_tab" },
-      "mask": { "list": "android:id/list", "header": "row_feed_profile_header", "anchor": "inline_follow_button" }
+      "cover": { "stories": "outer_container", "header": "action_bar_left_button", "nav": "feed_tab" }
     }
   ]
 }

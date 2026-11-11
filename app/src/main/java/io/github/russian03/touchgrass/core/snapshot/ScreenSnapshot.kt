@@ -8,10 +8,14 @@ package io.github.russian03.touchgrass.core.snapshot
 data class ScreenSnapshot(
     val packageName: String,
     val nodes: List<ViewNode>,
-    /** Posición en pantalla de la lista que pide una regla con `mask`; `null` si no se ha leído. */
-    val listBounds: Bounds? = null,
-    /** Filas de esa lista (solo posiciones y dos marcas, nunca contenido); vacío si no se han leído. */
-    val rows: List<ListRow> = emptyList(),
+    /** Pantalla de la ventana leída; `null` si no se ha leído (solo con una regla `cover`). */
+    val screen: Bounds? = null,
+    /** Borde de abajo de las historias a la vista (solo posiciones, nunca contenido); `null` si no hay. */
+    val storiesBottom: Int? = null,
+    /** Borde de abajo de la cabecera de Inicio; `null` si no se ha leído. */
+    val headerBottom: Int? = null,
+    /** Borde de arriba de la barra de navegación; `null` si no se ha leído. */
+    val navTop: Int? = null,
 ) {
     private val byId: Map<String, List<ViewNode>> = nodes.groupBy { it.viewId }
 
@@ -45,9 +49,3 @@ data class Bounds(val left: Int, val top: Int, val right: Int, val bottom: Int) 
         return common.takeIf { it.right > it.left && it.bottom > it.top }
     }
 }
-
-/**
- * Una fila de la lista de Inicio: su posición, si lleva la cabecera de un post ([header]) y si esa
- * cabecera es de alguien que no sigues ([marked], p. ej. lleva «Seguir»). No guarda contenido.
- */
-data class ListRow(val bounds: Bounds, val header: Boolean, val marked: Boolean)
