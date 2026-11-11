@@ -227,21 +227,20 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                         return
                     }
             }
+            // Los cambios de pantalla se miran al momento; el resto de eventos (Instagram manda decenas por
+            // segundo) a un ritmo tranquilo, para no cargar el hilo principal, que también dibuja la capa.
+            val gap = if (isNavigation(event)) COVER_EVAL_MIN_MS else COVER_CONTENT_EVAL_MS
             val sinceLast = SystemClock.elapsedRealtime() - lastEvalAt
-            scheduleEvaluation((COVER_EVAL_MIN_MS - sinceLast).coerceAtLeast(0))
+            scheduleEvaluation((gap - sinceLast).coerceAtLeast(0))
             return
         }
-        if (event.eventType != AccessibilityEvent.TYPE_VIEW_SCROLLED && engine.coverSpecs(packageName!!).isNotEmpty()) {
-            // «Para ti» debe taparse al momento, sin esperar a que la pantalla se calme: si no, hay unos
-            // instantes en los que el feed se puede mover. La primera mirada tras un rato sin eventos es
-            // inmediata; con eventos seguidos, como mucho una cada LEADING_EVAL_MIN_MS.
+        if (isNavigation(event) && engine.coverSpecs(packageName!!).isNotEmpty()) {
+            // Un cambio de pantalla (un toque o una ventana nueva) puede dejar a la vista «Para ti»: se mira al
+            // momento, sin esperar a que se calme, y otra vez en unos instantes, por si el árbol aún es el viejo.
+            // El resto de eventos sigue el ritmo de siempre (abajo): no se carga de más al hilo principal.
             val sinceLast = SystemClock.elapsedRealtime() - lastEvalAt
             scheduleEvaluation((LEADING_EVAL_MIN_MS - sinceLast).coerceAtLeast(0))
-            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-                event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
-            ) {
-                scheduleFollowUps()
-            }
+            scheduleFollowUps()
             return
         }
         // Instagram emite decenas de eventos por segundo: se evalúa cuando la pantalla se calma,
@@ -512,6 +511,11 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         list.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
     }
 
+    /** Si [event] es un cambio de pantalla (un toque o una ventana nueva), no un cambio de contenido o un scroll. */
+    private fun isNavigation(event: AccessibilityEvent): Boolean =
+        event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
+
     /** Si [event] es el toque de una pestaña que bloquea con pausa (la que mira alguna regla marcada como seleccionada). */
     private fun isPauseTab(event: AccessibilityEvent, packageName: String): Boolean {
         val id = event.source?.viewIdResourceName ?: return false
@@ -525,8 +529,13 @@ class TouchGrassAccessibilityService : AccessibilityService() {
      * activada pueden ser la «ventana activa» sin que el usuario haya salido de la app. El panel de
      * notificaciones se vigila aparte ([checkShade]).
      */
-    private fun appRoot(): AccessibilityNodeInfo? =
-        windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }?.root ?: rootInActiveWindow
+    private fun appRoot(): AccessibilityNodeInfo? {
+        val active = rootInActiveWindow
+        val pkg = active?.packageName?.toString()
+        // Lo normal (la ventana activa es la de la app): sin tocar la lista de ventanas, que cuesta más.
+        if (active != null && pkg != packageName && pkg != SYSTEM_UI && pkg != MIUI_SYSTEM_UI_PLUGIN) return active
+        return windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }?.root ?: active
+    }
 
     /**
      * Mira si el panel de notificaciones está abierto y, si lo está, quita la capa y vuelve a mirar cada
@@ -757,8 +766,9 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val OVERLAY_POLL_MS = 200L
 
         /** Con la capa de Inicio se mira más a menudo: debe irse al momento al cambiar de pantalla. */
-        const val COVER_POLL_MS = 100L
+        const val COVER_POLL_MS = 150L
         const val COVER_EVAL_MIN_MS = 50L
+        const val COVER_CONTENT_EVAL_MS = 200L
 
         /** Tras quitar la capa por un toque o un cambio de ventana, cuándo se vuelve a mirar si sigue en «Para ti». */
         const val COVER_RECHECK_MS = 150L
@@ -775,6 +785,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         /** Lo mínimo entre dos toques de la pestaña de Inicio (recarga el feed). */
         const val TAB_CLICK_GAP_MS = 1_500L
         const val SYSTEM_UI = "com.android.systemui"
+        const val MIUI_SYSTEM_UI_PLUGIN = "miui.systemui.plugin"
 
         /** Miradas seguidas sin ventana activa tras las que se quita la capa de Inicio (~0,5 s). */
         const val MAX_NULL_ROOTS = 5
