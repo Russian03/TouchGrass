@@ -42,16 +42,26 @@ object CoverZone {
     }
 
     /**
-     * Escudos transparentes: la cabecera se deja tocable solo en sus botones; el título (el selector de
-     * «Para ti») y los huecos entre ellos no se pueden tocar ni deslizar. Vacío si la cabecera no se ve o no
-     * se conocen los lados del título.
+     * Escudos transparentes, que no se ven pero tragan los toques:
+     * - Sobre la barra de estado, para que no se pueda bajar el panel de notificaciones con la capa puesta.
+     * - Sobre la cabecera, la cabecera se deja tocable solo en sus botones: el título (el selector de «Para ti»)
+     *   y los huecos entre ellos no se pueden tocar ni deslizar.
+     * Vacío si no se conoce la pantalla; sin cabecera a la vista (feed bajado) o sin los lados del título solo
+     * queda el de la barra de estado.
      */
     fun shields(snapshot: ScreenSnapshot): List<Bounds> {
         val screen = snapshot.screen ?: return emptyList()
         val top = snapshot.listTop ?: return emptyList()
-        val bottom = snapshot.headerBottom ?: return emptyList()
-        val left = snapshot.titleLeft ?: return emptyList()
-        val right = snapshot.titleRight ?: return emptyList()
-        return listOfNotNull(Bounds(left, top, right, bottom).intersect(screen))
+        val statusBar = Bounds(screen.left, screen.top, screen.right, top).takeIf { top > screen.top }
+        val bottom = snapshot.headerBottom
+        val left = snapshot.titleLeft
+        val right = snapshot.titleRight
+        val title =
+            if (bottom != null && left != null && right != null) {
+                Bounds(left, top, right, bottom).intersect(screen)
+            } else {
+                null
+            }
+        return listOfNotNull(statusBar, title)
     }
 }

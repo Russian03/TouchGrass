@@ -380,7 +380,9 @@ class BlockingFlowTest {
 
         assertThat(decision).isInstanceOf(BlockDecision.Cover::class.java)
         assertThat(zoneOf(decision)).isEqualTo(Bounds(0, 300, 1220, 2491))
-        assertThat((decision as BlockDecision.Cover).shields).containsExactly(Bounds(156, 118, 1064, 300))
+        assertThat((decision as BlockDecision.Cover).shields)
+            .containsExactly(Bounds(0, 0, 1220, 118), Bounds(156, 118, 1064, 300))
+            .inOrder()
     }
 
     @Test

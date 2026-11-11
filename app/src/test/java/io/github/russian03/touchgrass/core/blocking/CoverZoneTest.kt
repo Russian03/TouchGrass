@@ -103,14 +103,21 @@ class CoverZoneTest {
     }
 
     @Test
-    fun `un escudo transparente cubre la cabecera entre sus botones`() {
-        assertThat(CoverZone.shields(snapshot())).containsExactly(Bounds(156, 118, 1064, 300))
+    fun `los escudos tapan la barra de estado y la cabecera entre sus botones`() {
+        assertThat(CoverZone.shields(snapshot()))
+            .containsExactly(Bounds(0, 0, 1220, 118), Bounds(156, 118, 1064, 300))
+            .inOrder()
     }
 
     @Test
-    fun `sin cabecera o sin los lados del titulo no hay escudo`() {
-        assertThat(CoverZone.shields(snapshot(headerBottom = null))).isEmpty()
-        assertThat(CoverZone.shields(snapshot(titleLeft = null))).isEmpty()
+    fun `sin cabecera o sin los lados del titulo solo queda el escudo de la barra de estado`() {
+        assertThat(CoverZone.shields(snapshot(headerBottom = null))).containsExactly(Bounds(0, 0, 1220, 118))
+        assertThat(CoverZone.shields(snapshot(titleLeft = null))).containsExactly(Bounds(0, 0, 1220, 118))
+    }
+
+    @Test
+    fun `sin saber la pantalla o la lista no hay escudos`() {
         assertThat(CoverZone.shields(snapshot(screen = null))).isEmpty()
+        assertThat(CoverZone.shields(snapshot(listTop = null))).isEmpty()
     }
 }

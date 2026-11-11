@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.service
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.AlarmManager
 import android.app.KeyguardManager
 import android.app.NotificationManager
@@ -11,12 +12,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.russian03.touchgrass.core.blocking.BlockDecision
@@ -98,6 +101,10 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     /** Miradas seguidas sin ventana activa mientras hay capa (ver [evaluateCurrentScreen]). */
     private var nullRoots = 0
+
+    /** El panel de notificaciones está abierto: la capa no debe verse encima (ver [checkShade]). */
+    private var shadeOpen = false
+    private val shadeRunnable = Runnable { checkShade() }
     private var lastScrollBackAt = 0L
     private var lastTabClickAt = 0L
     private var feedBackTries = 0
@@ -114,7 +121,11 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         // Además de Instagram se escucha al launcher, solo para saber al momento que el usuario
         // ha salido a Inicio o a Recientes: de su pantalla no se lee nada.
         serviceInfo =
-            serviceInfo.apply { packageNames = (engine.packages + listOfNotNull(launcher, SYSTEM_UI)).toTypedArray() }
+            serviceInfo.apply {
+                // Para saber si el panel de notificaciones está abierto aunque no sea la ventana activa.
+                flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                packageNames = (engine.packages + listOfNotNull(launcher, SYSTEM_UI)).toTypedArray()
+            }
         ContextCompat.registerReceiver(
             this,
             screenReceiver,
@@ -177,9 +188,9 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             // Panel de notificaciones o ajustes rápidos: de su pantalla no se lee nada, solo se mira de nuevo.
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
                 ::feedCover.isInitialized &&
-                feedCover.isShowing
+                (feedCover.isShowing || shadeOpen)
             ) {
-                scheduleEvaluation(0)
+                checkShade()
             }
             return
         }
@@ -310,6 +321,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         handler.removeCallbacks(evaluateRunnable)
         handler.removeCallbacks(expiryRunnable)
         handler.removeCallbacks(feedSwitchRunnable)
+        handler.removeCallbacks(shadeRunnable)
         handler.removeCallbacks(followUpRunnable)
         handler.removeCallbacks(followUpLateRunnable)
         if (::overlay.isInitialized) {
@@ -345,8 +357,14 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             hideCover(keepSilence = true)
             return
         }
+        if (shadeOpen) {
+            // Con el panel de notificaciones abierto no hay capa (ni se vuelve a poner por encima), pero el
+            // vídeo de debajo sigue en silencio hasta que el panel se cierre.
+            hideCover(keepSilence = true)
+            return
+        }
         // A veces la ventana activa no está disponible un instante: entonces no se cambia nada.
-        val root = rootInActiveWindow
+        val root = appRoot()
         if (root == null) {
             // Con la capa puesta no puede quedarse congelada: se sigue mirando y, si la ventana no
             // vuelve en un momento, se quita.
@@ -356,6 +374,15 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             return
         }
         nullRoots = 0
+        if (root.packageName?.toString() !in engine.packages && isVolumePanel(root)) {
+            // El panel de volumen es una ventana del sistema (en Xiaomi, `miui.systemui.plugin`, a pantalla
+            // completa): no es salir de la app. La capa y la pausa se quedan, y el silencio también.
+            if (feedCover.isShowing) {
+                feedCover.enforceSilence()
+                scheduleEvaluation(COVER_POLL_MS)
+            }
+            return
+        }
         if (root.packageName?.toString() !in engine.packages) {
             // Solo recibimos eventos de Instagram: si el usuario se ha ido, la pantalla no debe quedarse.
             confirmation.reset()
@@ -410,6 +437,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                         hideCover()
                     },
                     onExit = ::exitApp,
+                    onBack = ::coverBack,
                 )
                 // «Para ti» se queda arriba del todo: con la cabecera escondida el feed se ha movido (p. ej.
                 // desde un hueco que la capa no cubre) y se devuelve arriba, sin que se vea bajo la capa.
@@ -490,6 +518,53 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         return engine.pauseTabIds(packageName).any { id.endsWith(":id/$it") }
     }
 
+    /**
+     * Raíz de la ventana de la app que hay debajo: la ventana de aplicación de más arriba (Instagram, su menú
+     * emergente, o la de otra app si el usuario se ha ido a otra). Las ventanas del sistema (notificaciones
+     * emergentes, panel de volumen, la propia capa o pausa de TouchGrass) no cuentan: con la lista de ventanas
+     * activada pueden ser la «ventana activa» sin que el usuario haya salido de la app. El panel de
+     * notificaciones se vigila aparte ([checkShade]).
+     */
+    private fun appRoot(): AccessibilityNodeInfo? =
+        windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }?.root ?: rootInActiveWindow
+
+    /**
+     * Mira si el panel de notificaciones está abierto y, si lo está, quita la capa y vuelve a mirar cada
+     * [SHADE_POLL_MS] hasta que se cierre. Con la capa puesta (que tiene el foco) el panel no pasa a ser la
+     * ventana activa, así que no basta con mirar la ventana activa. No lee nada del panel: solo si su vista
+     * `notification_panel` se ve.
+     */
+    private fun checkShade() {
+        handler.removeCallbacks(shadeRunnable)
+        val coverWasShowing = feedCover.isShowing
+        shadeOpen = isShadeVisible()
+        if (shadeOpen) {
+            // Con la capa puesta no se puede dejar abierto el panel (la barra de estado está tapada, pero por si
+            // acaso se abre de otra forma): se cierra. Android 12+.
+            if (coverWasShowing && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                performGlobalAction(GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE)
+            }
+            // La capa se quita, pero el silencio se mantiene: debajo del panel el vídeo sigue.
+            hideCover(keepSilence = true)
+            feedCover.enforceSilence()
+            handler.postDelayed(shadeRunnable, SHADE_POLL_MS)
+        } else {
+            scheduleEvaluation(0)
+        }
+    }
+
+    private fun isShadeVisible(): Boolean = windows.any { window ->
+        window.type == AccessibilityWindowInfo.TYPE_SYSTEM &&
+            window.root?.let { root ->
+                root.packageName?.toString() == SYSTEM_UI &&
+                    root.findAccessibilityNodeInfosByViewId("$SYSTEM_UI:id/$SHADE_PANEL_ID").any { it.isVisibleToUser }
+            } == true
+    }
+
+    /** Si [root] es el panel de volumen del sistema (tiene su vista `volume_dialog`, en AOSP y en MIUI). */
+    private fun isVolumePanel(root: AccessibilityNodeInfo): Boolean =
+        root.findAccessibilityNodeInfosByViewId("${root.packageName}:id/$VOLUME_DIALOG_ID").isNotEmpty()
+
     /** Si [event] viene de la pestaña de Inicio (la barra de navegación de la capa). */
     private fun isCoverNav(event: AccessibilityEvent, packageName: String): Boolean {
         val nav = engine.coverSpecs(packageName).firstOrNull()?.nav ?: return false
@@ -499,6 +574,15 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     /** Quita la capa de Inicio. Con [keepSilence], el sonido vuelve al siguiente quitar. */
     private fun hideCover(keepSilence: Boolean = false) {
         if (keepSilence) feedCover.hideKeepingSilence() else feedCover.hide()
+    }
+
+    /**
+     * Atrás con la capa puesta (la capa tiene el foco): se quita para soltarlo y, un instante después, se hace el
+     * atrás sobre Instagram, que es lo que habría pasado sin la capa. Si sigue en «Para ti», la capa vuelve.
+     */
+    private fun coverBack() {
+        hideCover()
+        handler.postDelayed({ performGlobalAction(GLOBAL_ACTION_BACK) }, FOCUS_RELEASE_MS)
     }
 
     /** «Salir de la app»: lleva al usuario a la pantalla de inicio del móvil. No cuenta en las estadísticas. */
@@ -521,7 +605,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     private fun advanceFeedSwitch() {
         handler.removeCallbacks(feedSwitchRunnable)
         if (!feedSwitch.isActive) return
-        val root = rootInActiveWindow
+        val root = appRoot()
         if (root != null) {
             val pkg = root.packageName.toString()
             val menuShown = root.findAccessibilityNodeInfosByViewId(
@@ -620,7 +704,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             {
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
                 val closed =
-                    rootInActiveWindow
+                    appRoot()
                         ?.let { !engine.covers(SnapshotBuilder.build(it, engine.texts(packageName)), rule) } == true
                 if (closed || elapsed >= SHEET_CLOSE_MAX_MS) {
                     leftAt = SystemClock.elapsedRealtime()
@@ -634,7 +718,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
     }
 
     private fun exit(rule: Rule) {
-        val root = rootInActiveWindow
+        val root = appRoot()
         // Si no encuentra a dónde ir, al menos vuelve atrás.
         BlockExit.perform(
             rule.action,
@@ -692,8 +776,14 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val TAB_CLICK_GAP_MS = 1_500L
         const val SYSTEM_UI = "com.android.systemui"
 
-        /** Miradas seguidas sin ventana activa tras las que se quita la capa de Inicio (~2 s). */
-        const val MAX_NULL_ROOTS = 2
+        /** Miradas seguidas sin ventana activa tras las que se quita la capa de Inicio (~0,5 s). */
+        const val MAX_NULL_ROOTS = 5
+
+        const val VOLUME_DIALOG_ID = "volume_dialog"
+
+        /** Vista del panel de notificaciones de Android y cada cuánto se mira si se ha cerrado. */
+        const val SHADE_PANEL_ID = "notification_panel"
+        const val SHADE_POLL_MS = 300L
 
         /** Cada cuánto se mira si ya salió el menú del selector de Inicio al ir a «Siguiendo». */
         const val FEED_SWITCH_POLL_MS = 100L

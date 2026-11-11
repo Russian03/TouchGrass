@@ -1,12 +1,17 @@
 package io.github.russian03.touchgrass.overlay
 
 import android.accessibilityservice.AccessibilityService
+import android.animation.ValueAnimator
 import android.graphics.PixelFormat
 import android.os.Build
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -20,6 +25,13 @@ import io.github.russian03.touchgrass.ui.theme.Lime
  * navegación, unas franjas lisas que tapan lo que esta deja al aire para que el feed no se pueda mover por
  * ahí. Se tragan los toques de su zona, no cogen el foco (atrás y teclado siguen yendo a Instagram) y,
  * mientras se ve, la app de debajo no suena. No cuenta en las estadísticas.
+ *
+ * La ventana principal sí coge el foco del teclado (las demás no): así los botones de volumen le llegan a ella y
+ * no hacen nada, y el vídeo de debajo no se oye por mucho que se mantengan pulsados. Los toques de fuera de
+ * su zona siguen llegando a Instagram. El botón atrás se pasa a [onBack].
+ *
+ * Entra con un fundido corto (y, si el sistema lo permite, un leve desenfoque de lo que hay detrás) para que la
+ * transición no sea un salto: la capa tarda un instante en llegar y así no se ve brusco. Se quita al momento.
  */
 internal class FeedCoverOverlay(private val service: AccessibilityService, private val silencer: AudioSilencer) {
 
@@ -29,6 +41,8 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
     private var shields: List<Panel> = emptyList()
     private var lifecycleOwner: OverlayLifecycleOwner? = null
     private var silent = false
+    private var backCallback: Any? = null
+    private val fades = mutableListOf<ValueAnimator>()
 
     /** Una ventana de la capa y dónde está. */
     private class Panel(val view: View, val params: WindowManager.LayoutParams, var zone: Bounds)
@@ -46,6 +60,7 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         onFollowing: () -> Unit,
         onAskTime: () -> Unit,
         onExit: () -> Unit,
+        onBack: () -> Unit,
     ) {
         val current = main
         if (current != null) {
@@ -54,14 +69,15 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
             return
         }
         val owner = OverlayLifecycleOwner().also { it.start() }
-        val root = FrameLayout(service).apply {
+        val root = KeyTrap(onBack).apply {
             // Lima desde el primer instante: Compose tarda un poco en dibujar y no debe verse un hueco.
             setBackgroundColor(Lime.toArgb())
             setViewTreeLifecycleOwner(owner)
             setViewTreeSavedStateRegistryOwner(owner)
             addView(ComposeView(service).apply { setContent { FeedCoverContent(onFollowing, onAskTime, onExit) } })
         }
-        main = add(root, zone)
+        main = add(root, zone, focusable = true)
+        registerBack(root, onBack)
         lifecycleOwner = owner
         syncPanels(edgeZones, shieldZones)
         silencer.silence(this)
@@ -92,6 +108,9 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
 
     private fun remove() {
         val panels = listOfNotNull(main) + edges + shields
+        main?.let { unregisterBack(it.view) }
+        fades.forEach { it.cancel() }
+        fades.clear()
         val owner = lifecycleOwner
         main = null
         edges = emptyList()
@@ -133,12 +152,43 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         if (!transparent) setBackgroundColor(Lime.toArgb())
     }
 
-    private fun add(view: View, zone: Bounds, transparent: Boolean = false): Panel {
-        val params = layoutParams(if (transparent) PixelFormat.TRANSPARENT else PixelFormat.OPAQUE).also {
-            place(it, zone)
-        }
+    private fun add(view: View, zone: Bounds, transparent: Boolean = false, focusable: Boolean = false): Panel {
+        // Translúcida (no opaca) para poder entrar con un fundido; los escudos no se ven nunca.
+        val params = layoutParams(PixelFormat.TRANSLUCENT, focusable).also { place(it, zone) }
+        val blurs =
+            focusable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && windowManager.isCrossWindowBlurEnabled
+        if (blurs) params.flags = params.flags or WindowManager.LayoutParams.FLAG_BLUR_BEHIND
+        if (!transparent) view.alpha = 0f
         windowManager.addView(view, params)
-        return Panel(view, params, zone)
+        val panel = Panel(view, params, zone)
+        if (!transparent) fadeIn(panel, blurs)
+        return panel
+    }
+
+    /** Sube la opacidad de 0 a 1 y, en la ventana principal, el desenfoque de detrás; al acabar quita el desenfoque. */
+    private fun fadeIn(panel: Panel, blurs: Boolean) {
+        val maxBlur = (BLUR_RADIUS_DP * service.resources.displayMetrics.density).toInt()
+        val animator =
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = FADE_IN_MS
+                interpolator = AccelerateDecelerateInterpolator()
+                addUpdateListener { animation ->
+                    if (!panel.view.isAttachedToWindow) return@addUpdateListener
+                    val fraction = animation.animatedValue as Float
+                    panel.view.alpha = fraction
+                    if (blurs && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val done = fraction >= 1f
+                        panel.params.blurBehindRadius = if (done) 0 else (maxBlur * fraction).toInt()
+                        if (done) {
+                            panel.params.flags =
+                                panel.params.flags and WindowManager.LayoutParams.FLAG_BLUR_BEHIND.inv()
+                        }
+                        windowManager.updateViewLayout(panel.view, panel.params)
+                    }
+                }
+            }
+        fades += animator
+        animator.start()
     }
 
     private fun move(panel: Panel, zone: Bounds) {
@@ -155,11 +205,18 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         layout.height = zone.height
     }
 
-    private fun layoutParams(format: Int) = WindowManager.LayoutParams(
+    private fun layoutParams(format: Int, focusable: Boolean) = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+        // Con foco, los toques de fuera de la ventana deben seguir llegando a Instagram (NOT_TOUCH_MODAL).
+        (
+            if (focusable) {
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+            } else {
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            }
+            ) or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
         format,
@@ -169,5 +226,42 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
+    }
+
+    /**
+     * Atrás, con el gesto o el botón. Desde Android 13 llega por [OnBackInvokedDispatcher] (si la app usa el
+     * atrás predictivo); si no, como tecla en [KeyTrap].
+     */
+    private fun registerBack(target: View, onBack: () -> Unit) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val callback = OnBackInvokedCallback { onBack() }
+        target.findOnBackInvokedDispatcher()
+            ?.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
+        backCallback = callback
+    }
+
+    private fun unregisterBack(target: View) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val callback = backCallback as? OnBackInvokedCallback ?: return
+        target.findOnBackInvokedDispatcher()?.unregisterOnBackInvokedCallback(callback)
+        backCallback = null
+    }
+
+    /** Raíz de la capa: se queda los botones de volumen (no hacen nada) y convierte la tecla atrás en `onBack`. */
+    private inner class KeyTrap(private val onBack: () -> Unit) : FrameLayout(service) {
+        override fun dispatchKeyEvent(event: KeyEvent): Boolean = when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_MUTE -> true
+            KeyEvent.KEYCODE_BACK -> {
+                if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) onBack()
+                true
+            }
+            else -> super.dispatchKeyEvent(event)
+        }
+    }
+
+    private companion object {
+        /** Lo que tarda la capa en aparecer del todo, y lo que se desenfoca lo de detrás mientras tanto. */
+        const val FADE_IN_MS = 300L
+        const val BLUR_RADIUS_DP = 16
     }
 }
