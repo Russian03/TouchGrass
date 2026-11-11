@@ -8,7 +8,7 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
-import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
@@ -30,8 +30,8 @@ import io.github.russian03.touchgrass.ui.theme.Lime
  * no hacen nada, y el vídeo de debajo no se oye por mucho que se mantengan pulsados. Los toques de fuera de
  * su zona siguen llegando a Instagram. El botón atrás se pasa a [onBack].
  *
- * Entra con un fundido corto (y, si el sistema lo permite, un leve desenfoque de lo que hay detrás) para que la
- * transición no sea un salto: la capa tarda un instante en llegar y así no se ve brusco. Se quita al momento.
+ * Entra con un fundido de 1 s y la misma curva que la pausa de Reels (y, si el sistema lo permite, un desenfoque
+ * de lo que hay detrás) para que no sea un salto. Mientras entra ya traga los toques. Se quita al momento.
  */
 internal class FeedCoverOverlay(private val service: AccessibilityService, private val silencer: AudioSilencer) {
 
@@ -171,7 +171,8 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         val animator =
             ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = FADE_IN_MS
-                interpolator = AccelerateDecelerateInterpolator()
+                // Igual que la pausa de Reels: empieza muy suave y acelera al final.
+                interpolator = PathInterpolator(0.32f, 0f, 0.67f, 0f)
                 addUpdateListener { animation ->
                     if (!panel.view.isAttachedToWindow) return@addUpdateListener
                     val fraction = animation.animatedValue as Float
@@ -261,7 +262,7 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
 
     private companion object {
         /** Lo que tarda la capa en aparecer del todo, y lo que se desenfoca lo de detrás mientras tanto. */
-        const val FADE_IN_MS = 300L
-        const val BLUR_RADIUS_DP = 16
+        const val FADE_IN_MS = 1_000L
+        const val BLUR_RADIUS_DP = 30
     }
 }

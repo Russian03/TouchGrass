@@ -32,6 +32,7 @@ import io.github.russian03.touchgrass.core.navigation.ViewerSession
 import io.github.russian03.touchgrass.core.rules.Action
 import io.github.russian03.touchgrass.core.rules.Rule
 import io.github.russian03.touchgrass.core.rules.RuleEngine
+import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.data.budget.BudgetRepository
 import io.github.russian03.touchgrass.data.rules.RuleRepository
 import io.github.russian03.touchgrass.data.stats.StatsRepository
@@ -39,6 +40,7 @@ import io.github.russian03.touchgrass.overlay.AudioSilencer
 import io.github.russian03.touchgrass.overlay.BlockOverlay
 import io.github.russian03.touchgrass.overlay.FeedCoverOverlay
 import io.github.russian03.touchgrass.overlay.openTouchGrass
+import java.util.concurrent.Executors
 import javax.inject.Inject
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -227,21 +229,20 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                         return
                     }
             }
+            // Los cambios de pantalla se miran al momento; el resto de eventos (Instagram manda decenas por
+            // segundo) a un ritmo tranquilo, para no cargar el hilo principal, que también dibuja la capa.
+            val gap = if (isNavigation(event)) COVER_EVAL_MIN_MS else COVER_CONTENT_EVAL_MS
             val sinceLast = SystemClock.elapsedRealtime() - lastEvalAt
-            scheduleEvaluation((COVER_EVAL_MIN_MS - sinceLast).coerceAtLeast(0))
+            scheduleEvaluation((gap - sinceLast).coerceAtLeast(0))
             return
         }
-        if (event.eventType != AccessibilityEvent.TYPE_VIEW_SCROLLED && engine.coverSpecs(packageName!!).isNotEmpty()) {
-            // «Para ti» debe taparse al momento, sin esperar a que la pantalla se calme: si no, hay unos
-            // instantes en los que el feed se puede mover. La primera mirada tras un rato sin eventos es
-            // inmediata; con eventos seguidos, como mucho una cada LEADING_EVAL_MIN_MS.
+        if (isNavigation(event) && engine.coverSpecs(packageName!!).isNotEmpty()) {
+            // Un cambio de pantalla (un toque o una ventana nueva) puede dejar a la vista «Para ti»: se mira al
+            // momento, sin esperar a que se calme, y otra vez en unos instantes, por si el árbol aún es el viejo.
+            // El resto de eventos sigue el ritmo de siempre (abajo): no se carga de más al hilo principal.
             val sinceLast = SystemClock.elapsedRealtime() - lastEvalAt
             scheduleEvaluation((LEADING_EVAL_MIN_MS - sinceLast).coerceAtLeast(0))
-            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-                event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
-            ) {
-                scheduleFollowUps()
-            }
+            scheduleFollowUps()
             return
         }
         // Instagram emite decenas de eventos por segundo: se evalúa cuando la pantalla se calma,
@@ -320,6 +321,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         scope.cancel()
         handler.removeCallbacks(evaluateRunnable)
         handler.removeCallbacks(expiryRunnable)
+        reader.shutdownNow()
         handler.removeCallbacks(feedSwitchRunnable)
         handler.removeCallbacks(shadeRunnable)
         handler.removeCallbacks(followUpRunnable)
@@ -344,6 +346,26 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         return !before && session.scrolled
     }
 
+    /** Lee la pantalla en un hilo aparte: leer el árbol de Instagram son cientos de llamadas y bloqueaba el dibujo. */
+    private val reader = Executors.newSingleThreadExecutor()
+    private var reading = false
+    private var readAgain = false
+
+    /** Sube cada vez que se quita algo desde fuera (salir, apagar, tocar...): una lectura vieja ya no vale. */
+    private var generation = 0
+
+    /** Lo que se ha leído de la pantalla, listo para decidir en el hilo principal. */
+    private sealed interface Read {
+        data object NoRoot : Read
+
+        data object VolumePanel : Read
+
+        data object NotWatched : Read
+
+        data class Screen(val root: AccessibilityNodeInfo, val packageName: String, val snapshot: ScreenSnapshot) :
+            Read
+    }
+
     private fun evaluateCurrentScreen() {
         pendingSince = null
         lastEvalAt = SystemClock.elapsedRealtime()
@@ -363,37 +385,72 @@ class TouchGrassAccessibilityService : AccessibilityService() {
             hideCover(keepSilence = true)
             return
         }
-        // A veces la ventana activa no está disponible un instante: entonces no se cambia nada.
-        val root = appRoot()
-        if (root == null) {
-            // Con la capa puesta no puede quedarse congelada: se sigue mirando y, si la ventana no
-            // vuelve en un momento, se quita.
-            if (feedCover.isShowing) {
-                if (++nullRoots >= MAX_NULL_ROOTS) hideCover() else scheduleEvaluation(COVER_POLL_MS)
+        // Una lectura a la vez: si llega otra petición mientras se lee, se vuelve a leer al acabar.
+        if (reading) {
+            readAgain = true
+            return
+        }
+        reading = true
+        val startedAt = generation
+        reader.execute {
+            val read = runCatching { readScreen() }.getOrDefault(Read.NoRoot)
+            handler.post {
+                reading = false
+                if (startedAt != generation) {
+                    // Algo quitó la capa mientras se leía: lo leído ya es viejo. Se vuelve a leer.
+                    scheduleEvaluation(0)
+                } else {
+                    applyRead(read)
+                    if (readAgain) {
+                        readAgain = false
+                        scheduleEvaluation(0)
+                    }
+                }
             }
-            return
         }
-        nullRoots = 0
-        if (root.packageName?.toString() !in engine.packages && isVolumePanel(root)) {
-            // El panel de volumen es una ventana del sistema (en Xiaomi, `miui.systemui.plugin`, a pantalla
-            // completa): no es salir de la app. La capa y la pausa se quedan, y el silencio también.
-            if (feedCover.isShowing) {
-                feedCover.enforceSilence()
-                scheduleEvaluation(COVER_POLL_MS)
-            }
-            return
-        }
-        if (root.packageName?.toString() !in engine.packages) {
-            // Solo recibimos eventos de Instagram: si el usuario se ha ido, la pantalla no debe quedarse.
-            confirmation.reset()
-            heldRule = null
-            overlay.hide()
-            hideCover()
-            return
-        }
+    }
 
-        val packageName = root.packageName.toString()
-        val snapshot = SnapshotBuilder.build(root, engine.texts(packageName), engine.coverSpecs(packageName))
+    /** La parte pesada: ventana de la app y su árbol. Se hace fuera del hilo principal. */
+    private fun readScreen(): Read {
+        val root = appRoot() ?: return Read.NoRoot
+        val pkg = root.packageName?.toString() ?: return Read.NotWatched
+        if (pkg !in engine.packages) return if (isVolumePanel(root)) Read.VolumePanel else Read.NotWatched
+        return Read.Screen(root, pkg, SnapshotBuilder.build(root, engine.texts(pkg), engine.coverSpecs(pkg)))
+    }
+
+    /** Decide y actúa con lo leído, en el hilo principal. */
+    private fun applyRead(read: Read) {
+        if (!power.isInteractive || keyguard.isKeyguardLocked || shadeOpen) return
+        if (read !is Read.NoRoot) nullRoots = 0
+        when (read) {
+            // A veces la ventana activa no está disponible un instante: entonces no se cambia nada.
+            Read.NoRoot -> {
+                // Con la capa puesta no puede quedarse congelada: se sigue mirando y, si la ventana no
+                // vuelve en un momento, se quita.
+                if (feedCover.isShowing) {
+                    if (++nullRoots >= MAX_NULL_ROOTS) hideCover() else scheduleEvaluation(COVER_POLL_MS)
+                }
+            }
+            Read.VolumePanel -> {
+                // El panel de volumen es una ventana del sistema (en Xiaomi, `miui.systemui.plugin`, a pantalla
+                // completa): no es salir de la app. La capa y la pausa se quedan, y el silencio también.
+                if (feedCover.isShowing) {
+                    feedCover.enforceSilence()
+                    scheduleEvaluation(COVER_POLL_MS)
+                }
+            }
+            Read.NotWatched -> {
+                // Solo recibimos eventos de Instagram: si el usuario se ha ido, la pantalla no debe quedarse.
+                confirmation.reset()
+                heldRule = null
+                overlay.hide()
+                hideCover()
+            }
+            is Read.Screen -> applyScreen(read.root, read.packageName, read.snapshot)
+        }
+    }
+
+    private fun applyScreen(root: AccessibilityNodeInfo, packageName: String, snapshot: ScreenSnapshot) {
         val now = SystemClock.elapsedRealtime()
         BlockPolicy.track(engine, session, snapshot, now)
 
@@ -512,6 +569,11 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         list.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
     }
 
+    /** Si [event] es un cambio de pantalla (un toque o una ventana nueva), no un cambio de contenido o un scroll. */
+    private fun isNavigation(event: AccessibilityEvent): Boolean =
+        event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
+
     /** Si [event] es el toque de una pestaña que bloquea con pausa (la que mira alguna regla marcada como seleccionada). */
     private fun isPauseTab(event: AccessibilityEvent, packageName: String): Boolean {
         val id = event.source?.viewIdResourceName ?: return false
@@ -525,8 +587,13 @@ class TouchGrassAccessibilityService : AccessibilityService() {
      * activada pueden ser la «ventana activa» sin que el usuario haya salido de la app. El panel de
      * notificaciones se vigila aparte ([checkShade]).
      */
-    private fun appRoot(): AccessibilityNodeInfo? =
-        windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }?.root ?: rootInActiveWindow
+    private fun appRoot(): AccessibilityNodeInfo? {
+        val active = rootInActiveWindow
+        val pkg = active?.packageName?.toString()
+        // Lo normal (la ventana activa es la de la app): sin tocar la lista de ventanas, que cuesta más.
+        if (active != null && pkg != packageName && pkg != SYSTEM_UI && pkg != MIUI_SYSTEM_UI_PLUGIN) return active
+        return windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }?.root ?: active
+    }
 
     /**
      * Mira si el panel de notificaciones está abierto y, si lo está, quita la capa y vuelve a mirar cada
@@ -573,6 +640,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
 
     /** Quita la capa de Inicio. Con [keepSilence], el sonido vuelve al siguiente quitar. */
     private fun hideCover(keepSilence: Boolean = false) {
+        generation++
         if (keepSilence) feedCover.hideKeepingSilence() else feedCover.hide()
     }
 
@@ -757,8 +825,9 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         const val OVERLAY_POLL_MS = 200L
 
         /** Con la capa de Inicio se mira más a menudo: debe irse al momento al cambiar de pantalla. */
-        const val COVER_POLL_MS = 100L
+        const val COVER_POLL_MS = 150L
         const val COVER_EVAL_MIN_MS = 50L
+        const val COVER_CONTENT_EVAL_MS = 200L
 
         /** Tras quitar la capa por un toque o un cambio de ventana, cuándo se vuelve a mirar si sigue en «Para ti». */
         const val COVER_RECHECK_MS = 150L
@@ -775,6 +844,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         /** Lo mínimo entre dos toques de la pestaña de Inicio (recarga el feed). */
         const val TAB_CLICK_GAP_MS = 1_500L
         const val SYSTEM_UI = "com.android.systemui"
+        const val MIUI_SYSTEM_UI_PLUGIN = "miui.systemui.plugin"
 
         /** Miradas seguidas sin ventana activa tras las que se quita la capa de Inicio (~0,5 s). */
         const val MAX_NULL_ROOTS = 5
