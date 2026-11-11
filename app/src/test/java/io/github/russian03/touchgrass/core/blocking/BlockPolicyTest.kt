@@ -300,7 +300,7 @@ class BlockPolicyTest {
             description = "Inicio en Para ti",
             match = Match(allOf = listOf(Condition("home_tab", selected = true), Condition("header"))),
             action = Action.Click("home_tab"),
-            cover = CoverSpec(stories = "stories", header = "header", nav = "home_tab"),
+            cover = CoverSpec(header = "header", nav = "home_tab"),
         )
 
     private val coverEngine = RuleEngine(listOf(RuleSet(1, APP, listOf(coverRule))))
@@ -310,9 +310,10 @@ class BlockPolicyTest {
         APP,
         listOf(ViewNode("home_tab", selected = true), ViewNode("header")),
         screen,
-        storiesBottom = 695,
         headerBottom = 300,
+        navLeft = 78,
         navTop = navTop,
+        navBottom = 2647,
     )
 
     private fun decideCover(
@@ -326,7 +327,14 @@ class BlockPolicyTest {
     fun `una regla con cover da Cover con su zona`() {
         val decision = decideCover(homeCover())
 
-        assertThat(decision).isEqualTo(BlockDecision.Cover(coverRule, Bounds(0, 695, 1220, 2491)))
+        assertThat(decision)
+            .isEqualTo(
+                BlockDecision.Cover(
+                    coverRule,
+                    Bounds(0, 300, 1220, 2491),
+                    listOf(Bounds(0, 2647, 1220, 2712), Bounds(0, 2491, 78, 2647), Bounds(1142, 2491, 1220, 2647)),
+                ),
+            )
     }
 
     @Test

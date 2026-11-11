@@ -109,9 +109,17 @@ class InstagramRulesTest {
 
     private val screenBounds = Bounds(0, 0, 1220, 2712)
 
-    /** Posiciones de Instagram 454.0.0.54.77, Android 15 (1220x2712): historias, cabecera y barra. */
-    private fun ScreenSnapshot.withPositions(storiesBottom: Int? = 695) =
-        copy(screen = screenBounds, storiesBottom = storiesBottom, headerBottom = 300, navTop = 2491)
+    /** Posiciones de Instagram 454.0.0.54.77, Android 15 (1220x2712): cabecera, lista y barra de navegación. */
+    private fun ScreenSnapshot.withPositions(headerBottom: Int? = 300) = copy(
+        screen = screenBounds,
+        headerBottom = headerBottom,
+        listTop = 118,
+        navLeft = 78,
+        navTop = 2491,
+        navBottom = 2647,
+        titleLeft = 156,
+        titleRight = 1064,
+    )
 
     private fun zone(snapshot: ScreenSnapshot) = CoverZone.of(snapshot)
 
@@ -125,12 +133,22 @@ class InstagramRulesTest {
                 "row_feed_view_group_buttons,row_feed_button_like,row_feed_button_comment,row_feed_button_share",
         ).withPositions()
 
-    /** Inicio en «Para ti» ya bajado: las historias salieron de pantalla. */
+    /**
+     * Inicio recién abierto (Instagram 454.0.0.54.77, Android 15): ninguna pestaña figura como seleccionada
+     * hasta que el usuario pulsa una; sin ese estado la regla sigue cubriendo.
+     */
+    private val homeParaTiCold =
+        captured(
+            "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab,swipeable_tab_view_pager," +
+                "action_bar_left_button,action_bar_title_view,title_text,android:id/list,outer_container",
+        ).withPositions()
+
+    /** Inicio en «Para ti» ya bajado: la cabecera se esconde y la zona empieza donde la lista. */
     private val homeParaTiScrolled =
         captured(
             "$homeTop,action_bar_left_button,action_bar_title_view,title_text,android:id/list,video_container," +
                 "media_group,row_feed_view_group_buttons,inline_follow_button",
-        ).withPositions(storiesBottom = null)
+        ).withPositions(headerBottom = null)
 
     /** «Siguiendo» (y «Favoritos»): pantalla aparte con flecha de volver y sin barra de navegación. */
     private val followingScreen =
@@ -160,13 +178,26 @@ class InstagramRulesTest {
     @Test
     fun `Inicio en Para ti se cubre`() {
         assertThat(engine.evaluate(homeParaTi, origin = "feed")?.id).isEqualTo("feed_cover")
-        assertThat(zone(homeParaTi)).isEqualTo(Bounds(0, 695, 1220, 2491))
+        assertThat(zone(homeParaTi)).isEqualTo(Bounds(0, 300, 1220, 2491))
     }
 
     @Test
-    fun `Inicio en Para ti sin las historias a la vista se cubre desde la cabecera`() {
+    fun `Inicio en Para ti con el feed bajado se cubre desde la lista`() {
         assertThat(engine.evaluate(homeParaTiScrolled, origin = "feed")?.id).isEqualTo("feed_cover")
-        assertThat(zone(homeParaTiScrolled)).isEqualTo(Bounds(0, 300, 1220, 2491))
+        assertThat(zone(homeParaTiScrolled)).isEqualTo(Bounds(0, 118, 1220, 2491))
+    }
+
+    @Test
+    fun `Inicio recien abierto sin pestaña marcada se cubre`() {
+        assertThat(engine.evaluate(homeParaTiCold, origin = null)?.id).isEqualTo("feed_cover")
+        assertThat(zone(homeParaTiCold)).isEqualTo(Bounds(0, 300, 1220, 2491))
+    }
+
+    @Test
+    fun `otra pestaña marcada con una lista debajo no se cubre`() {
+        val inbox =
+            captured("profile_tab,search_tab,direct_tab*,clips_tab,feed_tab,swipeable_tab_view_pager,android:id/list")
+        assertThat(engine.evaluate(inbox, origin = "inbox")).isNull()
     }
 
     @Test

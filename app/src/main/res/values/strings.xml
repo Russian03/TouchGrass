@@ -7,6 +7,11 @@
     <string name="block_subtitle">El scroll está bloqueado. Sal un rato fuera: el feed puede esperar.</string>
     <string name="block_dismiss">Volver atrás</string>
     <string name="block_open_app">Pedir más minutos</string>
+    <string name="feed_cover_title">*Para ti* queda bloqueado</string>
+    <string name="feed_cover_subtitle">Ese feed no se acaba nunca. En Siguiendo solo ves a quien sigues.</string>
+    <string name="feed_cover_go_following">Ir a Siguiendo</string>
+    <string name="feed_cover_ask_time">Pedir tiempo</string>
+    <string name="feed_cover_exit">Salir de la app</string>
 
     <string name="home_service_on">Protección activa</string>
     <string name="home_service_on_detail">El scroll está bloqueado.</string>

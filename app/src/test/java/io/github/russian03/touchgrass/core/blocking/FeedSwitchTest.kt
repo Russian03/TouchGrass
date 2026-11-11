@@ -71,4 +71,15 @@ class FeedSwitchTest {
         // Sin start() no hay una salida en marcha: el menú de Instagram es del usuario.
         assertThat(feedSwitch.next(nowMs = 0, menuShown = true)).isEqualTo(Step.None)
     }
+
+    @Test
+    fun `esta activa desde que empieza hasta que elige o se rinde`() {
+        assertThat(feedSwitch.isActive).isFalse()
+        feedSwitch.start(nowMs = 0)
+        assertThat(feedSwitch.isActive).isTrue()
+        feedSwitch.next(nowMs = 0, menuShown = false)
+        assertThat(feedSwitch.isActive).isTrue()
+        feedSwitch.next(nowMs = 300, menuShown = true)
+        assertThat(feedSwitch.isActive).isFalse()
+    }
 }

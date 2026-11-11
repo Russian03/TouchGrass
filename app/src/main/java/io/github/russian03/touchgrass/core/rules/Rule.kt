@@ -50,12 +50,15 @@ data class Rule(
 )
 
 /**
- * Qué posiciones se leen para saber dónde va la capa: [stories] es el id de las historias (su borde
- * de abajo es donde empieza la capa), [header] el de la cabecera (donde empieza si no hay historias
- * a la vista) y [nav] el de la barra de navegación (su borde de arriba es donde acaba).
+ * Qué posiciones se leen para saber dónde va la capa: [header] es el id de la cabecera (su borde de abajo
+ * es donde empieza la capa), [list] el de la lista del feed (donde empieza si la cabecera no se ve) y [nav]
+ * el de una pestaña de la barra de navegación (su borde de arriba es donde acaba la capa; sus lados y su
+ * parte de abajo, donde van las franjas que tapan el resto) y [title] el del título de la cabecera (entre
+ * cuyos lados va un escudo transparente que no deja tocarlo ni deslizar por ahí). La capa cubre también
+ * las historias.
  */
 @Serializable
-data class CoverSpec(val stories: String, val header: String, val nav: String)
+data class CoverSpec(val header: String, val nav: String, val list: String? = null, val title: String? = null)
 
 /** Permite la regla si se llega desde [place]; con [untilScroll], solo hasta pasar de página. */
 @Serializable

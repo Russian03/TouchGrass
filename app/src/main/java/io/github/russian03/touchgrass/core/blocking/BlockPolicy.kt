@@ -31,10 +31,16 @@ sealed interface BlockDecision {
     data class SilentBack(val rule: Rule, val confirmationKey: String) : BlockDecision
 
     /**
-     * [rule] (con `cover`) casa y hay zona que cubrir: una capa sobre [zone], sin pausa, sin confirmar
+     * [rule] (con `cover`) casa y hay zona que cubrir: una capa sobre [zone] y, para que el feed no se pueda
+     * mover por los lados de la barra de navegación, otras sobre [edges] y, sobre la cabecera sin tapar sus botones, un escudo transparente ([shields]), sin pausa, sin confirmar
      * ni esperar al enfriamiento, y sin contar nada en las estadísticas.
      */
-    data class Cover(val rule: Rule, val zone: Bounds) : BlockDecision
+    data class Cover(
+        val rule: Rule,
+        val zone: Bounds,
+        val edges: List<Bounds> = emptyList(),
+        val shields: List<Bounds> = emptyList(),
+    ) : BlockDecision
 }
 
 /** Cuándo se pone la pantalla de bloqueo sobre lo que se ve de una app vigilada. */
@@ -82,7 +88,13 @@ object BlockPolicy {
         // Con cover no hay pausa: solo la capa sobre la zona (sin zona fiable = libre).
         rule.cover?.let {
             val zone = CoverZone.of(snapshot)
-            return if (zone == null) BlockDecision.Free() else BlockDecision.Cover(rule, zone)
+            return if (zone ==
+                null
+            ) {
+                BlockDecision.Free()
+            } else {
+                BlockDecision.Cover(rule, zone, CoverZone.edges(snapshot), CoverZone.shields(snapshot))
+            }
         }
         val key = "${snapshot.packageName}/${rule.id}"
         // El atrás silencioso no pone pausa: solo espera si se acaba de salir.

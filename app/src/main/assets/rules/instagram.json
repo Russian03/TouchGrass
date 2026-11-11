@@ -70,8 +70,12 @@
       "id": "feed_cover",
       "description": "Inicio en «Para ti» (se cubre con una pantalla verde)",
       "match": {
-        "allOf": [{ "viewId": "feed_tab", "selected": true }, { "viewId": "action_bar_title_view" }],
+        "allOf": [{ "viewId": "feed_tab" }, { "viewId": "android:id/list" }],
         "noneOf": [
+          { "viewId": "clips_tab", "selected": true },
+          { "viewId": "search_tab", "selected": true },
+          { "viewId": "direct_tab", "selected": true },
+          { "viewId": "profile_tab", "selected": true },
           { "viewId": "clips_viewer_view_pager" },
           { "viewId": "profile_viewpager" },
           { "viewId": "reel_viewer_root" },
@@ -79,7 +83,12 @@
         ]
       },
       "action": { "type": "click", "target": "feed_tab" },
-      "cover": { "stories": "outer_container", "header": "action_bar_left_button", "nav": "feed_tab" }
+      "cover": {
+        "header": "action_bar_left_button",
+        "nav": "feed_tab",
+        "list": "android:id/list",
+        "title": "action_bar_title_view"
+      }
     }
   ]
 }

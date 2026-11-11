@@ -160,7 +160,7 @@ private fun Modifier.appear(progress: Float, rise: Float, slide: Float = 0f): Mo
 
 /** Enlace discreto, sin fondo: al pulsarlo solo se oscurece el texto. */
 @Composable
-private fun TextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun TextLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     Text(

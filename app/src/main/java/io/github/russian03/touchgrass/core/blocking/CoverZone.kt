@@ -3,7 +3,7 @@ package io.github.russian03.touchgrass.core.blocking
 import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 
-/** Dónde va la capa verde de Inicio: del borde de abajo de las historias al borde de arriba de la barra. */
+/** Dónde va la capa verde de Inicio: del borde de abajo de la cabecera al borde de arriba de la barra (incluye las historias). */
 object CoverZone {
     /** Menos de esta parte de la pantalla es que algo (teclado, hoja) la ha encogido: no se cubre. */
     private const val MIN_SHARE = 0.30
@@ -13,14 +13,45 @@ object CoverZone {
 
     /**
      * Zona a cubrir en [snapshot], recortada a la pantalla, o `null` si falta alguna posición o la zona
-     * no es creíble. Sin historias a la vista empieza bajo la cabecera.
+     * no es creíble. Con el feed bajado la cabecera no se ve: empieza donde empieza la lista.
      */
     fun of(snapshot: ScreenSnapshot): Bounds? {
         val screen = snapshot.screen ?: return null
         val navTop = snapshot.navTop ?: return null
-        val top = snapshot.storiesBottom ?: snapshot.headerBottom ?: return null
+        val top = snapshot.headerBottom ?: snapshot.listTop ?: return null
         val zone = Bounds(screen.left, top, screen.right, navTop).intersect(screen) ?: return null
         val share = zone.height.toDouble() / screen.height
         return zone.takeIf { share in MIN_SHARE..MAX_SHARE }
+    }
+
+    /**
+     * Franjas que tapan lo que la barra de navegación deja al aire (sus márgenes laterales y lo que hay
+     * debajo): por ahí el feed se podría seguir moviendo. Vacío si no se conocen las medidas de la barra.
+     */
+    fun edges(snapshot: ScreenSnapshot): List<Bounds> {
+        val screen = snapshot.screen ?: return emptyList()
+        val left = snapshot.navLeft ?: return emptyList()
+        val top = snapshot.navTop ?: return emptyList()
+        val bottom = snapshot.navBottom ?: return emptyList()
+        val right = screen.right - (left - screen.left)
+        return listOfNotNull(
+            Bounds(screen.left, bottom, screen.right, screen.bottom).takeIf { bottom < screen.bottom },
+            Bounds(screen.left, top, left, bottom).takeIf { left > screen.left && bottom > top },
+            Bounds(right, top, screen.right, bottom).takeIf { right < screen.right && bottom > top },
+        )
+    }
+
+    /**
+     * Escudos transparentes: la cabecera se deja tocable solo en sus botones; el título (el selector de
+     * «Para ti») y los huecos entre ellos no se pueden tocar ni deslizar. Vacío si la cabecera no se ve o no
+     * se conocen los lados del título.
+     */
+    fun shields(snapshot: ScreenSnapshot): List<Bounds> {
+        val screen = snapshot.screen ?: return emptyList()
+        val top = snapshot.listTop ?: return emptyList()
+        val bottom = snapshot.headerBottom ?: return emptyList()
+        val left = snapshot.titleLeft ?: return emptyList()
+        val right = snapshot.titleRight ?: return emptyList()
+        return listOfNotNull(Bounds(left, top, right, bottom).intersect(screen))
     }
 }

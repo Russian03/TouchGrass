@@ -14,8 +14,8 @@ internal object SnapshotBuilder {
 
     /**
      * [texts]: por identificador, los textos que interesan; cualquier otro texto se ignora.
-     * [covers]: reglas con capa, de las que, además, se leen tres posiciones (historias, cabecera y barra
-     * de navegación) y la pantalla; nunca contenido.
+     * [covers]: reglas con capa, de las que, además, se leen unas posiciones (cabecera, lista y barra de
+     * navegación) y la pantalla; nunca contenido.
      */
     fun build(
         root: AccessibilityNodeInfo,
@@ -27,9 +27,10 @@ internal object SnapshotBuilder {
         val nodes = mutableListOf<ViewNode>()
         val stack = ArrayDeque<AccessibilityNodeInfo>().apply { add(root) }
         var visited = 0
-        var storiesBottom: Int? = null
         var headerBottom: Int? = null
-        var navTop: Int? = null
+        var listTop: Int? = null
+        var nav: Bounds? = null
+        var title: Bounds? = null
 
         while (stack.isNotEmpty() && visited < MAX_NODES) {
             val node = stack.removeLast()
@@ -41,10 +42,10 @@ internal object SnapshotBuilder {
                 ?.let { id ->
                     for (spec in covers) {
                         when (id) {
-                            // Las historias son varias vistas: vale el borde más bajo.
-                            spec.stories -> storiesBottom = maxOf(storiesBottom ?: Int.MIN_VALUE, boundsOf(node).bottom)
                             spec.header -> headerBottom = headerBottom ?: boundsOf(node).bottom
-                            spec.nav -> navTop = navTop ?: boundsOf(node).top
+                            spec.list -> listTop = listTop ?: boundsOf(node).top
+                            spec.nav -> nav = nav ?: boundsOf(node)
+                            spec.title -> title = title ?: boundsOf(node)
                         }
                     }
                     val text = texts[id]?.let { wanted -> node.text?.toString()?.takeIf { it in wanted } }
@@ -56,7 +57,18 @@ internal object SnapshotBuilder {
             }
         }
         val screen = if (covers.isEmpty()) null else boundsOf(root)
-        return ScreenSnapshot(packageName, nodes, screen, storiesBottom, headerBottom, navTop)
+        return ScreenSnapshot(
+            packageName,
+            nodes,
+            screen,
+            headerBottom,
+            listTop,
+            nav?.left,
+            nav?.top,
+            nav?.bottom,
+            title?.left,
+            title?.right,
+        )
     }
 
     private fun boundsOf(node: AccessibilityNodeInfo): Bounds {

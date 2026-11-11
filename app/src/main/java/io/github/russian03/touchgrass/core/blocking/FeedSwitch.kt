@@ -22,6 +22,9 @@ class FeedSwitch {
     private var phase = Phase.IDLE
     private var openedAtMs = 0L
 
+    /** Hay una salida en marcha (empezada y aún sin elegir «Siguiendo» ni rendirse). */
+    val isActive: Boolean get() = phase == Phase.STARTED || phase == Phase.WAITING_MENU
+
     /** Se rindió porque el menú no salió a tiempo. */
     val gaveUp: Boolean get() = phase == Phase.GAVE_UP
 

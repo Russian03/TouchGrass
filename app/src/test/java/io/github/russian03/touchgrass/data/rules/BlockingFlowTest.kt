@@ -348,8 +348,16 @@ class BlockingFlowTest {
 
     private val screenBounds = Bounds(0, 0, 1220, 2712)
 
-    private fun ScreenSnapshot.withPositions(storiesBottom: Int? = 695) =
-        copy(screen = screenBounds, storiesBottom = storiesBottom, headerBottom = 300, navTop = 2491)
+    private fun ScreenSnapshot.withPositions() = copy(
+        screen = screenBounds,
+        headerBottom = 300,
+        listTop = 118,
+        navLeft = 78,
+        navTop = 2491,
+        navBottom = 2647,
+        titleLeft = 156,
+        titleRight = 1064,
+    )
 
     private fun zoneOf(decision: BlockDecision) = (decision as BlockDecision.Cover).zone
 
@@ -371,7 +379,19 @@ class BlockingFlowTest {
         val decision = look(homeParaTi, at = 0)
 
         assertThat(decision).isInstanceOf(BlockDecision.Cover::class.java)
-        assertThat(zoneOf(decision)).isEqualTo(Bounds(0, 695, 1220, 2491))
+        assertThat(zoneOf(decision)).isEqualTo(Bounds(0, 300, 1220, 2491))
+        assertThat((decision as BlockDecision.Cover).shields).containsExactly(Bounds(156, 118, 1064, 300))
+    }
+
+    @Test
+    fun `Inicio recien abierto sin pestaña marcada se cubre`() {
+        val cold =
+            captured(
+                "profile_tab,search_tab,direct_tab,notification,clips_tab,feed_tab,swipeable_tab_view_pager," +
+                    "action_bar_left_button,action_bar_title_view,android:id/list,outer_container",
+            ).withPositions()
+
+        assertThat(look(cold, at = 0)).isInstanceOf(BlockDecision.Cover::class.java)
     }
 
     @Test
