@@ -2,7 +2,11 @@ package io.github.russian03.touchgrass.overlay
 
 import android.accessibilityservice.AccessibilityService
 import android.animation.ValueAnimator
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PixelFormat
+import android.graphics.RectF
 import android.os.Build
 import android.view.Gravity
 import android.view.KeyEvent
@@ -16,6 +20,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import io.github.russian03.touchgrass.core.blocking.NavFrame
 import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.ui.theme.Lime
 
@@ -39,6 +44,7 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
     private var main: Panel? = null
     private var edges: List<Panel> = emptyList()
     private var shields: List<Panel> = emptyList()
+    private var framePanel: Panel? = null
     private var lifecycleOwner: OverlayLifecycleOwner? = null
     private var silent = false
     private var backCallback: Any? = null
@@ -51,12 +57,14 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
 
     /**
      * Pone la capa sobre [zone], las franjas sobre [edgeZones] y los escudos transparentes sobre [shieldZones]
-     * (o los mueve si ya estaban). [onFollowing], [onAskTime] y [onExit] son los botones de la capa principal.
+     * (o los mueve si ya estaban). Con [frame] (la barra de navegación es una pastilla), las franjas solo tragan toques y
+     * el marco liso con hueco redondeado rodea la pastilla. [onFollowing], [onAskTime] y [onExit] son los botones de la capa principal.
      */
     fun show(
         zone: Bounds,
         edgeZones: List<Bounds>,
         shieldZones: List<Bounds>,
+        frame: NavFrame?,
         onFollowing: () -> Unit,
         onAskTime: () -> Unit,
         onExit: () -> Unit,
@@ -65,7 +73,7 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         val current = main
         if (current != null) {
             move(current, zone)
-            syncPanels(edgeZones, shieldZones)
+            syncPanels(edgeZones, shieldZones, frame)
             return
         }
         val owner = OverlayLifecycleOwner().also { it.start() }
@@ -79,7 +87,7 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         main = add(root, zone, focusable = true)
         registerBack(root, onBack)
         lifecycleOwner = owner
-        syncPanels(edgeZones, shieldZones)
+        syncPanels(edgeZones, shieldZones, frame)
         silencer.silence(this)
         silent = true
     }
@@ -107,7 +115,7 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
     }
 
     private fun remove() {
-        val panels = listOfNotNull(main) + edges + shields
+        val panels = listOfNotNull(main, framePanel) + edges + shields
         main?.let { unregisterBack(it.view) }
         fades.forEach { it.cancel() }
         fades.clear()
@@ -115,6 +123,7 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         main = null
         edges = emptyList()
         shields = emptyList()
+        framePanel = null
         lifecycleOwner = null
         // Se retiran siempre, aunque aún no estén colocadas: dejarían una ventana invisible tragando toques.
         panels.forEach { panel ->
@@ -127,9 +136,63 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         owner?.destroy()
     }
 
-    private fun syncPanels(edgeZones: List<Bounds>, shieldZones: List<Bounds>) {
-        edges = sync(edges, edgeZones, transparent = false)
+    private fun syncPanels(edgeZones: List<Bounds>, shieldZones: List<Bounds>, frame: NavFrame?) {
+        // Con marco, las franjas ya no se ven (lo liso lo pone el marco): solo tragan toques.
+        edges = sync(edges, edgeZones, transparent = frame != null)
         shields = sync(shields, shieldZones, transparent = true)
+        syncFrame(frame)
+    }
+
+    /** Pone, mueve o quita el marco liso de la pastilla de navegación; no coge toques. */
+    private fun syncFrame(frame: NavFrame?) {
+        val current = framePanel
+        if (frame == null) {
+            current?.let {
+                try {
+                    windowManager.removeViewImmediate(it.view)
+                } catch (_: IllegalArgumentException) {
+                    // Ya no estaba en el WindowManager.
+                }
+            }
+            framePanel = null
+            return
+        }
+        if (current == null) {
+            framePanel = add(PillFrameView(frame), frame.area, touchable = false)
+            return
+        }
+        move(current, frame.area)
+        (current.view as PillFrameView).frame = frame
+    }
+
+    /** Lima con un hueco redondeado: la pastilla de Instagram se ve entera dentro. Solo dibuja. */
+    private inner class PillFrameView(frame: NavFrame) : View(service) {
+        var frame: NavFrame = frame
+            set(value) {
+                field = value
+                invalidate()
+            }
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Lime.toArgb() }
+        private val path = Path().apply { fillType = Path.FillType.EVEN_ODD }
+
+        override fun onDraw(canvas: Canvas) {
+            val area = frame.area
+            val hole = frame.hole
+            path.reset()
+            path.addRect(0f, 0f, (area.right - area.left).toFloat(), area.height.toFloat(), Path.Direction.CW)
+            path.addRoundRect(
+                RectF(
+                    (hole.left - area.left).toFloat(),
+                    (hole.top - area.top).toFloat(),
+                    (hole.right - area.left).toFloat(),
+                    (hole.bottom - area.top).toFloat(),
+                ),
+                frame.radius.toFloat(),
+                frame.radius.toFloat(),
+                Path.Direction.CW,
+            )
+            canvas.drawPath(path, paint)
+        }
     }
 
     /** Deja un panel por cada zona de [zones]: crea los que faltan, mueve los que hay y quita los que sobran. */
@@ -152,9 +215,15 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         if (!transparent) setBackgroundColor(Lime.toArgb())
     }
 
-    private fun add(view: View, zone: Bounds, transparent: Boolean = false, focusable: Boolean = false): Panel {
+    private fun add(
+        view: View,
+        zone: Bounds,
+        transparent: Boolean = false,
+        focusable: Boolean = false,
+        touchable: Boolean = true,
+    ): Panel {
         // Translúcida (no opaca) para poder entrar con un fundido; los escudos no se ven nunca.
-        val params = layoutParams(PixelFormat.TRANSLUCENT, focusable).also { place(it, zone) }
+        val params = layoutParams(PixelFormat.TRANSLUCENT, focusable, touchable).also { place(it, zone) }
         val blurs =
             focusable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && windowManager.isCrossWindowBlurEnabled
         if (blurs) params.flags = params.flags or WindowManager.LayoutParams.FLAG_BLUR_BEHIND
@@ -206,7 +275,7 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
         layout.height = zone.height
     }
 
-    private fun layoutParams(format: Int, focusable: Boolean) = WindowManager.LayoutParams(
+    private fun layoutParams(format: Int, focusable: Boolean, touchable: Boolean) = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
@@ -219,7 +288,8 @@ internal class FeedCoverOverlay(private val service: AccessibilityService, priva
             }
             ) or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+            (if (touchable) 0 else WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE),
         format,
     ).apply {
         gravity = Gravity.TOP or Gravity.START

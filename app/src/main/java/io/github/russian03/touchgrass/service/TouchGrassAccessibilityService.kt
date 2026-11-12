@@ -415,7 +415,11 @@ class TouchGrassAccessibilityService : AccessibilityService() {
         val root = appRoot() ?: return Read.NoRoot
         val pkg = root.packageName?.toString() ?: return Read.NotWatched
         if (pkg !in engine.packages) return if (isVolumePanel(root)) Read.VolumePanel else Read.NotWatched
-        return Read.Screen(root, pkg, SnapshotBuilder.build(root, engine.texts(pkg), engine.coverSpecs(pkg)))
+        return Read.Screen(
+            root,
+            pkg,
+            SnapshotBuilder.build(root, engine.texts(pkg), engine.coverSpecs(pkg), resources.displayMetrics.density),
+        )
     }
 
     /** Decide y actúa con lo leído, en el hilo principal. */
@@ -488,6 +492,7 @@ class TouchGrassAccessibilityService : AccessibilityService() {
                     decision.zone,
                     decision.edges,
                     decision.shields,
+                    decision.frame,
                     onFollowing = ::goFollowing,
                     onAskTime = {
                         openTouchGrass(this)

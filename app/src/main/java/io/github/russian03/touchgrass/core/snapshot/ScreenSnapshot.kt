@@ -14,12 +14,18 @@ data class ScreenSnapshot(
     val headerBottom: Int? = null,
     /** Borde de arriba de la lista del feed; `null` si no se ha leído. */
     val listTop: Int? = null,
-    /** Borde izquierdo de la barra de navegación (las pestañas); el derecho es simétrico. */
+    /** Borde izquierdo de la barra de navegación (con `navRounded`, la pastilla entera); el derecho es simétrico. */
     val navLeft: Int? = null,
     /** Borde de arriba de la barra de navegación; `null` si no se ha leído. */
     val navTop: Int? = null,
     /** Borde de abajo de la barra de navegación (las pestañas); `null` si no se ha leído. */
     val navBottom: Int? = null,
+    /** La barra de navegación (`navLeft`…`navBottom`) es una pastilla redondeada del todo, no un rectángulo. */
+    val navRounded: Boolean = false,
+    /** Lo que sí se toca de la barra: sus pestañas (izquierda, arriba, abajo; la derecha es simétrica). `null` = la barra entera. */
+    val tabsLeft: Int? = null,
+    val tabsTop: Int? = null,
+    val tabsBottom: Int? = null,
     /** Bordes izquierdo y derecho del título de la cabecera (entre sus botones); `null` si no se han leído. */
     val titleLeft: Int? = null,
     val titleRight: Int? = null,

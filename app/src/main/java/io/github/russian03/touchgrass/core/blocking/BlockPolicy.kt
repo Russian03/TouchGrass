@@ -32,7 +32,7 @@ sealed interface BlockDecision {
 
     /**
      * [rule] (con `cover`) casa y hay zona que cubrir: una capa sobre [zone] y, para que el feed no se pueda
-     * mover por los lados de la barra de navegación, otras sobre [edges] y, sobre la cabecera sin tapar sus botones, un escudo transparente ([shields]), sin pausa, sin confirmar
+     * mover por los lados de la barra de navegación, otras sobre [edges] y, sobre la cabecera sin tapar sus botones, un escudo transparente ([shields]) y, si la barra es una pastilla, un [frame] liso que la rodea (las [edges] solo tragan toques), sin pausa, sin confirmar
      * ni esperar al enfriamiento, y sin contar nada en las estadísticas.
      */
     data class Cover(
@@ -40,6 +40,7 @@ sealed interface BlockDecision {
         val zone: Bounds,
         val edges: List<Bounds> = emptyList(),
         val shields: List<Bounds> = emptyList(),
+        val frame: NavFrame? = null,
     ) : BlockDecision
 }
 
@@ -93,7 +94,13 @@ object BlockPolicy {
             ) {
                 BlockDecision.Free()
             } else {
-                BlockDecision.Cover(rule, zone, CoverZone.edges(snapshot), CoverZone.shields(snapshot))
+                BlockDecision.Cover(
+                    rule,
+                    zone,
+                    CoverZone.edges(snapshot),
+                    CoverZone.shields(snapshot),
+                    CoverZone.frame(snapshot),
+                )
             }
         }
         val key = "${snapshot.packageName}/${rule.id}"

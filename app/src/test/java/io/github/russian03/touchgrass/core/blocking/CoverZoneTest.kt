@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.core.blocking
 
 import com.google.common.truth.Truth.assertThat
+import io.github.russian03.touchgrass.core.rules.PillSpec
 import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import org.junit.Test
@@ -16,6 +17,10 @@ class CoverZoneTest {
         navLeft: Int? = 78,
         navTop: Int? = 2491,
         navBottom: Int? = 2647,
+        navRounded: Boolean = false,
+        tabsLeft: Int? = null,
+        tabsTop: Int? = null,
+        tabsBottom: Int? = null,
         screen: Bounds? = this.screen,
         titleLeft: Int? = 156,
         titleRight: Int? = 1064,
@@ -28,6 +33,10 @@ class CoverZoneTest {
         navLeft = navLeft,
         navTop = navTop,
         navBottom = navBottom,
+        navRounded = navRounded,
+        tabsLeft = tabsLeft,
+        tabsTop = tabsTop,
+        tabsBottom = tabsBottom,
         titleLeft = titleLeft,
         titleRight = titleRight,
     )
@@ -80,12 +89,41 @@ class CoverZoneTest {
     }
 
     @Test
-    fun `tres franjas tapan lo que la barra deja al aire`() {
+    fun `sin pastilla tres franjas tapan lo que la barra deja al aire`() {
         assertThat(CoverZone.edges(snapshot()))
             .containsExactly(
-                Bounds(0, 2647, 1220, 2712),
                 Bounds(0, 2491, 78, 2647),
                 Bounds(1142, 2491, 1220, 2647),
+                Bounds(0, 2647, 1220, 2712),
+            )
+            .inOrder()
+    }
+
+    @Test
+    fun `con pastilla las franjas tapan todo menos las pestañas`() {
+        // Pastilla 52-1168 x 2478-2660; pestañas 78-1142 x 2491-2647 (Instagram 454, densidad 3,25).
+        val edges =
+            CoverZone.edges(
+                snapshot(
+                    navLeft = 52,
+                    navTop = 2478,
+                    navBottom = 2660,
+                    navRounded = true,
+                    tabsLeft = 78,
+                    tabsTop = 2491,
+                    tabsBottom = 2647,
+                ),
+            )
+
+        assertThat(edges)
+            .containsExactly(
+                // Borde de arriba de la pastilla, a todo el ancho: ahí se podía empezar a deslizar por las esquinas.
+                Bounds(0, 2478, 1220, 2491),
+                // Márgenes y puntas de la pastilla a cada lado de las pestañas.
+                Bounds(0, 2491, 78, 2647),
+                Bounds(1142, 2491, 1220, 2647),
+                // Debajo de las pestañas, con el borde de abajo de la pastilla.
+                Bounds(0, 2647, 1220, 2712),
             )
             .inOrder()
     }
@@ -119,5 +157,44 @@ class CoverZoneTest {
     fun `sin saber la pantalla o la lista no hay escudos`() {
         assertThat(CoverZone.shields(snapshot(screen = null))).isEmpty()
         assertThat(CoverZone.shields(snapshot(listTop = null))).isEmpty()
+    }
+
+    @Test
+    fun `la pastilla es las pestañas mas lo que sobresale su fondo en dp`() {
+        // Instagram 454.0.0.54.77 en un móvil de densidad 3,25 (520 dpi): 8 dp a los lados y 4 dp arriba y abajo.
+        val tabs = Bounds(78, 2491, 1142, 2647)
+
+        assertThat(CoverZone.expandNav(tabs, PillSpec(horizontalDp = 8, verticalDp = 4), density = 3.25f))
+            .isEqualTo(Bounds(52, 2478, 1168, 2660))
+    }
+
+    @Test
+    fun `la misma pastilla en otra densidad sale con otras medidas en pixeles pero las mismas en dp`() {
+        // Con densidad 2 las pestañas miden 96 px de alto (48 dp): 8 dp = 16 px y 4 dp = 8 px.
+        val tabs = Bounds(48, 1500, 672, 1596)
+
+        assertThat(CoverZone.expandNav(tabs, PillSpec(8, 4), density = 2f)).isEqualTo(Bounds(32, 1492, 688, 1604))
+    }
+
+    @Test
+    fun `sin medidas de pastilla la barra son las propias pestañas`() {
+        val tabs = Bounds(78, 2491, 1142, 2647)
+
+        assertThat(CoverZone.expandNav(tabs, pill = null, density = 3.25f)).isEqualTo(tabs)
+    }
+
+    @Test
+    fun `el marco tiene el hueco de la pastilla y su radio es la mitad del alto`() {
+        val frame = CoverZone.frame(snapshot(navLeft = 52, navTop = 2478, navBottom = 2660, navRounded = true))
+
+        assertThat(frame)
+            .isEqualTo(NavFrame(Bounds(0, 2478, 1220, 2712), Bounds(52, 2478, 1168, 2660), radius = 91))
+    }
+
+    @Test
+    fun `sin pastilla o sin medidas no hay marco`() {
+        assertThat(CoverZone.frame(snapshot(navRounded = false))).isNull()
+        assertThat(CoverZone.frame(snapshot(navLeft = null, navRounded = true))).isNull()
+        assertThat(CoverZone.frame(snapshot(screen = null, navRounded = true))).isNull()
     }
 }
