@@ -332,7 +332,7 @@ class BlockPolicyTest {
                 BlockDecision.Cover(
                     coverRule,
                     Bounds(0, 300, 1220, 2491),
-                    listOf(Bounds(0, 2647, 1220, 2712), Bounds(0, 2491, 78, 2647), Bounds(1142, 2491, 1220, 2647)),
+                    listOf(Bounds(0, 2491, 78, 2647), Bounds(1142, 2491, 1220, 2647), Bounds(0, 2647, 1220, 2712)),
                 ),
             )
     }

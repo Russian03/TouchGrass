@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.russian03.touchgrass.core.blocking.BlockDecision
 import io.github.russian03.touchgrass.core.blocking.BlockExit
 import io.github.russian03.touchgrass.core.blocking.BlockPolicy
+import io.github.russian03.touchgrass.core.blocking.NavFrame
 import io.github.russian03.touchgrass.core.budget.BudgetPolicy
 import io.github.russian03.touchgrass.core.budget.BudgetState
 import io.github.russian03.touchgrass.core.budget.UnlockSession
@@ -352,9 +353,13 @@ class BlockingFlowTest {
         screen = screenBounds,
         headerBottom = 300,
         listTop = 118,
-        navLeft = 78,
-        navTop = 2491,
-        navBottom = 2647,
+        navLeft = 52,
+        navTop = 2478,
+        navBottom = 2660,
+        navRounded = true,
+        tabsLeft = 78,
+        tabsTop = 2491,
+        tabsBottom = 2647,
         titleLeft = 156,
         titleRight = 1064,
     )
@@ -379,9 +384,20 @@ class BlockingFlowTest {
         val decision = look(homeParaTi, at = 0)
 
         assertThat(decision).isInstanceOf(BlockDecision.Cover::class.java)
-        assertThat(zoneOf(decision)).isEqualTo(Bounds(0, 300, 1220, 2491))
+        assertThat(zoneOf(decision)).isEqualTo(Bounds(0, 300, 1220, 2478))
         assertThat((decision as BlockDecision.Cover).shields)
             .containsExactly(Bounds(0, 0, 1220, 118), Bounds(156, 118, 1064, 300))
+            .inOrder()
+        // La pastilla de la barra (Instagram 454): marco con hueco redondeado y franjas que tragan todo menos las pestañas.
+        assertThat(decision.frame)
+            .isEqualTo(NavFrame(Bounds(0, 2478, 1220, 2712), Bounds(52, 2478, 1168, 2660), radius = 91))
+        assertThat(decision.edges)
+            .containsExactly(
+                Bounds(0, 2478, 1220, 2491),
+                Bounds(0, 2491, 78, 2647),
+                Bounds(1142, 2491, 1220, 2647),
+                Bounds(0, 2647, 1220, 2712),
+            )
             .inOrder()
     }
 

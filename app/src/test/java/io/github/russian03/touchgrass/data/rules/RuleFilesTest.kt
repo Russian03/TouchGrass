@@ -1,6 +1,7 @@
 package io.github.russian03.touchgrass.data.rules
 
 import com.google.common.truth.Truth.assertThat
+import io.github.russian03.touchgrass.core.rules.PillSpec
 import io.github.russian03.touchgrass.core.rules.RuleEngine
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
@@ -93,6 +94,15 @@ class RuleFilesTest {
         val tiktok = RuleRepository.parse(File(rulesDir, "tiktok.json").readText())
         assertThat(instagram.rules.filter { it.cover != null }.map { it.id }).containsExactly("feed_cover")
         assertThat(tiktok.rules.filter { it.cover != null }).isEmpty()
+    }
+
+    @Test
+    fun `feed_cover mide la barra de navegacion como una pastilla de 8 por 4 dp`() {
+        val rule = RuleRepository.parse(File(rulesDir, "instagram.json").readText()).rules.single {
+            it.id ==
+                "feed_cover"
+        }
+        assertThat(rule.cover?.pill).isEqualTo(PillSpec(horizontalDp = 8, verticalDp = 4))
     }
 
     @Test

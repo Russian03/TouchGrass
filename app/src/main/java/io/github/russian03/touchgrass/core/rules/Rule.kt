@@ -55,10 +55,26 @@ data class Rule(
  * el de una pestaña de la barra de navegación (su borde de arriba es donde acaba la capa; sus lados y su
  * parte de abajo, donde van las franjas que tapan el resto) y [title] el del título de la cabecera (entre
  * cuyos lados va un escudo transparente que no deja tocarlo ni deslizar por ahí). La capa cubre también
- * las historias.
+ * las historias. Con [pill], la barra de navegación se mide como la pastilla que es, no como el rectángulo de
+ * sus pestañas.
  */
 @Serializable
-data class CoverSpec(val header: String, val nav: String, val list: String? = null, val title: String? = null)
+data class CoverSpec(
+    val header: String,
+    val nav: String,
+    val list: String? = null,
+    val title: String? = null,
+    val pill: PillSpec? = null,
+)
+
+/**
+ * La barra de navegación es una pastilla redondeada más grande que sus pestañas: su fondo sobresale [horizontalDp]
+ * a cada lado y [verticalDp] arriba y abajo, y es redondeada del todo (radio = mitad del alto). Son medidas de
+ * Instagram en dp: en cualquier móvil con esa versión de Instagram salen igual (se convierten con la densidad).
+ * Sin `pill`, la barra se trata como un rectángulo del tamaño de sus pestañas.
+ */
+@Serializable
+data class PillSpec(val horizontalDp: Int, val verticalDp: Int)
 
 /** Permite la regla si se llega desde [place]; con [untilScroll], solo hasta pasar de página. */
 @Serializable

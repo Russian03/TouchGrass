@@ -2,7 +2,9 @@ package io.github.russian03.touchgrass.service
 
 import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
+import io.github.russian03.touchgrass.core.blocking.CoverZone
 import io.github.russian03.touchgrass.core.rules.CoverSpec
+import io.github.russian03.touchgrass.core.rules.PillSpec
 import io.github.russian03.touchgrass.core.snapshot.Bounds
 import io.github.russian03.touchgrass.core.snapshot.ScreenSnapshot
 import io.github.russian03.touchgrass.core.snapshot.ViewNode
@@ -21,6 +23,7 @@ internal object SnapshotBuilder {
         root: AccessibilityNodeInfo,
         texts: Map<String, Set<String>> = emptyMap(),
         covers: List<CoverSpec> = emptyList(),
+        density: Float = 1f,
     ): ScreenSnapshot {
         val packageName = root.packageName?.toString().orEmpty()
         val idPrefix = "$packageName:id/"
@@ -30,6 +33,7 @@ internal object SnapshotBuilder {
         var headerBottom: Int? = null
         var listTop: Int? = null
         var nav: Bounds? = null
+        var pill: PillSpec? = null
         var title: Bounds? = null
 
         while (stack.isNotEmpty() && visited < MAX_NODES) {
@@ -44,7 +48,10 @@ internal object SnapshotBuilder {
                         when (id) {
                             spec.header -> headerBottom = headerBottom ?: boundsOf(node).bottom
                             spec.list -> listTop = listTop ?: boundsOf(node).top
-                            spec.nav -> nav = nav ?: boundsOf(node)
+                            spec.nav -> if (nav == null) {
+                                nav = boundsOf(node)
+                                pill = spec.pill
+                            }
                             spec.title -> title = title ?: boundsOf(node)
                         }
                     }
@@ -57,12 +64,17 @@ internal object SnapshotBuilder {
             }
         }
         val screen = if (covers.isEmpty()) null else boundsOf(root)
+        val navBar = nav?.let { CoverZone.expandNav(it, pill, density) }
         return ScreenSnapshot(
             packageName,
             nodes,
             screen,
             headerBottom,
             listTop,
+            navBar?.left,
+            navBar?.top,
+            navBar?.bottom,
+            pill != null,
             nav?.left,
             nav?.top,
             nav?.bottom,

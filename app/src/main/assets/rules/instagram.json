@@ -1,5 +1,5 @@
 {
-  "version": 15,
+  "version": 16,
   "packageName": "com.instagram.android",
   "name": "Instagram",
   "blocks": "Reels",
@@ -87,7 +87,8 @@
         "header": "action_bar_left_button",
         "nav": "feed_tab",
         "list": "android:id/list",
-        "title": "action_bar_title_view"
+        "title": "action_bar_title_view",
+        "pill": { "horizontalDp": 8, "verticalDp": 4 }
       }
     }
   ]

@@ -114,9 +114,13 @@ class InstagramRulesTest {
         screen = screenBounds,
         headerBottom = headerBottom,
         listTop = 118,
-        navLeft = 78,
-        navTop = 2491,
-        navBottom = 2647,
+        navLeft = 52,
+        navTop = 2478,
+        navBottom = 2660,
+        navRounded = true,
+        tabsLeft = 78,
+        tabsTop = 2491,
+        tabsBottom = 2647,
         titleLeft = 156,
         titleRight = 1064,
     )
@@ -178,19 +182,19 @@ class InstagramRulesTest {
     @Test
     fun `Inicio en Para ti se cubre`() {
         assertThat(engine.evaluate(homeParaTi, origin = "feed")?.id).isEqualTo("feed_cover")
-        assertThat(zone(homeParaTi)).isEqualTo(Bounds(0, 300, 1220, 2491))
+        assertThat(zone(homeParaTi)).isEqualTo(Bounds(0, 300, 1220, 2478))
     }
 
     @Test
     fun `Inicio en Para ti con el feed bajado se cubre desde la lista`() {
         assertThat(engine.evaluate(homeParaTiScrolled, origin = "feed")?.id).isEqualTo("feed_cover")
-        assertThat(zone(homeParaTiScrolled)).isEqualTo(Bounds(0, 118, 1220, 2491))
+        assertThat(zone(homeParaTiScrolled)).isEqualTo(Bounds(0, 118, 1220, 2478))
     }
 
     @Test
     fun `Inicio recien abierto sin pestaña marcada se cubre`() {
         assertThat(engine.evaluate(homeParaTiCold, origin = null)?.id).isEqualTo("feed_cover")
-        assertThat(zone(homeParaTiCold)).isEqualTo(Bounds(0, 300, 1220, 2491))
+        assertThat(zone(homeParaTiCold)).isEqualTo(Bounds(0, 300, 1220, 2478))
     }
 
     @Test
